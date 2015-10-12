@@ -1,0 +1,32 @@
+
+
+		Bubble Rebel
+
+	a game by Veselin Ruslanov Slavchev
+
+
+	I have used C++ and the Allegro 4.2.3 game programming library
+
+
+
+
+	You play as the Bubble Rebel and your goal is to collect more
+little bubbles than the powerful Evil Bubble. The uneven battle takes
+place in the bathroom.
+
+	You are just a bubble, so touching the floor or the ceiling will
+make you pop! Be careful, because the Evil Bubble has sharp teeth and
+his touch is deadly.
+	
+	The mechanics of the game revolve around gravity and overcoming it.
+When you hold down the space bar the Bubble Rebel holds his breath and
+becomes lighter. Don't hold it for too long, though, the Bubble Rebel has
+to breathe from time to time - watch your breath meter on the left!
+
+	There is acceleration, friction with the air and bouncing off
+walls. Using the left and right arrow keys you can move left and right.
+
+	Resources used:
+- all of the source code was written by me;
+- all of the images and sprites were made by me;
+- all of the sounds and music were made by me;
