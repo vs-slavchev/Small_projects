@@ -1,0 +1,14 @@
+fullscreen= 1
+screenwidth= 1280
+screenheight= 960
+antialiasing= 1
+vsinc= 1
+triplebuffering= 1
+
+
+
+Suggestions to solve video issues:
+
+-try setting fullscreen to off (0)
+-try setting screen width and height to 640 and 480 respectively
+-there is a space char (' ') before the value
