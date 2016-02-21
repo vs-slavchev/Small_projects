@@ -11,4 +11,4 @@ A collection of experiments, prototypes or small projects made in my free time.
 
 5. "TermiteSimulation" -- the classical simultaion showing termites and their simple rules that seem like a complex organisation piling up pieces of wood. Written in C++ and graphics are powered by the Allegro 5 game programming library.
 
-6. "You are the Defender" is a text based RPG game, wrtten in Java and played in the terminal. It has quests, cities, npcs, weapons... but no ending.
+6. "You are the Defender" is a text based RPG game, wrtten in Java and played in the terminal. Explore, fight, complete epic quests, collect artifacts, weapons and armor, talk to characters, gamble, gain the trust of the gods, defend your people!
