@@ -1,0 +1,17 @@
+#execute a command at a given time
+echo "ls -l" | at midnight
+
+#print out paths to files that match the regex
+find . -exec grep -l -e 'myregex' {} \; >> outfile.txt
+
+#remove spaces from filenames and replace them with underscore
+find .  -type f -name "* *" | while read file
+do
+   mv "$file" "${file// /_}"
+done
+
+#convert all input to upper case
+ls | tr a-z A-Z
+
+#list all files modified withing the last 7 days
+find . -mtime -7 -ls
