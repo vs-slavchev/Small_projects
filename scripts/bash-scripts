@@ -1,17 +1,68 @@
-#execute a command at a given time
+# Most of these have been taken off the internet;
+# Links:
+# http://alvinalexander.com/unix/edu/
+# http://www.vogella.com/tutorials/Ubuntu/article.html
+# http://stackoverflow.com/questions/1102986/most-powerful-examples-of-unix-commands-or-scripts-every-programmer-should-know
+# http://www.commandlinefu.com/commands/browse/sort-by-votes
+
+
+# execute a command at a given time
 echo "ls -l" | at midnight
 
-#print out paths to files that match the regex
+# print out paths to files that match the regex
 find . -exec grep -l -e 'myregex' {} \; >> outfile.txt
 
-#remove spaces from filenames and replace them with underscore
+# remove spaces from filenames and replace them with underscore
 find .  -type f -name "* *" | while read file
 do
    mv "$file" "${file// /_}"
 done
 
-#convert all input to upper case
+# convert all input to upper case
 ls | tr a-z A-Z
 
-#list all files modified withing the last 7 days
+# list all files modified withing the last 7 days
 find . -mtime -7 -ls
+
+# find all files which ends with .class recursive in all directories below the current one and delete them
+find . -type f -name "*.class" -exec rm -vf {} \;
+
+# zip all pdf files in the ~/tmp/pdf/ diretory
+zip ~/targetdir/myzip.zip ~/tmp/pdf/*.pdf
+
+# case insensitive search for dirs of files
+find . -iname foo -type d
+find . -iname foo -type f 
+
+# find files with different extensions
+find . -type f \( -name "*.c" -o -name "*.sh" \)
+
+# files that don't match a pattern
+find . -type f -not -name "*.html"
+
+# execute chmod command on found files
+find /usr/local -name "*.html" -type f -exec chmod 644 {} \;
+
+# copy the .mp3 files to another dir
+find . -type f -name "*.mp3" -exec cp {} /tmp/MusicFiles \;
+
+# search the entire FS for a file
+locate file.sh
+locate -i file.sh    #case insensitive
+
+# combine the contents of the first 3 files into the 4th one
+cat file1 file2 file3 > file4
+
+# search for word in multiple files
+grep word *.scala
+
+# find all lines in all files in the current dir with 3 numbers in a row
+grep '[0-9][0-9][0-9]' *
+
+# list processes containing the name, ignoring case
+ps auxwww | grep -i pname
+
+# aliases
+alias html="cd /home/apache/html"
+alias lm="ls -al | more"
+alias ff="find . -type f -name "
