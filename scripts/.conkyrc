@@ -9,7 +9,7 @@ own_window_transparent yes
 own_window_hints undecorated,below,sticky,skip_taskbar,skip_pager
 double_buffer yes
 minimum_size 650 70
-maximum_width 650
+maximum_width 670
 draw_shades yes
 draw_outline no
 draw_borders no
@@ -18,7 +18,7 @@ default_color e0e0e0
 default_shade_color black
 default_outline_color green
 alignment tr
-gap_x 15
+gap_x 50
 gap_y 480
 no_buffers yes
 uppercase no
