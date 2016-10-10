@@ -1,30 +1,82 @@
+import scala.collection.mutable.ListBuffer
+
 class World {
 
-  var places: Map[Int, Location] = _
+  var inventory = ListBuffer.empty[String]
   var playerCoord = 5
 
-  def setUp() = {
-    places = Map(
-      1 -> new Location("a cave entrance", "needle"),
-      2 -> new Location("a small hut"),
-      3 -> new Location("a glade next to a lake", "screwDriver"),
-      4 -> new Location("the workshop of a clockwork craftsman", "tiny rivet"),
-      5 -> new Location("an old tomb. A helm on a stone plate has a moonstone gem on it",
-        "moonstone"),
-      6 -> new Location("the shadow of an old decaying tree on a hill. Its husk is dried out"),
-      7 -> new Location("the market. A lady is selling a strange thin circular object",
-        "quartz plate"),
-      8 -> new Location("the city square.", "gold coin"),
-      9 -> new Location("a metalworkers shop. In a pile of scrap you see a short metal cylinder",
-        "short cylinder")
-    )
-  }
+  // make a indexable list
+  var places: Map[Int, Location] = Map(
+    1 -> Location("cave"),
+    2 -> Location("hut"),
+    3 -> Location("lake"),
+    4 -> Location("craftsman"),
+    5 -> Location("tomb"),
+    6 -> Location("hill"),
+    7 -> Location("market"),
+    8 -> Location("city"),
+    9 -> Location("metalworker")
+  )
+
+  def currentLocation() = places(playerCoord)
 
   def printState() = {
-    places(playerCoord).printInfo()
+    currentLocation().printInfo()
+    if (inventory.nonEmpty) {
+      println(inventory.mkString("Carrying: ", ", ", ".")) // !!
+    }
   }
 
-  def moveTo(coord: Int) = {
-    playerCoord = coord
+  def process(command: String) = {
+    val words = command.split(" ")
+    if (words.length < 2) {
+      println("unknown command")
+    } else {
+      val action = words(0)
+      val subject = words(1)
+
+      action match { // !!
+        case "go" | "move" => goInDirection(subject) // !!
+        case "take" => takeItem(subject)
+        case "drop" => dropItem(subject)
+        case _ => println("unknown action") // !!
+      }
+    }
+  }
+
+  def goInDirection(dir: String): Unit = {
+    dir match {
+      case "up" | "north" => move(-3)
+      case "down" | "south" => move(+3)
+      case "left" | "west" => move(-1)
+      case "right" | "east" => move(+1)
+      case _ => println("unknown direction")
+    }
+  }
+
+  def move(distance: Int) = {
+    val newPosition = playerCoord + distance
+    if (newPosition > 0 && newPosition <= places.keys.max) {
+      playerCoord = newPosition
+    } else {
+      println("You cannot go this way.")
+    }
+  }
+
+  def takeItem(itemName: String): Unit = {
+    moveItem(itemName, currentLocation().items, inventory)
+  }
+
+  def dropItem(itemName: String): Unit = {
+    moveItem(itemName, inventory, currentLocation().items)
+  }
+
+  def moveItem(itemName: String, source: ListBuffer[String], destination: ListBuffer[String]) = {
+    if (source.contains(itemName)) {
+      source -= itemName
+      destination += itemName
+    } else {
+      println("Could not find " + itemName + " here.")
+    }
   }
 }

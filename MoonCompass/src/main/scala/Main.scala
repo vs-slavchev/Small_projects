@@ -6,15 +6,13 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     println("Welcome!")
-
-    world.setUp()
     play()
   }
 
   def play(): Unit = {
     world.printState()
-    val input = StdIn.readInt()
-    world.moveTo(input)
+    val input = StdIn.readLine()
+    world.process(input)
     play()
   }
 }
