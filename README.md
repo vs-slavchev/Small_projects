@@ -5,10 +5,14 @@ A collection of experiments, prototypes or small projects made in my free time.
 
 2. "TermiteSimulation" -- the classical simultaion showing termites and their simple rules that seem like a complex organisation piling up pieces of wood. Written in C++ and graphics are powered by the Allegro 5 game programming library.
 
-3. "Yani Rise to Power" is a 2D game written in C++. Help Yani collect sweets and defeat the evil villain.
+3. "Moon Compass" is a text-based game written is Scala. Used as a learning project to understand the basics of the language.
 
-4. "Anvil Of Destiny" is a text adventure game written in JavaScript. Explore the 3x3 world and be a hero! yay
+4. "Artificial Quest" is an android app that behaves like a 'create your own adventure' game. You have choices which way to go and what to do, and most interestingly the story is told to you trough voice synthesis, so you don't even need to look at the screen. This fits well with the cyberpunk theme.
 
-5. "Bubble Rebel" is a 2D action game written in C++. Absorb other bubbles and be the biggest. Uses the Allegro 4.2.3 lib.
+5. "Yani Rise to Power" is a 2D game written in C++. Help Yani collect sweets and defeat the evil villain.
 
-6. "You are the Defender" is a text based RPG game, wrtten in Java and played in the terminal. Explore, fight, complete epic quests, collect artifacts, weapons and armor, talk to characters, gamble, gain the trust of the gods, defend your people!
+6. "Anvil Of Destiny" is a text adventure game written in JavaScript. Explore the 3x3 world, take and use items, help the people and be a hero!
+
+7. "Bubble Rebel" is a 2D action game written in C++. Absorb other bubbles and be the biggest one. The theme I was limited to was 'bubbles'. Uses the Allegro 4.2.3 lib.
+
+8. "You are the Defender" is a text based RPG game, wrtten in Java and played in the terminal. Explore, fight, complete epic quests, collect artifacts, weapons and armor, talk to characters, gamble, gain the trust of the gods, defend your people!
