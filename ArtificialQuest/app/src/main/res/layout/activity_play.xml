@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_play"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.slavchev.artificialquest.PlayActivity">
+
+    <LinearLayout
+        android:id="@+id/layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <Button
+            android:text="First"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.5"
+            android:id="@+id/btFirst"
+            android:onClick="onClickBtFirst"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:background="@color/colorPrimaryDark" />
+
+        <Button
+            android:text="Second"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.5"
+            android:id="@+id/btSecond"
+            app:layout_constraintTop_toBottomOf="@+id/btFirst"
+            android:onClick="onClickBtSecond"
+            android:background="@color/colorPrimaryDark"
+            style="@style/Widget.AppCompat.Button.Colored" />
+
+        <Button
+            android:text="Third"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.5"
+            android:id="@+id/btThird"
+            app:layout_constraintTop_toBottomOf="@+id/btSecond"
+            android:onClick="onClickBtThird"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:background="@color/colorPrimaryDark" />
+
+        <Button
+            android:text="Repeat"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.15"
+            android:id="@+id/btRepeat"
+            app:layout_constraintTop_toBottomOf="@+id/btThird"
+            android:onClick="onClickBtRepeat"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:background="@color/colorPrimary" />
+    </LinearLayout>
+
+</android.support.constraint.ConstraintLayout>
