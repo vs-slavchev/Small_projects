@@ -23,7 +23,7 @@ class World {
   def printState() = {
     currentLocation().printInfo()
     if (inventory.nonEmpty) {
-      println(inventory.mkString("Carrying: ", ", ", ".")) // !!
+      println(inventory.mkString("Carrying: ", ", ", "."))
     }
   }
 
@@ -31,17 +31,27 @@ class World {
     val words = command.split(" ")
     if (words.length < 2) {
       println("unknown command")
+      printHelp()
     } else {
       val action = words(0)
       val subject = words(1)
 
-      action match { // !!
-        case "go" | "move" => goInDirection(subject) // !!
+      action match {
+        case "go" | "move" => goInDirection(subject)
         case "take" => takeItem(subject)
         case "drop" => dropItem(subject)
-        case _ => println("unknown action") // !!
+        case "use" => useItem(subject)
+        case _ => println("unknown action")
       }
     }
+  }
+
+  def printHelp(): Unit = {
+    println("instructions:\n" +
+      "to move around: go <direction>\n" +
+      "to take an item: take <item name>\n" +
+      "to drop an item: drop <item name>\n" +
+      "to use and item: use <item name>\n")
   }
 
   def goInDirection(dir: String): Unit = {
@@ -79,4 +89,29 @@ class World {
       println("Could not find " + itemName + " here.")
     }
   }
+
+  def useItem(subject: String) = {
+    if (currentLocation().affectedBy(subject)) {
+      places = places + (playerCoord -> Location.affectLocation(currentLocation()))
+      inventory -= subject
+    } else {
+      println("Item not usable here.")
+    }
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

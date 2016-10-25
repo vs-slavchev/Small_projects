@@ -1,45 +1,65 @@
 import scala.collection.mutable.ListBuffer
 
-class Location(texts: (String, String)) {
+class Location(texts: ListBuffer[String]) {
+
+  val name = texts(0)
+  val description = texts(1)
 
   var items = ListBuffer.empty[String]
-  def description() = texts._1
-
-  if (texts._2 != "-") {
-    items += texts._2
+  if (texts(2) != "-") {
+    items += texts(2)
   }
 
+  val itemAffectedBy = texts(3)
+
   def printInfo() = {
-    println("You are in " + description() + ".")
+    println("You are in " + description + ".")
     if (items.nonEmpty) {
       println("Here you see: " + items.mkString(", "))
     }
   }
+
+  def affectedBy(item: String): Boolean = {
+    item == itemAffectedBy
+  }
 }
 
 object Location {
-  val descriptions: Map[String, (String, String)] = Map(
-    "cave" -> ("a cave entrance", "needle"),
-    "hut" -> ("a small hut", "-"),
-    "lake" -> ("a glade next to a lake", "screwdriver"),
-    "craftsman" -> ("the workshop of a clockwork craftsman", "rivet"),
-    "tomb" -> ("an old tomb. A helm on a stone plate has a moonstone gem on it", "moonstone"),
-    "hill" -> ("the shadow of an old decaying tree on a hill. Its husk is dried out", "-"),
-    "market" -> ("the market. A lady is selling a strange thin circular quartz plate", "plate"),
-    "city" -> ("the city square", "coin"),
-    "metalworker" -> ("a metalworkers shop. In a pile of scrap you see a short metal cylinder",
-      "cylinder")
+
+  val descriptions: Map[String, ListBuffer[String]] = Map(
+    "cave" -> ListBuffer("a cave entrance", "ore", "-"),
+    "hut" -> ListBuffer("a small hut", "axe", "-"),
+    "lake" -> ListBuffer("a glade next to a lake", "screwdriver", "-"),
+    "craftsman" -> ListBuffer("the workshop of a clockwork craftsman", "-", "wood"),
+    "tomb" -> ListBuffer("an old tomb. A helm on a stone plate has a moonstone gem on it", "-", "coin"),
+    "hill" -> ListBuffer("the shadow of an old decaying tree on a hill. Its husk is dried out", "-", "axe"),
+    "market" -> ListBuffer("the market. A lady is selling a strange thin circular quartz plate", "-", "letter"),
+    "city" -> ListBuffer("the city square", "letter", "-"),
+    "metalworker" -> ListBuffer("a metalworkers shop. In a pile of scrap you see a short metal cylinder",
+      "-", "ore"),
+    "craftsman with rivet" -> ListBuffer("kekasdf", "rivet", "parts"),
+    "open tomb" -> ListBuffer("fsdf", "moonstone", "-"),
+    "hill with chopped tree" -> ListBuffer("sferhrd", "wood", "-"),
+    "market with reward" -> ListBuffer("sdf", "coin", "-"),
+    "generous metalworker" -> ListBuffer("sdfgdrg", "cylinder", "-"),
+    "helpful craftsman" -> ListBuffer("sdsdfsgrddf1", "compass", "-")
   )
 
-  // use as a map function
   val relations: Map[String, String] = Map(
-    "cave" -> "collapsed cave",
-    "hut" -> "open hut",
-    "hill" -> "grove"
+    "craftsman" -> "craftsman with rivet",
+    "tomb" -> "open tomb",
+    "hill" -> "hill with chopped tree",
+    "market" -> "market with reward",
+    "metalworker" -> "generous metalworker",
+    "craftsman with rivet" -> "helpful craftsman"
   )
 
   def apply(locationName: String): Location = {
-    val texts = descriptions(locationName)
+    val texts = locationName +: descriptions(locationName)
     new Location(texts)
+  }
+
+  def affectLocation(location: Location): Location = {
+      Location(relations(location.name))
   }
 }
