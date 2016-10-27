@@ -27,22 +27,39 @@ class Location(texts: ListBuffer[String]) {
 object Location {
 
   val descriptions: Map[String, ListBuffer[String]] = Map(
-    "cave" -> ListBuffer("a cave entrance", "ore", "-"),
-    "hut" -> ListBuffer("a small hut", "axe", "-"),
-    "lake" -> ListBuffer("a glade next to a lake", "screwdriver", "-"),
-    "craftsman" -> ListBuffer("the workshop of a clockwork craftsman", "-", "wood"),
-    "tomb" -> ListBuffer("an old tomb. A helm on a stone plate has a moonstone gem on it", "-", "coin"),
-    "hill" -> ListBuffer("the shadow of an old decaying tree on a hill. Its husk is dried out", "-", "axe"),
-    "market" -> ListBuffer("the market. A lady is selling a strange thin circular quartz plate", "-", "letter"),
-    "city" -> ListBuffer("the city square", "letter", "-"),
-    "metalworker" -> ListBuffer("a metalworkers shop. In a pile of scrap you see a short metal cylinder",
+    "cave" -> ListBuffer("a cave entrance. Must have been a mine but is now abandoned",
+      "ore", "-"),
+    "hut" -> ListBuffer("a small hut. A lumberjack lives here",
+      "axe", "-"),
+    "lake" -> ListBuffer("a glade next to a lake. There are some tools on a small wooden table" +
+      " here",
+      "screwdriver", "-"),
+    "craftsman" -> ListBuffer("the workshop of a clockwork craftsman. He tells you that he needs" +
+      " a piece of fine old wood for his workbench",
+      "-", "wood"),
+    "tomb" -> ListBuffer("an old tomb. It is sealed and cannot be opened by force",
+      "-","coin"),
+    "hill" -> ListBuffer("the shadow of an old decaying tree on a hill. Its husk is dried and old",
+      "-", "axe"),
+    "market" -> ListBuffer("the market. People are going about their business, but a lady is" +
+      " looking upset and searching for something",
+      "-", "letter"),
+    "city" -> ListBuffer("the city square",
+      "letter", "-"),
+    "metalworker" -> ListBuffer("a metalworkers shop. He can craft a case for your compass if you" +
+      " give him a material",
       "-", "ore"),
-    "craftsman with rivet" -> ListBuffer("kekasdf", "rivet", "parts"),
-    "open tomb" -> ListBuffer("fsdf", "moonstone", "-"),
-    "hill with chopped tree" -> ListBuffer("sferhrd", "wood", "-"),
-    "market with reward" -> ListBuffer("sdf", "coin", "-"),
-    "generous metalworker" -> ListBuffer("sdfgdrg", "cylinder", "-"),
-    "helpful craftsman" -> ListBuffer("sdsdfsgrddf1", "compass", "-")
+    "craftsman with rivet" -> ListBuffer("a workshop of a grateful craftsman",
+      "rivet", "-"),
+    "open tomb" -> ListBuffer("an open tomb. A helm on a stone plate has a moonstone gem on it",
+      "moonstone", "-"),
+    "hill with chopped tree" -> ListBuffer("a hill with a chopped tree",
+      "wood", "-"),
+    "market with reward" -> ListBuffer("the market. The letter was important to the lady and she" +
+      " rewards you for your help",
+      "coin", "-"),
+    "generous metalworker" -> ListBuffer("the metalworker's shop. The cylinder is finished",
+      "cylinder", "-")
   )
 
   val relations: Map[String, String] = Map(
@@ -50,8 +67,7 @@ object Location {
     "tomb" -> "open tomb",
     "hill" -> "hill with chopped tree",
     "market" -> "market with reward",
-    "metalworker" -> "generous metalworker",
-    "craftsman with rivet" -> "helpful craftsman"
+    "metalworker" -> "generous metalworker"
   )
 
   def apply(locationName: String): Location = {

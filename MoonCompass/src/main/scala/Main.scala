@@ -10,9 +10,8 @@ object Main {
   }
 
   def play(): Unit = {
-    world.printState()
-    val input = StdIn.readLine()
-    world.process(input)
+    world.printState
+    world.process(StdIn.readLine())
     play()
   }
 }

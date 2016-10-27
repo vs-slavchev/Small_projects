@@ -5,7 +5,6 @@ class World {
   var inventory = ListBuffer.empty[String]
   var playerCoord = 5
 
-  // make a indexable list
   var places: Map[Int, Location] = Map(
     1 -> Location("cave"),
     2 -> Location("hut"),
@@ -20,7 +19,7 @@ class World {
 
   def currentLocation() = places(playerCoord)
 
-  def printState() = {
+  def printState = {
     currentLocation().printInfo()
     if (inventory.nonEmpty) {
       println(inventory.mkString("Carrying: ", ", ", "."))
@@ -31,7 +30,7 @@ class World {
     val words = command.split(" ")
     if (words.length < 2) {
       println("unknown command")
-      printHelp()
+      printHelp
     } else {
       val action = words(0)
       val subject = words(1)
@@ -41,20 +40,22 @@ class World {
         case "take" => takeItem(subject)
         case "drop" => dropItem(subject)
         case "use" => useItem(subject)
+        case "assemble" | "make" | "create" => createCompass
         case _ => println("unknown action")
       }
     }
   }
 
-  def printHelp(): Unit = {
+  def printHelp = {
     println("instructions:\n" +
       "to move around: go <direction>\n" +
       "to take an item: take <item name>\n" +
       "to drop an item: drop <item name>\n" +
-      "to use and item: use <item name>\n")
+      "to use and item: use <item name>\n" +
+      "to assemble the compass: make compass\n")
   }
 
-  def goInDirection(dir: String): Unit = {
+  def goInDirection(dir: String) = {
     dir match {
       case "up" | "north" => move(-3)
       case "down" | "south" => move(+3)
@@ -64,8 +65,8 @@ class World {
     }
   }
 
-  def move(distance: Int) = {
-    val newPosition = playerCoord + distance
+  def move(amount: Int) = {
+    val newPosition = playerCoord + amount
     if (newPosition > 0 && newPosition <= places.keys.max) {
       playerCoord = newPosition
     } else {
@@ -73,11 +74,11 @@ class World {
     }
   }
 
-  def takeItem(itemName: String): Unit = {
+  def takeItem(itemName: String) = {
     moveItem(itemName, currentLocation().items, inventory)
   }
 
-  def dropItem(itemName: String): Unit = {
+  def dropItem(itemName: String) = {
     moveItem(itemName, inventory, currentLocation().items)
   }
 
@@ -91,27 +92,24 @@ class World {
   }
 
   def useItem(subject: String) = {
-    if (currentLocation().affectedBy(subject)) {
+    if (inventory.contains(subject) && currentLocation().affectedBy(subject)) {
       places = places + (playerCoord -> Location.affectLocation(currentLocation()))
       inventory -= subject
     } else {
       println("Item not usable here.")
     }
   }
+
+  def createCompass = {
+    val parts = List("rivet", "screwdriver", "moonstone", "cylinder")
+
+    if (parts.forall(inventory.contains(_))) {
+      inventory --= parts
+      inventory += "compass"
+    } else {
+      println("You don't have all the parts. Missing:")
+      parts.filterNot(inventory.contains(_)).foreach(println)
+    }
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
