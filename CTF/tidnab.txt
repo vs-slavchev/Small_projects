@@ -1,3 +1,9 @@
+8. find the unique line in the file:
+cat data.txt | sort | uniq -u
+
+9. find the password with = signs in the same line, most of the chars are not human-readable:
+strings data.txt | grep "=="
+
 12. hexdump to file:
 xxd -r data.txt > /tmp/kek/file
 
