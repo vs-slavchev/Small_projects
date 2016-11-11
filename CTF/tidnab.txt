@@ -1,0 +1,17 @@
+12. hexdump to file:
+xxd -r data.txt > /tmp/kek/file
+
+find out what type the file is:
+file filename
+
+decompress the gzip file:
+gzip -d archv.gz
+
+decompress the bzip file:
+bunzip archv
+
+decompress the tar file:
+tar -xf data6
+
+13. we have a ssh key, to use it with -i (identity file):
+ssh -i sshkey.private b14@localhost 
