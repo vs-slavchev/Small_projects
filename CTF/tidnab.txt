@@ -20,4 +20,28 @@ decompress the tar file:
 tar -xf data6
 
 13. we have a ssh key, to use it with -i (identity file):
-ssh -i sshkey.private b14@localhost 
+ssh -i sshkey.private b14@localhost
+
+14. connect with nc:
+nc localhost 30000
+and then send the password
+
+15. connect with ssl:
+openssl s_client localhost:30001
+
+16. scan the port range with nmap:
+nmap -p 31000-32000 localhost
+
+try to connect with openssl s_client to each port,
+save the rsa private key and use it to ssh to the next level.
+Note:
+had to chmod to restrict permissions from 664 to 600
+
+17. use diff
+
+18. ssh-ing kicks me out immediately, but commands to be executed as soon as we connect can be added:
+ssh 18@host cat readme
+
+19. using the binary we can cat the pass for the next level:
+./b20-do cat /etc/b_pass/b20
+ 
