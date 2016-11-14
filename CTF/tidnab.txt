@@ -44,4 +44,28 @@ ssh 18@host cat readme
 
 19. using the binary we can cat the pass for the next level:
 ./b20-do cat /etc/b_pass/b20
- 
+
+20. start listeneing on any port for ex, 4321
+nc -l 4321
+
+then in another shell use the file:
+./suconnect 4321
+
+21. cat /etc/cron.d/cj_b22
+
+it points us to /usr/bin/cj_b22.sh
+reading it we see it cats the pass to some file
+
+22. start like the previous, read the script and see that it hashes the username.
+So execute only the hashing part of the script, but use b23 instead of b22 for the username
+to see the pass for next level.
+
+23. similar, look at the script, see that it execs every script and deletes them.
+make a script that will print /etc/bpass/b24
+
+cat /etc/bpass/b24 > /tmp/kiro/pass.txt
+
+24. bruteforce:
+for x in {0..9999}; do
+    echo UoMYTrfrBFHyQXmg6gzctqAwOmw1IohZ $x | nc localhost 30002 | grep -v -E 'Wrong|Exit|I am';
+done
