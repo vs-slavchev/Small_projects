@@ -1,0 +1,10 @@
+1. search the .html file in the hidden folder:
+grep password file.html
+
+2. check the calls and signals from the file:
+ltrace ./check
+
+look at the compared string run the file using it.
+we are given a shell, go the the passwords folder and look it up
+
+3. 
