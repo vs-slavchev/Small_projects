@@ -67,5 +67,5 @@ cat /etc/bpass/b24 > /tmp/kiro/pass.txt
 
 24. bruteforce:
 for x in {0..9999}; do
-    echo UoMYTrfrBFHyQXmg6gzctqAwOmw1IohZ $x | nc localhost 30002 | grep -v -E 'Wrong|Exit|I am';
+    echo currentLvlPass $x | nc localhost 30002 | grep -v -E 'Wrong|Exit|I am';
 done
