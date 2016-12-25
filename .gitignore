@@ -20,3 +20,6 @@
 # Scala-IDE specific
 */.scala_dependencies
 */.worksheet
+
+# python
+*/__pycache__/
