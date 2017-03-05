@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#sleep 5
+
 today="$(date +'%d-%m')"
 people=""
 
@@ -9,6 +11,6 @@ do
     then
 	people="$people\n$name"
     fi	
-done < birthdays.csv
+done < "$(dirname -- "$0")/birthdays.csv"
 
 notify-send -t 10000 "Birthday today" "$people"
