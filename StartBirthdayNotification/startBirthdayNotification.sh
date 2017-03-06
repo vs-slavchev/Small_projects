@@ -8,7 +8,7 @@ run(){
 
     while IFS=, read name daymonth
     do
-        if [ $daymonth == $today ]
+        if [ "$daymonth" == "$today" ]
         then
 	    people="$people\n$name"
         fi	
