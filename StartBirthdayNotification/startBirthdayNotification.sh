@@ -1,7 +1,7 @@
 #!/bin/bash
 
 run(){
-    sleep 10
+    sleep 8
 
     today="$(date +'%d-%m')"
     people=""
@@ -14,7 +14,10 @@ run(){
         fi	
     done < "$(dirname -- "$0")/birthdays.csv"
 
-    notify-send -t 10000 "Birthday today" "$people"
+    if [ "$people" != "" ]
+    then
+        notify-send -t 10000 "Birthday today" "$people"
+    fi
 }
 
 run &
