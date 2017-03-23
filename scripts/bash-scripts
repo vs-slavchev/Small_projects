@@ -6,6 +6,12 @@
 # http://www.commandlinefu.com/commands/browse/sort-by-votes
 
 
+# substitute all occurrences of the word; g flag means all occurrences
+sed 's/old/new/g' file.txt
+
+# delete lines matching the foo expression, replace 'hello' with 'world'; scripts can be separated with ';'
+sed '/^foo/d ; s/hello/world/' input.txt > output.txt
+
 # execute a command at a given time
 echo "ls -l" | at midnight
 
