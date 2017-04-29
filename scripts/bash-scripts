@@ -72,3 +72,6 @@ ps auxwww | grep -i pname
 alias html="cd /home/apache/html"
 alias lm="ls -al | more"
 alias ff="find . -type f -name "
+
+# use trash-cli to delete files trashed more than 45 days ago
+trash-empty 45
