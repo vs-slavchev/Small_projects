@@ -80,6 +80,9 @@ trash-empty 45
 # example input: text#useful_text
 cut -d '#' -f 2 < temp_log.txt > list1.txt
 
+# only take the 31st, 32nd and 33rd char of each line; first char is 1
+cut -c 31-32 < temp_log.txt > list1.txt
+
 # request the file list1.txt from the remote host and put it at the local Downloads folder
 scp pi@192.168.178.206:~/list1.txt ~/Downloads
 
