@@ -75,3 +75,8 @@ alias ff="find . -type f -name "
 
 # use trash-cli to delete files trashed more than 45 days ago
 trash-empty 45
+
+# for every line in the file use # as the delimiter and with -f take the second part of the line
+# example input: text#useful_text
+cut -d '#' -f 2 < temp_log.txt > list1.txt
+
