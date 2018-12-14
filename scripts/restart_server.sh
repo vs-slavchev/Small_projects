@@ -1,19 +1,19 @@
 #!/bin/bash
 
-echo 'Killing old process...'
+echo -e '\e[36mKilling old process...\e[0m'
 killall java
 
-echo 'Removing old executable...'
+echo -e '\e[36mRemoving old executable...\e[0m'
 cd ~/repos/MindYou/play-service/target
 rm -rf universal
 
-echo 'Started compile task...'
+echo -e '\e[36mStarted compile task...\e[0m'
 cd ~/repos/MindYou/play-service
 sbt compile
-echo 'Started dist task...'
+echo -e '\e[36mStarted dist task...\e[0m'
 sbt dist
 
-echo 'Unziping archive...'
+echo -e '\e[36mUnziping archive...\e[0m'
 cd ~/repos/MindYou/play-service/target/universal/
 unzip play-service-1.0-SNAPSHOT.zip
 

@@ -8,10 +8,21 @@ pin_base = 15
 
 
 GPIO.setmode(GPIO.BOARD)
+
 GPIO.setup(pin_hand, GPIO.OUT)
+GPIO.setup(pin_elbow, GPIO.OUT)
+GPIO.setup(pin_shoulder, GPIO.OUT)
+GPIO.setup(pin_base, GPIO.OUT)
 
 pwm_hand = GPIO.PWM(pin_hand, 50)
+pwm_elbow = GPIO.PWM(pin_elbow, 50)
+pwm_shoulder = GPIO.PWM(pin_shoulder, 50)
+pwm_base = GPIO.PWM(pin_base, 50)
+
 pwm_hand.start(2.5)
+pwm_elbow.start(2.5)
+pwm_shoulder.start(2.5)
+pwm_base.start(2.5)
 
 
 def hand_to_angle(angle): # limit angle min max
@@ -21,16 +32,32 @@ def hand_to_angle(angle): # limit angle min max
 
 # pass in pwm of the servo to move
 def MG996_to_angle(pwm_servo, angle):
-    # dc = ???
+    dc = angle/18 + 2.5
     pwm_servo.ChangeDutyCycle(dc)
-    # time.sleep(1)
+    time.sleep(1)
 
 try:
     while True:
         hand_to_angle(0)
-        hand_to_angle(30)
+        MG996_to_angle(pwm_elbow, 0)
+        MG996_to_angle(pwm_shoulder, 0)
+        MG996_to_angle(pwm_base, 0)
+        # go
+        #MG996_to_angle(pwm_elbow, 60)
+        #MG996_to_angle(pwm_shoulder, 50)
+        #MG996_to_angle(pwm_base, 30)
+        #hand_to_angle(30)
+        #hand_to_angle(0)
+        #hand_to_angle(30)
+        # go back
+        #MG996_to_angle(pwm_base, 0)
+        #MG996_to_angle(pwm_shoulder, 0)
+        #MG996_to_angle(pwm_elbow, 0)
 except KeyboardInterrupt:
     pwm_hand.stop()
+    pwm_elbow.stop()
+    pwm_shoulder.stop()
+    pwm_base.stop()
     GPIO.cleanup()
     
 
