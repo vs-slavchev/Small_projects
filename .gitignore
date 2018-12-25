@@ -24,3 +24,5 @@
 # python
 */__pycache__/
 */pygamevenv/*
+pygamevenv
+*.swp

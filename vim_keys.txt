@@ -1,0 +1,11 @@
+w - next word
+^ - start of text on line
+$ - end of text on line
+H - move cursor to top of page
+L - move cursor to bottom of page
+dt[ - delete to [
+ma - create marker a at cursor position
+`a - go to marker a
+qa0c3wDELETED<esc>q - start macro, named a, go to start of line, clear next 3 words, write DELETED, exit insert mode, end macro
+@a - play macro a
+qi0f(lct)<CTRL-O>q - start macro, named i, go to start of line, find opening parentheses, move 1 char right, clear to closing parentheses, with vim in insert mode awaiting replacement text, we press CTRL-O followed by q to end the macro, leaving us in insert mode ready to replace the text

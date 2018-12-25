@@ -1,15 +1,14 @@
 """
-have walls
 have tail
 collide with tail
-eat food
-
 """
 
 import pygame
 from pygame.locals import *
 import math
 import random
+import numpy as np
+import pandas as pd
 
 
 pygame.init()
@@ -80,8 +79,8 @@ def snake_move_forward():
 def check_game_over():
     if (snake_x >= width or
         snake_y >= height or
-        snake_x <= 0 or
-        snake_y <= 0):
+        snake_x < 0 or
+        snake_y < 0):
            pygame.quit()
            quit()
 
@@ -97,11 +96,15 @@ def attempt_eat_food(cell_content):
     return food_eaten
 
 def spawn_food(snake_x, snake_y):
-    rand_x = random.randrange(0, width)
-    rand_y = random.randrange(0, height)
-    if rand_x == snake_x and rand_y == snake_y:
-        rand_x += 1
+    rand_x, rand_y = random_x_y()
+    while rand_x == snake_x and rand_y == snake_y:
+        rand_x, rand_y = random_x_y()
     matrix[rand_x][rand_y] = food_id
+
+def random_x_y():
+    rand_x = random.randrange(1, width - 1)
+    rand_y = random.randrange(1, height - 1)
+    return rand_x, rand_y
 
 def event_handler():
     for event in pygame.event.get():
@@ -122,8 +125,8 @@ while True:
     event_handler()
     snake_move_forward()
     
-    for row in range(0, height - 1):
-        for col in range(0, width - 1):
+    for row in range(0, height):
+        for col in range(0, width):
             pygame.draw.rect(game_display, colors[matrix[row][col]], [col * block_size, row * block_size, block_size, block_size])
 
     pygame.display.update()
