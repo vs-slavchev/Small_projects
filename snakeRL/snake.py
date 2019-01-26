@@ -13,6 +13,7 @@ class SnakeEnvironment:
         self.empty_id = 0
         self.snake_id = 1
         self.food_id = 2
+        self.wall_id = 3
 
         self.colors = [(0, 0, 0), (0, 255, 0), (255, 0, 0)]
 
@@ -30,6 +31,8 @@ class SnakeEnvironment:
 
         self.snake_direction = 0  # degrees
         self.score = 0
+        self.score_gained_this_action = 0
+        self.is_finished = False
 
     def change_direction_by(self, degrees):
         self.snake_direction = self.add_to_direction(degrees)
@@ -41,7 +44,12 @@ class SnakeEnvironment:
     def check_in_direction(self, direction_to_check):
         ahead_x = int(math.cos(math.radians(direction_to_check)))
         ahead_y = int(math.sin(math.radians(direction_to_check)))
-        return self.matrix[self.snake_x + ahead_x][self.snake_y + ahead_y]
+        x_to_check = self.snake_x + ahead_x
+        y_to_check = self.snake_y + ahead_y
+        if self.is_outside_world(x_to_check, y_to_check):
+            return self.wall_id
+        else:
+            return self.matrix[x_to_check][y_to_check]
 
     def check_left(self):
         return self.check_in_direction(self.add_to_direction(90))
@@ -57,24 +65,23 @@ class SnakeEnvironment:
 
         self.snake_x += ahead_x
         self.snake_y += ahead_y
-        self.check_game_over()
-        self.attempt_eat_food(self.matrix[self.snake_x][self.snake_y])
+        if not self.is_outside_world(self.snake_x, self.snake_y):
+            self.attempt_eat_food(self.matrix[self.snake_x][self.snake_y])
+            self.matrix[self.snake_x][self.snake_y] = self.snake_id
+        else:
+            self.is_finished = True
 
-        self.matrix[self.snake_x][self.snake_y] = self.snake_id
-
-    def is_outside_world(self):
-        return (self.snake_x >= self.width or
-                self.snake_y >= self.height or
-                self.snake_x < 0 or
-                self.snake_y < 0)
-
-    def check_game_over(self):
-        if self.is_outside_world():
-            raise RuntimeError('out of matrix bounds')
+    def is_outside_world(self, x, y):
+        return (x >= self.width or
+                y >= self.height or
+                x < 0 or
+                y < 0)
 
     def attempt_eat_food(self, cell_content):
+        self.score_gained_this_action = 0
         if cell_content == self.food_id:
-            self.score += 1
+            self.score_gained_this_action = 1
+            self.score += self.score_gained_this_action
             self.spawn_food()
 
     def random_x_y(self):
@@ -90,3 +97,20 @@ class SnakeEnvironment:
 
     def get_color_at(self, row, col):
         return self.colors[self.matrix[row][col]]
+
+    def get_current_state(self):
+        state_vector = str(self.check_in_direction(self.add_to_direction(0)))
+        state_vector += str(self.check_in_direction(self.add_to_direction(90)))
+        state_vector += str(self.check_in_direction(self.add_to_direction(-90)))
+        return state_vector
+
+    def apply_action(self, action):
+        if action == 'left':
+            self.change_direction_by(90)
+        elif action == 'right':
+            self.change_direction_by(-90)
+
+    def get_environment_feedback(self, action):
+        self.apply_action(action)
+        self.snake_move_forward()
+        return self.get_current_state(), self.score_gained_this_action
