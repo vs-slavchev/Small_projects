@@ -20,3 +20,5 @@ and also make it executable with chmod.
 8. "Bubble Rebel" is a 2D action game written in C++. Absorb other bubbles and be the biggest one. The theme I was limited to was 'bubbles'. Uses the Allegro 4.2.3 lib.
 
 9. "You are the Defender" is a text based RPG game, wrtten in Java and played in the terminal. Explore, fight, complete epic quests, collect artifacts, weapons and armor, talk to characters, gamble, gain the trust of the gods, defend your people!
+
+10. "Strength and Steel" is a 2D RPG in C++, started and unfinished in 2012. Lots of fun and learning opportunities.
