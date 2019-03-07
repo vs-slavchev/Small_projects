@@ -7,7 +7,7 @@ from snake import SnakeEnvironment
 
 pygame.init()
 
-snake_environment = SnakeEnvironment()
+snake_environment = SnakeEnvironment(True)
 
 game_display = pygame.display.set_mode((snake_environment.display_width,
                                         snake_environment.display_height))
@@ -22,8 +22,7 @@ def event_handler():
                 event.key == K_ESCAPE or
                 event.key == K_q
         )):
-            pygame.quit()
-            quit()
+            snake_environment.is_finished = True
         elif event.type == KEYDOWN and event.key == K_LEFT:
             action = 'left'
         elif event.type == KEYDOWN and event.key == K_RIGHT:
@@ -47,6 +46,7 @@ while True:
     event_handler()
     snake_environment.snake_move_forward()
     if snake_environment.is_finished:
+        snake_environment.close_game()
         pygame.quit()
         quit()
 

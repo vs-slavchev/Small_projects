@@ -5,11 +5,21 @@ collide with tail
 
 import math
 import random
+import datetime
+import re
+'''
+from collections import deque
+>>> l = deque(['a', 'b', 'c', 'd'])
+>>> l.popleft()
+'a'
+>>> l
+deque(['b', 'c', 'd'])
+'''
 
 
 class SnakeEnvironment:
 
-    def __init__(self):
+    def __init__(self, save_replay):
         self.empty_id = 0
         self.snake_id = 1
         self.food_id = 2
@@ -33,6 +43,33 @@ class SnakeEnvironment:
         self.score = 0
         self.score_gained_this_action = 0
         self.is_finished = False
+
+        self.save_replay = save_replay
+        self.food_spawn_positions = []
+        self.actions_taken = []
+        if self.save_replay:
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            replay_path = 'replays/{}.txt'.format(current_time)
+            self.replay_file = open(replay_path, 'x')
+
+    def save_to_replay(self, line):
+        if self.save_replay:
+            regexp = re.compile(r'^food.*')
+            matches = regexp.search(line)
+            if matches:
+                self.food_spawn_positions.append(line)
+            else:
+                self.actions_taken.append(line)
+
+    def close_game(self):
+        if self.save_replay:
+            for line in self.food_spawn_positions:
+                print(line)
+                self.replay_file.write(line + '\n')
+            for line in self.actions_taken:
+                print(line)
+                self.replay_file.write(line + '\n')
+            self.replay_file.close()
 
     def change_direction_by(self, degrees):
         self.snake_direction = self.add_to_direction(degrees)
@@ -94,6 +131,7 @@ class SnakeEnvironment:
         while rand_x == self.snake_x and rand_y == self.snake_y:
             rand_x, rand_y = self.random_x_y()
         self.matrix[rand_x][rand_y] = self.food_id
+        self.save_to_replay('food:{},{}'.format(rand_x, rand_y))
 
     def get_color_at(self, row, col):
         return self.colors[self.matrix[row][col]]
@@ -109,6 +147,7 @@ class SnakeEnvironment:
             self.change_direction_by(90)
         elif action == 'right':
             self.change_direction_by(-90)
+        self.save_to_replay(action)
 
     def get_environment_feedback(self, action):
         self.apply_action(action)
