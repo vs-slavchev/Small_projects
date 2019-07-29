@@ -61,6 +61,7 @@ noremap k h
 noremap n j
 noremap e k
 noremap i l
+noremap l i
 
 " Have backspace behave as it does in other applications.
 set backspace=2
