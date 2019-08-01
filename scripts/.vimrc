@@ -57,10 +57,14 @@ set statusline=\ %{HasPaste()}%F%m%r%h\ %w\ \ CWD:\ %r%{getcwd()}%h\ \ \ Line:\ 
 let mapleader = " "
 
 noremap ; :
+
 noremap k h
 noremap n j
 noremap e k
 noremap i l
+
+noremap h e
+noremap j n
 noremap l i
 
 " Have backspace behave as it does in other applications.
