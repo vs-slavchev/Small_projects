@@ -1,0 +1,7 @@
+map k previousTab
+map n scrollDown
+map e scrollUp
+map i nextTab
+map l enterInsertMode
+map j performFind
+map J performBackwardsFind
