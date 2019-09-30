@@ -4,10 +4,11 @@ import numpy as np
 import pandas as pd
 
 from snake import SnakeEnvironment
+from food_spawner import RandomFoodSpawner
 
 pygame.init()
 
-snake_environment = SnakeEnvironment(True)
+snake_environment = SnakeEnvironment(True, RandomFoodSpawner())
 
 game_display = pygame.display.set_mode((snake_environment.display_width,
                                         snake_environment.display_height))
@@ -15,7 +16,7 @@ pygame.display.set_caption('umnata zmia')
 
 
 def event_handler():
-    action = 'nothing'
+    action = 'n'
     for event in pygame.event.get():
         if event.type == QUIT or (
                 event.type == KEYDOWN and (
@@ -24,9 +25,9 @@ def event_handler():
         )):
             snake_environment.is_finished = True
         elif event.type == KEYDOWN and event.key == K_LEFT:
-            action = 'left'
+            action = 'l'
         elif event.type == KEYDOWN and event.key == K_RIGHT:
-            action = 'right'
+            action = 'r'
     snake_environment.apply_action(action)
 
 

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from snake import SnakeEnvironment
+from food_spawner import RandomFoodSpawner
 
 
 class QLearningTable:
@@ -38,8 +39,9 @@ class QLearningTable:
                 )
             )
 
-    def run(self):
-        environment = SnakeEnvironment()
+    def run(self, save_run_replay):
+        environment = SnakeEnvironment(save_replay=save_run_replay,
+                                       food_spawner=RandomFoodSpawner())
 
         current_state = environment.get_current_state()
 
@@ -61,10 +63,18 @@ class QLearningTable:
             print(self.q_table)
 
             if environment.is_finished:
+                environment.close_game()
                 break
 
 
+def calculate_exploration_epsilon():
+    return max(0.3, min(rerun / (total_runs/2), 0.9))
+
+
 if __name__ == "__main__":
-    q_learning_table = QLearningTable(['nothing', 'left', 'right'])
-    for rerun in range(0, 500):
-        q_learning_table.run()
+    q_learning_table = QLearningTable(['l', 'n', 'r'])
+    total_runs = 2000
+    for rerun in range(1, total_runs + 1):
+        q_learning_table.exploration_epsilon = calculate_exploration_epsilon()
+        save_replay = rerun % (total_runs/10) == 0
+        q_learning_table.run(save_replay)
