@@ -22,3 +22,7 @@ and also make it executable with chmod.
 9. "You are the Defender" is a text based RPG game, wrtten in Java and played in the terminal. Explore, fight, complete epic quests, collect artifacts, weapons and armor, talk to characters, gamble, gain the trust of the gods, defend your people!
 
 10. "Strength and Steel" is a 2D RPG in C++, started and unfinished in 2012. Lots of fun and learning opportunities.
+
+11. "SnakeRL" is a reinforcement learning project that can learn to play the game, can be played by user and can replay a saved game. It uses Q-learning and is a simple approach to solving the basics of the game in a ok-ish way.
+
+12. "Egg hunt" is an old C++ and Allegro game. Compete against a dog to collect more easter eggs.
