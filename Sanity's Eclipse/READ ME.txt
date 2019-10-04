@@ -1,0 +1,3 @@
+After extraction the /music folder located in the /bin folder of the project gets deleted by Eclipse upon
+game start up. You just have to manually copy it from the archive into the /bin folder for the game to load
+up. Otherwise, the compiler throws errors saying that it cannot find a music file.
