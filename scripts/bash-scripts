@@ -5,6 +5,9 @@
 # http://stackoverflow.com/questions/1102986/most-powerful-examples-of-unix-commands-or-scripts-every-programmer-should-know
 # http://www.commandlinefu.com/commands/browse/sort-by-votes
 
+# install and use ATOOL to extract any archive easily
+sudo apt-get install atool
+atool -x filename.ext
 
 # substitute all occurrences of the word; g flag means all occurrences
 sed 's/old/new/g' file.txt
