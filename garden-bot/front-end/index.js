@@ -15,37 +15,37 @@
 
 const data = {
     labels: [
-        "12am-3am",
-        "3am-6am",
-        "6am-9am",
-        "9am-12pm",
-        "12pm-3pm",
-        "3pm-6pm",
-        "6pm-9pm",
-        "9pm-12am"
+        "12:00",
+        "12:30",
+        "13:00",
+        "13:30",
+        "14:00",
+        "14:30",
+        "15:00",
+        "15:30"
       ],
       datasets: [
         {
-          name: "Some Data",
+          name: "battery",
           chartType: "line",
           values: [25, 40, 30, 35, 8, 52, 17, -4]
         },
         {
-          name: "Another Set",
+          name: "moisture_1",
           chartType: "line",
           values: [25, 50, -10, 15, 18, 32, 27, 14]
         },
         {
-          name: "Yet Another",
+          name: "moisture_2",
           chartType: "line",
           values: [15, 20, -3, -15, 58, 12, -17, 37]
         }
       ],
 
-      yMarkers: [{ label: "Marker", value: 70, options: { labelPos: "left" } }],
-      yRegions: [
-        { label: "Region", start: -10, end: 50, options: { labelPos: "right" } }
-      ]
+      // yMarkers: [{ label: "Marker", value: 70, options: { labelPos: "left" } }],
+      // yRegions: [
+      //   { label: "Region", start: -10, end: 50, options: { labelPos: "right" } }
+      // ]
 }
 
 const chart = new frappe.Chart("#chart", {  // or a DOM element,
@@ -56,7 +56,7 @@ const chart = new frappe.Chart("#chart", {  // or a DOM element,
     height: 600,
     valuesOverPoints: 1,
     truncateLegends: true,
-    colors: ["purple", "#ffa3ef", "light-blue"],
+    colors: ["#7AA2E3", "#97E7E1", "#6AD4DD"],
     axisOptions: {
       xAxisMode: "tick",
       xIsSeries: true
@@ -65,7 +65,7 @@ const chart = new frappe.Chart("#chart", {  // or a DOM element,
     lineOptions: {
         dotSize: 8, // default: 4
         spline: 1, // default: 0
-        heatline: 1
+        // heatline: 1
     },
     // barOptions: {
     //   stacked: true,
