@@ -4,13 +4,13 @@ body {
 }
 
 .chart-draw-area{
-    transform: scale(1.1) translateX(-1%) translateY(3%);
+    transform: scale(1.01) translateX(4.1%) translateY(3%);
 }
 
 .chart-legend,
-.line-vertical,
-.title
-/* .graph-svg-tip.comparison, */
+/* .line-vertical, */
+.title,
+.graph-svg-tip.comparison
 /* .y.axis */
 {
     width: 0px;

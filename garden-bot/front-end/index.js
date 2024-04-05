@@ -28,17 +28,17 @@ const data = {
         {
           name: "battery",
           chartType: "line",
-          values: [25, 40, 30, 35, 8, 52, 17, -4]
+          values: [25, 40, 100, 35, 8, 52, 17, 0]
         },
         {
           name: "moisture_1",
           chartType: "line",
-          values: [25, 50, -10, 15, 18, 32, 27, 14]
+          values: [25, 50, 10, 15, 18, 32, 27, 99]
         },
         {
           name: "moisture_2",
           chartType: "line",
-          values: [15, 20, -3, -15, 58, 12, -17, 37]
+          values: [15, 20, 3, 15, 58, 80, 17, 37]
         }
       ],
 
@@ -54,7 +54,7 @@ const chart = new frappe.Chart("#chart", {  // or a DOM element,
     data: data,
     type: 'axis-mixed', // or 'bar', 'line', 'scatter', 'pie', 'percentage'
     height: 600,
-    valuesOverPoints: 1,
+    // valuesOverPoints: 1,
     truncateLegends: true,
     colors: ["#7AA2E3", "#97E7E1", "#6AD4DD"],
     axisOptions: {
@@ -63,7 +63,7 @@ const chart = new frappe.Chart("#chart", {  // or a DOM element,
       
     },
     lineOptions: {
-        dotSize: 8, // default: 4
+        // dotSize: 8, // default: 4
         spline: 1, // default: 0
         // heatline: 1
     },
@@ -73,6 +73,6 @@ const chart = new frappe.Chart("#chart", {  // or a DOM element,
     // },
     tooltipOptions: {
       formatTooltipX: (d) => (d + "").toUpperCase(),
-      formatTooltipY: (d) => d + " pts"
+      formatTooltipY: (d) => d + "%"
     }
 })
