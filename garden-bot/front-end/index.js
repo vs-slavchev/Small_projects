@@ -22,7 +22,7 @@ fetchDataJSON()
     var dataObj = JSON.parse(responseData);
     timeLabels = dataObj.data.battery.map((item) => item.time.split(' ')[1].substring(0, 5));
 
-    batteryValues = dataObj.data.battery.map((item) => item.value);
+    batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 3300, 4200, 0, 100));
     moisture1Values = dataObj.data.moisture_1.map((item) => item.value);
     moisture2Values = dataObj.data.moisture_2.map((item) => item.value);
 
@@ -32,6 +32,10 @@ fetchDataJSON()
 
     document.getElementById("moisture_1").innerHTML = lastMoisture1;
     document.getElementById("moisture_2").innerHTML = lastMoisture2;
+
+    var currentBatteryPercent = batteryValues[batteryValues.length - 1];
+    document.getElementById("battery-percent").innerHTML = currentBatteryPercent;
+    document.getElementById("battery-indicator").style = "height:" + currentBatteryPercent + "%;";
 
 
 
@@ -66,7 +70,7 @@ fetchDataJSON()
       // new Chart() in case of ES6 module with above usage
       title: "My Awesome Chart",
       data: graphData,
-      type: 'axis-mixed', // or 'bar', 'line', 'scatter', 'pie', 'percentage'
+      type: 'line', // or 'bar', 'line', 'scatter', 'pie', 'percentage'
       height: 600,
       // valuesOverPoints: 1,
       truncateLegends: true,
@@ -74,7 +78,6 @@ fetchDataJSON()
       axisOptions: {
         xAxisMode: "tick",
         xIsSeries: true
-
       },
       lineOptions: {
         // dotSize: 8, // default: 4
@@ -96,6 +99,12 @@ fetchDataJSON()
     console.error('There was a problem with the fetch operation:', error);
   });
 
-
-
-
+function mapNumRange(num, inMin, inMax, outMin, outMax) {
+  if (num < inMin) {
+    return outMin;
+  }
+  if (num > inMax) {
+    return outMax;
+  }
+  return Math.round(((num - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin);
+}

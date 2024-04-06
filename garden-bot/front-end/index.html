@@ -25,9 +25,9 @@
     </div>
 
     <div class="gauge">
-      <p id="moisture_1">0</p>
+      <p id="battery-percent">0</p>
       <div class="battery">
-        <div class="battery-level" style="height:100%;">
+        <div class="battery-level" id="battery-indicator" style="height:100%;">
           <p>%</p>
         </div>
       </div>
@@ -36,6 +36,21 @@
   </div>
 
   <div id="chart"></div>
+
+  <!-- <svg width="600" height="400">
+    <g >
+      <path d="M 76.439083,69.019092 52.117558,113.92037 c 3.14454,33.65235 48.769452,30.7704 48.643052,0 L 78.577239,69.019092 Z"> </path>
+      </g>
+    <mask id="svgmask1">
+      <polygon fill="#ffffff" points="200 0, 400 400, 0 400"></polygon>
+    </mask>
+    <image xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="img_5terre.jpg" mask="url(#svgmask1)"></image>
+  </svg> -->
+
+
+
+
+
   <!--add a monthly heatmap to show the average daily moisture/temp/water used: https://frappe.io/charts/docs/basic/heatmap -->
   <script src="https://cdn.jsdelivr.net/npm/frappe-charts@1.2.4/dist/frappe-charts.min.iife.js"></script>
   <script src="index.js"></script>

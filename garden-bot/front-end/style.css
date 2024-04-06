@@ -27,10 +27,10 @@ body {
 }
 
 
-
+/* 
 .chart-draw-area {
     transform: scale(1.01) translateX(4.5%) translateY(3%);
-}
+} */
 
 .chart-legend,
 /* .line-vertical, */
