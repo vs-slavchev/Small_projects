@@ -7,7 +7,7 @@ print('Loading function')
 
 def lambda_handler(event, context):
     response = client.query(
-        QueryString='SELECT time, measure_name, measure_value::bigint, location from "balcony-esp32-db".measurements WHERE time >= ago(24h) ORDER BY time DESC LIMIT 300',
+        QueryString='SELECT time, measure_name, measure_value::bigint, location from "balcony-esp32-db".measurements WHERE time >= ago(24h) ORDER BY time ASC LIMIT 150',
         MaxRows=200
     )
 

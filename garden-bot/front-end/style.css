@@ -3,21 +3,53 @@ body {
     background-color: #F8F6E3;
 }
 
-.chart-draw-area{
-    transform: scale(1.01) translateX(4.1%) translateY(3%);
+#current {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.gauge {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.gauge img {
+    width: 15vw;
+    height: 15vw;
+}
+
+#current p {
+    text-align: center;
+    font-size: 4em;
+    padding-right: 1vw;
+    ;
+}
+
+
+
+.chart-draw-area {
+    transform: scale(1.01) translateX(4.5%) translateY(3%);
 }
 
 .chart-legend,
 /* .line-vertical, */
+/* .y.axis */
 .title,
 .graph-svg-tip.comparison
-/* .y.axis */
+/* .x.axis  */
 {
     width: 0px;
     height: 0px;
     visibility: hidden;
 }
 
-g text {
-    font-size: 1.3em;
+.x.axis > g:not(:first-child,:last-child) {
+    width: 0px;
+    height: 0px;
+    visibility: hidden;
+}
+
+div.chart-container g text {
+    font-size: 1.5em;
 }

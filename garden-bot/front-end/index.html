@@ -1,15 +1,44 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Parcel Sandbox</title>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="style.css" />
-  </head>
 
-  <body>
-    <div id="chart"></div>
-    <!--add a monthly heatmap to show the average daily moisture/temp/water used: https://frappe.io/charts/docs/basic/heatmap -->
-    <script src="https://cdn.jsdelivr.net/npm/frappe-charts@1.2.4/dist/frappe-charts.min.iife.js"></script>
-    <script src="index.js"></script>
-  </body>
+<head>
+  <title>Le petit jardinier</title>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="battery.css" />
+</head>
+
+<body>
+  <!-- <header>
+    <h1>Le petit jardinier</h1>
+  </header> -->
+
+  <div id="current">
+    <div class="gauge">
+      <p id="moisture_1">0</p>
+      <img src="humidity.png" alt="moisture" />
+    </div>
+
+    <div class="gauge">
+      <p id="moisture_2">0</p>
+      <img src="humidity.png" alt="moisture" />
+    </div>
+
+    <div class="gauge">
+      <p id="moisture_1">0</p>
+      <div class="battery">
+        <div class="battery-level" style="height:100%;">
+          <p>%</p>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+  <div id="chart"></div>
+  <!--add a monthly heatmap to show the average daily moisture/temp/water used: https://frappe.io/charts/docs/basic/heatmap -->
+  <script src="https://cdn.jsdelivr.net/npm/frappe-charts@1.2.4/dist/frappe-charts.min.iife.js"></script>
+  <script src="index.js"></script>
+</body>
+
 </html>
