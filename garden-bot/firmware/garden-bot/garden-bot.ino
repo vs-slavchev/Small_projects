@@ -9,15 +9,20 @@
 
 #define MOISTURE_1_PIN 34
 #define MOISTURE_2_PIN 35
+#define BATTERY_GAUGE_PIN 32
+// #define BATTERY_GAUGE_ENABLE_PIN 27
 
 // values gotten from testing
 #define AIR_MOISTURE 2900
 #define WATER_MOISTURE 1110
+
+#define SECONDS_TO_SLEEP  1800 // 60s * 30m
+const uint64_t uS_TO_SLEEP = SECONDS_TO_SLEEP * 1000000ull;
  
 WiFiClientSecure net = WiFiClientSecure();
 PubSubClient client(net);
 
-int batteryPercent = 0;
+int battery_mV = 0;
 int moisturePercent_1 = 0;
 int moisturePercent_2 = 0;
  
@@ -70,7 +75,7 @@ void publishMessage()
 {
   StaticJsonDocument<200> doc;
   doc["location"] = "balcony";
-  doc["battery"] = batteryPercent;
+  doc["battery"] = battery_mV;
   doc["moisture_1"] = moisturePercent_1;
   doc["moisture_2"] = moisturePercent_2;
   char jsonBuffer[512];
@@ -85,7 +90,13 @@ void messageHandler(char* topic, byte* payload, unsigned int length)
 }
 
 void readBattery() {
-  batteryPercent = 0;
+  //digitalWrite(BATTERY_GAUGE_ENABLE_PIN, HIGH);
+  float batteryInput = analogRead(BATTERY_GAUGE_PIN);
+  //digitalWrite(BATTERY_GAUGE_ENABLE_PIN, LOW);
+
+  float input_voltage = (batteryInput * 4.2) / 4095.0;
+  battery_mV = input_voltage * 1000;
+  Serial.println((String)"batt input: " + batteryInput + (String)"; battery voltage [0-4.2V]: " + input_voltage + (String)"; batt mV: " + battery_mV);
 }
 
 void readMoisture() {
@@ -100,7 +111,7 @@ void readMoisture() {
   int averageMoisturePercent = (moisturePercent_1 + moisturePercent_2) / 2;
   
   // print out the values you read:
-  Serial.printf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n", moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
+  //Serial.printf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n", moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
 }
  
 void setup()
@@ -109,15 +120,24 @@ void setup()
   //set the resolution to 12 bits (0-4096)
   analogReadResolution(12);
 
+  // pinMode(BATTERY_GAUGE_ENABLE_PIN, OUTPUT);
+
   connectAWS();
-}
- 
-void loop()
-{
+
   readBattery();
   readMoisture();
 
   publishMessage();
   client.loop();
-  delay(1000);
+  // delay(2000);
+
+  esp_sleep_enable_timer_wakeup(uS_TO_SLEEP);
+  Serial.println("Setup ESP32 to sleep for " + String(SECONDS_TO_SLEEP) + " seconds");
+  Serial.flush(); 
+  esp_deep_sleep_start();
+}
+ 
+void loop()
+{
+  // empty on purpose
 }
