@@ -6,6 +6,9 @@ client = boto3.client('timestream-query')
 print('Loading function')
 
 def lambda_handler(event, context):
+    # TODO: if 'queryTime' paramater is set to 2 days, then query for 2 days
+    # queryParam = event.get('queryTime')
+    
     response = client.query(
         QueryString='SELECT time, measure_name, measure_value::bigint, location from "balcony-esp32-db".measurements WHERE time >= ago(24h) ORDER BY time ASC LIMIT 150',
         MaxRows=200
@@ -26,7 +29,6 @@ def lambda_handler(event, context):
         "moisture_2": [rowToObj(x) for x in rows if is_moisture_2(x)]
     }
 
-    #return json.dumps(response)
     return {
         "code": "200",
         "data": grouped_lists

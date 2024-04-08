@@ -3,6 +3,9 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "WiFi.h"
+#include <esp_wifi.h>
+#include <esp_bt.h>
+// #include <esp_bt_main.h>
  
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
@@ -31,14 +34,14 @@ void connectAWS()
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
  
-  Serial.println("Connecting to Wi-Fi");
+  Serial.println(F("Connecting to Wi-Fi"));
  
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("Wi-Fi connected");
+  Serial.println(F("Wi-Fi connected"));
  
   // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
@@ -51,7 +54,7 @@ void connectAWS()
   // Create a message handler
   client.setCallback(messageHandler);
  
-  Serial.println("Connecting to AWS IOT");
+  Serial.println(F("Connecting to AWS IOT"));
  
   while (!client.connect(THINGNAME))
   {
@@ -61,14 +64,14 @@ void connectAWS()
  
   if (!client.connected())
   {
-    Serial.println("AWS IoT Timeout!");
+    Serial.println(F("AWS IoT Timeout!"));
     return;
   }
  
   // Subscribe to a topic
   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
  
-  Serial.println("AWS IoT Connected!");
+  Serial.println(F("AWS IoT Connected!"));
 }
  
 void publishMessage()
@@ -113,6 +116,17 @@ void readMoisture() {
   // print out the values you read:
   //Serial.printf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n", moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
 }
+
+void deepSleep()
+{
+  //esp_bluedroid_disable();
+  esp_bt_controller_disable();
+  esp_wifi_stop();
+  esp_sleep_enable_timer_wakeup(uS_TO_SLEEP);
+  Serial.println("Setup ESP32 to sleep for " + String(SECONDS_TO_SLEEP) + " seconds");
+  Serial.flush(); 
+  esp_deep_sleep_start();
+}
  
 void setup()
 {
@@ -129,12 +143,8 @@ void setup()
 
   publishMessage();
   client.loop();
-  // delay(2000);
 
-  esp_sleep_enable_timer_wakeup(uS_TO_SLEEP);
-  Serial.println("Setup ESP32 to sleep for " + String(SECONDS_TO_SLEEP) + " seconds");
-  Serial.flush(); 
-  esp_deep_sleep_start();
+  deepSleep();
 }
  
 void loop()

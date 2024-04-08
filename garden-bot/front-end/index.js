@@ -20,9 +20,9 @@ fetchDataJSON()
     console.log(responseData);
     // split on whitespace and take next 5 chars
     var dataObj = JSON.parse(responseData);
-    timeLabels = dataObj.data.battery.map((item) => item.time.split(' ')[1].substring(0, 5));
+    timeLabels = dataObj.data.battery.map((item) => timestreamDateFormatToCurrentTime(item.time));
 
-    batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 3300, 4200, 0, 100));
+    batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 2420, 4200, 0, 100));
     moisture1Values = dataObj.data.moisture_1.map((item) => item.value);
     moisture2Values = dataObj.data.moisture_2.map((item) => item.value);
 
@@ -34,8 +34,10 @@ fetchDataJSON()
     document.getElementById("moisture_2").innerHTML = lastMoisture2;
 
     var currentBatteryPercent = batteryValues[batteryValues.length - 1];
-    document.getElementById("battery-percent").innerHTML = currentBatteryPercent;
+    document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
     document.getElementById("battery-indicator").style = "height:" + currentBatteryPercent + "%;";
+    document.getElementById("battery-indicator").classList.remove("warn", "alert");
+    document.getElementById("battery-indicator").classList.add(currentBatteryPercent < 20 ? "alert" : currentBatteryPercent < 50 ? "warn" : "");
 
 
 
@@ -107,4 +109,14 @@ function mapNumRange(num, inMin, inMax, outMin, outMax) {
     return outMax;
   }
   return Math.round(((num - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin);
+}
+
+function timestreamDateFormatToCurrentTime(dateTime) {
+  //conver date time like '2024-04-07 14:35:34.258000000' to ISO8601 format
+  dateTime = dateTime.replace(' ', 'T');
+  dateTime = dateTime + 'Z';
+  var date = new Date(dateTime);
+  var localeDateTime = date.toTimeString();
+  // get only first 5 characters
+  return localeDateTime.substring(0, 5);
 }
