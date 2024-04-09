@@ -30,14 +30,17 @@ fetchDataJSON()
     var lastMoisture1 = moisture1Values[moisture1Values.length - 1];
     var lastMoisture2 = moisture2Values[moisture2Values.length - 1];
 
-    document.getElementById("moisture_1").innerHTML = lastMoisture1;
-    document.getElementById("moisture_2").innerHTML = lastMoisture2;
+    document.getElementById("moisture_1").innerHTML = lastMoisture1 + "%";
+    document.getElementById("moisture_2").innerHTML = lastMoisture2 + "%";
 
     var currentBatteryPercent = batteryValues[batteryValues.length - 1];
     document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
     document.getElementById("battery-indicator").style = "height:" + currentBatteryPercent + "%;";
-    document.getElementById("battery-indicator").classList.remove("warn", "alert");
-    document.getElementById("battery-indicator").classList.add(currentBatteryPercent < 20 ? "alert" : currentBatteryPercent < 50 ? "warn" : "");
+    if (currentBatteryPercent < 20) {
+      document.getElementById("battery-indicator").classList.add("alert");
+    } else if (currentBatteryPercent < 50) {
+      document.getElementById("battery-indicator").classList.add("warn");
+    }
 
 
 
@@ -70,19 +73,20 @@ fetchDataJSON()
 
     const chart = new frappe.Chart("#chart", {  // or a DOM element,
       // new Chart() in case of ES6 module with above usage
-      title: "My Awesome Chart",
+      title: "Humidity and Battery Level",
       data: graphData,
       type: 'line', // or 'bar', 'line', 'scatter', 'pie', 'percentage'
       height: 600,
       // valuesOverPoints: 1,
       truncateLegends: true,
-      colors: ["#7AA2E3", "#97E7E1", "#6AD4DD"],
+      colors: ["#30b455", "#97E7E1", "#6AD4DD"],
       axisOptions: {
         xAxisMode: "tick",
         xIsSeries: true
       },
       lineOptions: {
-        // dotSize: 8, // default: 4
+        hideDots: 1,
+        // dotSize: 3, // default: 4
         spline: 1, // default: 0
         // heatline: 1
       },
