@@ -44,7 +44,7 @@ body {
     visibility: hidden;
 }
 
-.x.axis > g:not(:first-child,:last-child) {
+.x.axis > g:not(:first-child,:last-child,:nth-child(12),:nth-child(24),:nth-child(36)) {
     width: 0px;
     height: 0px;
     visibility: hidden;
@@ -52,4 +52,13 @@ body {
 
 div.chart-container g text {
     font-size: 1.5em;
+}
+
+div#last-updated p, span {
+    font-size: 1.3em;
+}
+
+.section-title {
+    font-size: 3em;
+    text-align: center;
 }

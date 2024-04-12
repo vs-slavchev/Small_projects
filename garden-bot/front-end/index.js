@@ -42,6 +42,8 @@ fetchDataJSON()
       document.getElementById("battery-indicator").classList.add("warn");
     }
 
+    document.getElementById("last-updated-time").innerHTML = timestreamDateToLocalTime(dataObj.data.battery[dataObj.data.battery.length - 1].time);
+
 
 
     // frappe line chart
@@ -117,10 +119,13 @@ function mapNumRange(num, inMin, inMax, outMin, outMax) {
 
 function timestreamDateFormatToCurrentTime(dateTime) {
   //conver date time like '2024-04-07 14:35:34.258000000' to ISO8601 format
-  dateTime = dateTime.replace(' ', 'T');
-  dateTime = dateTime + 'Z';
-  var date = new Date(dateTime);
-  var localeDateTime = date.toTimeString();
+  var localeDateTime = timestreamDateToLocalTime(dateTime).toTimeString();
   // get only first 5 characters
   return localeDateTime.substring(0, 5);
+}
+
+function timestreamDateToLocalTime(dateTime) {
+  dateTime = dateTime.replace(' ', 'T');
+  dateTime = dateTime + 'Z';
+  return new Date(dateTime);
 }
