@@ -6,6 +6,23 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 // #include <esp_bt_main.h>
+
+#define debug_print
+
+#if defined debug_print
+   #define debug_begin(x)        Serial.begin(x)
+   #define debug(x)              Serial.print(x)
+   #define debugln(x)            Serial.println(x)
+   #define debugf(...)           Serial.printf(__VA_ARGS__)
+   #define debugFlush()          Serial.flush()
+#else
+   #define debug_begin(x)
+   #define debug(x)
+   #define debugln(x)
+   #define debugf(...)
+   #define debugFlush()
+#endif
+
  
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
@@ -34,14 +51,14 @@ void connectAWS()
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
  
-  Serial.println(F("Connecting to Wi-Fi"));
+  debugln("Connecting to Wi-Fi");
  
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    Serial.print(".");
+    debug(".");
   }
-  Serial.println(F("Wi-Fi connected"));
+  debugln("Wi-Fi connected");
  
   // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
@@ -54,24 +71,24 @@ void connectAWS()
   // Create a message handler
   client.setCallback(messageHandler);
  
-  Serial.println(F("Connecting to AWS IOT"));
+  debugln("Connecting to AWS IOT");
  
   while (!client.connect(THINGNAME))
   {
-    Serial.print(".");
+    debug(".");
     delay(100);
   }
  
   if (!client.connected())
   {
-    Serial.println(F("AWS IoT Timeout!"));
+    debugln("AWS IoT Timeout!");
     return;
   }
  
   // Subscribe to a topic
   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
  
-  Serial.println(F("AWS IoT Connected!"));
+  debugln("AWS IoT Connected!");
 }
  
 void publishMessage()
@@ -99,7 +116,7 @@ void readBattery() {
 
   float input_voltage = (batteryInput * 4.2) / 4095.0;
   battery_mV = input_voltage * 1000;
-  Serial.println((String)"batt input: " + batteryInput + (String)"; battery voltage [0-4.2V]: " + input_voltage + (String)"; batt mV: " + battery_mV);
+  debugln((String)"batt input: " + batteryInput + (String)"; battery voltage [0-4.2V]: " + input_voltage + (String)"; batt mV: " + battery_mV);
 }
 
 void readMoisture() {
@@ -114,7 +131,7 @@ void readMoisture() {
   int averageMoisturePercent = (moisturePercent_1 + moisturePercent_2) / 2;
   
   // print out the values you read:
-  //Serial.printf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n", moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
+  debugf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n", moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
 }
 
 void deepSleep()
@@ -123,14 +140,14 @@ void deepSleep()
   esp_bt_controller_disable();
   esp_wifi_stop();
   esp_sleep_enable_timer_wakeup(uS_TO_SLEEP);
-  Serial.println("Setup ESP32 to sleep for " + String(SECONDS_TO_SLEEP) + " seconds");
-  Serial.flush(); 
+  debugln("Setup ESP32 to sleep for " + String(SECONDS_TO_SLEEP) + " seconds");
+  debugFlush(); 
   esp_deep_sleep_start();
 }
  
 void setup()
 {
-  Serial.begin(9600);
+  debug_begin(9600);
   //set the resolution to 12 bits (0-4096)
   analogReadResolution(12);
 
