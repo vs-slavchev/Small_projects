@@ -22,7 +22,7 @@ fetchDataJSON()
     var dataObj = JSON.parse(responseData);
     timeLabels = dataObj.data.battery.map((item) => timestreamDateFormatToCurrentTime(item.time));
 
-    batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 2420, 4200, 0, 100));
+    batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 3000, 4200, 0, 100));
     moisture1Values = dataObj.data.moisture_1.map((item) => item.value);
     moisture2Values = dataObj.data.moisture_2.map((item) => item.value);
 
