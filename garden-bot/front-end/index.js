@@ -126,7 +126,7 @@ function mapNumRange(num, inMin, inMax, outMin, outMax) {
 
 function timestampMillisToCurrentTime(dateTime) {
   //conver date time like '1717326306266' to ISO8601 format
-  var localeDateTime = new Date(dateTime).toISOString();
+  var localeDateTime = new Date(dateTime).toTimeString();
   // get only first 5 characters
   return localeDateTime.substring(0, 5);
 }
