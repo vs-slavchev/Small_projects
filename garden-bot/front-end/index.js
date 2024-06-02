@@ -21,7 +21,7 @@ fetchDataJSON()
     console.log(responseData);
     // split on whitespace and take next 5 chars
     var dataObj = JSON.parse(responseData);
-    timeLabels = dataObj.data.battery.map((item) => timestreamDateFormatToCurrentTime(item.time));
+    timeLabels = dataObj.data.battery.map((item) => timestampMillisToCurrentTime(item.time));
 
     batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 3000, 4200, 0, 100));
     moisture1Values = dataObj.data.moisture_1.map((item) => item.value);
@@ -44,7 +44,8 @@ fetchDataJSON()
       document.getElementById("battery-indicator").classList.add("warn");
     }
 
-    document.getElementById("last-updated-time").innerHTML = timestreamDateToLocalTime(dataObj.data.battery[dataObj.data.battery.length - 1].time);
+    var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
+    document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
 
 
 
@@ -123,15 +124,9 @@ function mapNumRange(num, inMin, inMax, outMin, outMax) {
   return Math.round(((num - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin);
 }
 
-function timestreamDateFormatToCurrentTime(dateTime) {
-  //conver date time like '2024-04-07 14:35:34.258000000' to ISO8601 format
-  var localeDateTime = timestreamDateToLocalTime(dateTime).toTimeString();
+function timestampMillisToCurrentTime(dateTime) {
+  //conver date time like '1717326306266' to ISO8601 format
+  var localeDateTime = new Date(dateTime).toISOString();
   // get only first 5 characters
   return localeDateTime.substring(0, 5);
-}
-
-function timestreamDateToLocalTime(dateTime) {
-  dateTime = dateTime.replace(' ', 'T');
-  dateTime = dateTime + 'Z';
-  return new Date(dateTime);
 }
