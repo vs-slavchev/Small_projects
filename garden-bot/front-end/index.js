@@ -84,7 +84,7 @@ fetchDataJSON()
       // new Chart() in case of ES6 module with above usage
       title: "Humidity and Battery Level",
       data: graphData,
-      type: 'line', // or 'bar', 'line', 'scatter', 'pie', 'percentage'
+      type: 'axis-mixed', // or 'bar', 'line', 'scatter', 'pie', 'percentage'
       height: 600,
       // valuesOverPoints: 1,
       truncateLegends: true,
@@ -99,10 +99,10 @@ fetchDataJSON()
         spline: 1, // default: 0
         // heatline: 1
       },
-      // barOptions: {
-      //   stacked: true,
-      //   spaceRatio: 0.5
-      // },
+      barOptions: {
+        // stacked: true,
+        spaceRatio: 0.95
+      },
       tooltipOptions: {
         formatTooltipX: (d) => (d + "").toUpperCase(),
         formatTooltipY: (d) => d + "%"
