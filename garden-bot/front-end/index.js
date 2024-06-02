@@ -2,6 +2,7 @@ var timeLabels = [0, 0];
 var batteryValues = [0, 0];
 var moisture1Values = [0, 0];
 var moisture2Values = [0, 0];
+var wateredValues = [0, 0];
 
 async function fetchDataJSON() {
   const response = await fetch("https://foj972s0id.execute-api.eu-central-1.amazonaws.com/prod/stats")
@@ -25,6 +26,7 @@ fetchDataJSON()
     batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 3000, 4200, 0, 100));
     moisture1Values = dataObj.data.moisture_1.map((item) => item.value);
     moisture2Values = dataObj.data.moisture_2.map((item) => item.value);
+    wateredValues = dataObj.data.watered.map((item) => item.value ? 100 : 0);
 
 
     var lastMoisture1 = moisture1Values[moisture1Values.length - 1];
@@ -64,10 +66,14 @@ fetchDataJSON()
           name: "moisture_2",
           chartType: "line",
           values: moisture2Values
+        },
+        {
+          name: "watered",
+          chartType: "bar",
+          values: wateredValues
         }
       ],
-
-      // yMarkers: [{ label: "Marker", value: 70, options: { labelPos: "left" } }],
+      yMarkers: [{ label: "water", value: 85, options: { labelPos: "left" } }],
       // yRegions: [
       //   { label: "Region", start: -10, end: 50, options: { labelPos: "right" } }
       // ]

@@ -1,42 +1,55 @@
 import boto3
 import json
+from boto3.dynamodb.conditions import Key, Attr
+from datetime import datetime, timedelta
 
-client = boto3.client('timestream-query')
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table("garden-bot-data")
 
 print('Loading function')
 
 def lambda_handler(event, context):
-    # TODO: if 'queryTime' paramater is set to 2 days, then query for 2 days
-    # queryParam = event.get('queryTime')
     
-    response = client.query(
-        QueryString='SELECT time, measure_name, measure_value::bigint, location from "balcony-esp32-db".measurements WHERE time >= ago(24h) ORDER BY time ASC LIMIT 150',
-        MaxRows=200
+    # Calculate the timestamp for 24 hours ago
+    now = datetime.utcnow()
+    twenty_four_hours_ago = now - timedelta(hours=24)
+    timestamp_24_hours_ago = int(twenty_four_hours_ago.timestamp()) * 1000
+    print("timestamp_24_hours_ago: " + str(timestamp_24_hours_ago))
+        
+    # Query the table
+    response = table.query(
+        KeyConditionExpression=Key('device').eq('garden_bot1') & Key('timestamp').gt(timestamp_24_hours_ago)
     )
 
-    rows = response['Rows']
-    rows = list(map(lambda row: row['Data'], rows)) # a list of lists
+    rows = response['Items']
     print("rows: " + str(len(rows)))
 
-    is_battery = lambda x: x[1].get('ScalarValue') == 'battery'
-    is_moisture_1 = lambda x: x[1].get('ScalarValue') == 'moisture_1'
-    is_moisture_2 = lambda x: x[1].get('ScalarValue') == 'moisture_2'
+    battery_points = []
+    moisture_1_points = []
+    moisture_2_points = []
+    watered_points = []
+    for row in rows:
+        battery_points.append(rowToObj(row, 'battery'))
+        moisture_1_points.append(rowToObj(row, 'moisture_1'))
+        moisture_2_points.append(rowToObj(row, 'moisture_2'))
+        watered_points.append(rowToObj(row, 'watered'))
 
-    # Group elements based on predicates
-    grouped_lists = {
-        "battery": [rowToObj(x) for x in rows if is_battery(x)],
-        "moisture_1": [rowToObj(x) for x in rows if is_moisture_1(x)],
-        "moisture_2": [rowToObj(x) for x in rows if is_moisture_2(x)]
+    pivoted_rows = {
+       "battery": battery_points,
+       "moisture_1": moisture_1_points,
+       "moisture_2": moisture_2_points,
+       "watered": watered_points
     }
 
     return {
         "code": "200",
-        "data": grouped_lists
+        "data": pivoted_rows
     }
 
-def rowToObj(row):
+
+def rowToObj(row, measurementName):
     return {
-        "time": row[0].get('ScalarValue'),
-        "value": row[2].get('ScalarValue'),
-        "location": row[3].get('ScalarValue')
+        "time": row.get('timestamp'),
+        "value": row.get('measurements').get(measurementName),
+        "location": row.get('device')
     }
