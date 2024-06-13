@@ -37,8 +37,8 @@
 #define AIR_MOISTURE 2900
 #define WATER_MOISTURE 1000
 
-#define WATERING_DURATION_S 5
-#define WATERING_THRESHOLD_PCT 85
+#define WATERING_DURATION_S 15
+#define WATERING_THRESHOLD_PCT 75
 
 #define SECONDS_TO_SLEEP  1800 // 60s * 30m
 // #define SECONDS_TO_SLEEP 3
@@ -130,12 +130,13 @@ void readBattery() {
 }
 
 int averageReadings(int pin) {
+  const int numberReadings = 10;
   int sum = 0;
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < numberReadings; i++) {
     sum += analogRead(pin);
     delay(20);
   }
-  return sum / 10; 
+  return sum / numberReadings; 
 }
 
 void readMoisture() {
@@ -158,7 +159,7 @@ void readMoisture() {
 }
 
 void powerPump() {
-  bool startPump = min(moisturePercent_1, moisturePercent_2) < WATERING_THRESHOLD_PCT;
+  bool startPump = (moisturePercent_1 + moisturePercent_2) / 2 < WATERING_THRESHOLD_PCT;
   if (!startPump) {
     return;
   }

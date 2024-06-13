@@ -74,7 +74,7 @@ fetchDataJSON()
           values: wateredValues
         }
       ],
-      yMarkers: [{ label: "water", value: 85, options: { labelPos: "left" } }],
+      yMarkers: [{ label: "water", value: 75, options: { labelPos: "left" } }],
       // yRegions: [
       //   { label: "Region", start: -10, end: 50, options: { labelPos: "right" } }
       // ]
