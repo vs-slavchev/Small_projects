@@ -1,0 +1,776 @@
+<mxfile host="app.diagrams.net" modified="2024-07-04T15:20:08.772Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36" etag="aN79v-WcCAmTWm0ssk6n" version="24.6.4" type="device">
+  <diagram name="Page-1" id="0w-f2p1M44FNsa8edDzI">
+    <mxGraphModel dx="2899" dy="1107" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-1" value="труп:&lt;br&gt;- отровен&lt;br&gt;- пистолет в ръка, без следи от куршум" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="180" y="405" width="190" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="z_mv8qTKpuxhF5RxKh7l-2" target="870wMmt_C4Bq-2m_nUi_-5" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="1800" />
+              <mxPoint x="460" y="1970" />
+              <mxPoint x="588" y="1970" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-2" value="полицаят&lt;div&gt;може да провери кой от всички притежава пистолет&lt;br&gt;- трябва да се обади на друг играч, който не може да дойде на партито (оръжейник) и да му опише оръжието. По описанието и допълнителни въпроси от оръжейника&amp;nbsp;те заедно ще разберат какво е оръжието - а от това полицаят ще разбере на каква позиция е човекът който го притежава&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="515.09" y="1730" width="290.93" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-4" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn3.iconfinder.com/data/icons/cat-force/128/cat_upsidedown.png" parent="1" vertex="1">
+          <mxGeometry x="221" y="315" width="108" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-5" value="&lt;b&gt;&lt;font style=&quot;font-size: 21px;&quot;&gt;Соц джазз&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-255" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-5" target="iQ0GR19ANJNZZCqnPlIq-17" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="1740" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="400" y="2010" />
+              <mxPoint x="400" y="1740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-8" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-800" y="250" as="sourcePoint" />
+            <mxPoint x="410" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-11" value="притежател" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="400" y="1980" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="z_mv8qTKpuxhF5RxKh7l-12" target="iQ0GR19ANJNZZCqnPlIq-5" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="400" y="1180" />
+              <mxPoint x="400" y="1180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-12" value="&lt;div&gt;лаборант&lt;/div&gt;&lt;div&gt;притежава книга, когато получи страницата с изрязаните кутийки от архива и я наложи ще види кои отрови как изглеждат и ще направи анализ за отрова на чаша коктейл - ще разбере че не е растителна или животинска отрова, а химична&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="525.09" y="1150" width="290" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-18" value="убиец слага отрова в коктейла" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-720" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-19" value="Веси пие от отровения коктейл" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-490" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-20" value="Смърт от отровата" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-270" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-21" value="пистолетът е сложен в ръката на Веси" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-30" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="z_mv8qTKpuxhF5RxKh7l-23" value="откриване труп" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="200" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-1" value="&lt;h1&gt;Мотив&lt;/h1&gt;&lt;p&gt;Весо е журналист и е правил репортаж за културните сгради в София. Но случайно попада на&amp;nbsp;планове за проектиране на НДК и това че главният архитект е получил подкрепа от държавата без конкурс ами с връзки, въпреки че имало и други предложения.&amp;nbsp;&lt;/p&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-640" y="1090" width="190" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-2" value="&lt;h1&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Възможност&lt;/span&gt;&lt;/h1&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Жена му е изследовател по химия в БАН. Тя може да му даде отровата.&lt;/span&gt;&lt;/div&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-400" y="1090" width="190" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-4" value="архитект&lt;div&gt;Миролюб Араков&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-820" y="1150" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-5" value="&lt;h1&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Оръжие&lt;/span&gt;&lt;/h1&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Химична отрова, довела е до задушаване.&lt;/span&gt;&lt;/div&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-160" y="1090" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-6" value="изобретател&lt;div&gt;Ангел Ектронов&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="1620" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-8" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Има достъп до устройство което прави химична реакция с кислорода така че да се свърже с други атоми и да задуши.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-410" y="1610" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-10" value="&lt;h1&gt;Алиби&lt;/h1&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="30" y="1090" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-13" value="&lt;h1&gt;Край на историята&lt;/h1&gt;&lt;p&gt;След разкриване на убиеца плановете за строеж на НДК биват потулени от БКП с цел избягване на драма.&lt;br style=&quot;border-color: var(--border-color); text-align: center;&quot;&gt;&lt;span style=&quot;text-align: center;&quot;&gt;Ще бъдат възобновени чак пред 1975та.&lt;/span&gt;&lt;br style=&quot;border-color: var(--border-color); text-align: center;&quot;&gt;&lt;span style=&quot;text-align: center;&quot;&gt;Сградата официално е открита за 1300-годишнината на българската държава, на&amp;nbsp;31 март 1981 г.&amp;nbsp;&lt;/span&gt;&lt;br&gt;&lt;/p&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="570" y="220" width="410" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-14" value="какво се е случило? (не се разиграва)&amp;nbsp;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-785" y="220" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-15" value="зъболекар;&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;тайно: агент Шесто управление (отдел борба срещу идеологическата диверсия)&lt;div&gt;Бинко Гнитов&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="1720" width="120" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="iQ0GR19ANJNZZCqnPlIq-17" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Има служебен пистолет. Твърди, и е истина, че някой му го е взел на вечерята и го е сложил в ръката на жертвата.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-165" y="1700" width="185" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-1" value="космонавт&lt;div&gt;Асен Агорев&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="1880" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-2" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Страх го е, че ако режима бъде разклатен няма да има бюджет за мисията му да стигне до космоса.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-650" y="1870" width="190" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-3" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Очаква се да има джобен нож в себе си.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-165" y="1870" width="185" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-4" value="музикант&lt;div&gt;Пепи Анова&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="2205" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-5" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Някой я изнудва за пари - заплашва го, че ще я предаде на милицията защото разпространява забранена музика. На другите им изглежда, че жертвата Веси е изнудвача.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-650" y="2195" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-7" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Няма обоняние или познания или достъп до отрови.&lt;/span&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="20" y="2190" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-8" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Помагала е донасянето на вечерята.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-410" y="2200" width="185" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-9" value="femme fatale&lt;div&gt;актриса&lt;/div&gt;&lt;div&gt;Моника Мера&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="2380" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-11" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Предните й 2ма съпрузи са починали преди да навършат 50г. от неизвестни усложнения на здравето.&lt;/span&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-165" y="2370" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-12" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Донесла е шампанско.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-410" y="2370" width="185" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-90" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="93cE1AyJ9QEpsU_W-J-o-13" target="870wMmt_C4Bq-2m_nUi_-89" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-420" y="2540" />
+              <mxPoint x="-420" y="2655" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-13" value="директор на фабрика&lt;br&gt;(химична)&lt;div&gt;Траян Емиказвев&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="2510" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-14" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Има празни стъклени епруветки в якето.&lt;/span&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-165" y="2500" width="165" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-15" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Фабриката е химична.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-410" y="2500" width="185" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-16" value="професор в университа&lt;div&gt;Евгениа Л&#39;нова&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="2640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-18" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Завист - Веси е станал един от първите журналисти на БНТ, докато професора е решила че телевизията няма да е популярна и се е скарала с ръководителния състав на БНТ.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-650" y="2640" width="185" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-19" value="преподавател по ботаника&lt;div&gt;Ивелина Жегньова&lt;br&gt;&lt;div&gt;(&lt;span style=&quot;background-color: initial;&quot;&gt;отровната Ивет)&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="2890" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-20" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Отмъщение - Веси се е канел да публикувала статия във вестник &quot;Първомайска младеж&quot; относно влошаването на образованието по биология в уроците й.&lt;/span&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-650" y="2880" width="190" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-21" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;background-color: initial; font-weight: normal;&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Харесва отровни растения.&lt;/font&gt;&lt;/span&gt;&lt;br&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-410" y="2880" width="185" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-22" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Познанията й са чисто теоритични и не разбира от практика; затова е била и статията - че образованието не е практическо а само на теория.&lt;/span&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="20" y="2880" width="185" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="93cE1AyJ9QEpsU_W-J-o-23" target="MAjKp2B558adYnGrGkdU-16" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-770" y="3160" />
+              <mxPoint x="169" y="3160" />
+              <mxPoint x="169" y="3111" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-23" value="министър на образованието&lt;div&gt;Наум Знайков&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-830" y="3030" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="93cE1AyJ9QEpsU_W-J-o-27" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-650" y="3060" as="sourcePoint" />
+            <mxPoint x="180" y="3060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-1" value="&lt;b&gt;&lt;font style=&quot;font-size: 36px;&quot;&gt;Заподозрени&lt;/font&gt;&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="-320" y="1000" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-2" value="&lt;b&gt;&lt;font style=&quot;font-size: 36px;&quot;&gt;Разследващи&lt;/font&gt;&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="560" y="1000" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="pZ1SUIymZBvx8yj-Mapj-10" target="z_mv8qTKpuxhF5RxKh7l-12" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="1345" />
+              <mxPoint x="860" y="1205" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-10" value="отговорник архив&lt;div&gt;решава пъзел за да сглоби изрязана страница, която може да се наложи върху страница на книга и да покаже резултата за лаборанта&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="527.05" y="1290" width="288.04" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-14" value="Всяко едно разследване е само по себе си и е кратка верига която дава информация (мотив/възможност/оръжие/алиби) за един от заподозрените.&lt;div&gt;Всяко разследване може да се започне/привърши независимо от другите.&lt;/div&gt;&lt;div&gt;Когато всички разследвания са готови може да се дебатира пред всички. След това всички гласуват кой е убиеца.&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="445" y="1040" width="450" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-15" value="&lt;b&gt;&lt;font style=&quot;font-size: 36px;&quot;&gt;Предмети&lt;/font&gt;&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1635" y="1000" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-16" value="Всеки предмет е част от разследване (разгадаването на загадка)." style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1520" y="1040" width="450" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="pZ1SUIymZBvx8yj-Mapj-17" target="z_mv8qTKpuxhF5RxKh7l-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1440" y="1765" />
+              <mxPoint x="1440" y="1765" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-17" value="пистолет&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;има сериен номер, форма, цвят, дъжка... които може да се ползват от полицая за разследване&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1720" width="350" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="pZ1SUIymZBvx8yj-Mapj-19" target="z_mv8qTKpuxhF5RxKh7l-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-19" value="позиции в МВР и техните пистолети:&lt;div&gt;списък с 2 колони - на кой пистолет коя позиция в мвр съответства&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1044.02" y="1805" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="pZ1SUIymZBvx8yj-Mapj-20" target="pZ1SUIymZBvx8yj-Mapj-24" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-20" value="въпросник за разпознаване на огнестрелно оръжие:&lt;div&gt;подобно на стр. 5 от&lt;/div&gt;&lt;div&gt;https://www.bombmanual.com/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf&amp;nbsp;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045.98" y="1890" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-21" value="&lt;b&gt;&lt;font style=&quot;font-size: 36px;&quot;&gt;Информация/&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;b&gt;&lt;font style=&quot;font-size: 36px;&quot;&gt;познания на героите&lt;/font&gt;&lt;/b&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1048.48" y="1000" width="375" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-22" value="Дават се на някои играчи и така те могат да помагат в разследвания." style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1020" y="1045" width="450" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-24" value="оръжейник склад" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="515.9499999999999" y="1890" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pZ1SUIymZBvx8yj-Mapj-28" value="&lt;span style=&quot;text-align: left;&quot;&gt;планове за проектиране на НДК и това че главният архитект е получил подкрепа от държавата без конкурс ами с връзки, въпреки че имало и други предложения.&amp;nbsp;&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1145" width="350" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.75;exitDx=0;exitDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-1" target="870wMmt_C4Bq-2m_nUi_-5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-1" value="&amp;nbsp;списък на строго секретните притежатели на оръжие&lt;br&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;вен диаграма като от 13 стр. на бомбата - използва позицията в МВР и&lt;/span&gt;&amp;nbsp;последната цифра на сериен номер ****3 за да намери име на притежателя&lt;span style=&quot;background-color: initial; text-wrap: nowrap; color: rgba(0, 0, 0, 0); font-family: monospace; font-size: 0px; text-align: start;&quot;&gt;на%3CmxGraphModel%3E%3Croot%3E%3CmxCell%20id%3D%220%22%2F%3E%3CmxCell%20id%3D%221%22%20parent%3D%220%22%2F%3E%3CmxCell%20id%3D%222%22%20value%3D%22%D0%B2%D1%8A%D0%BF%D1%80%D0%BE%D1%81%D0%BD%D0%B8%D0%BA%20%D0%B7%D0%B0%20%D1%80%D0%B0%D0%B7%D0%BF%D0%BE%D0%B7%D0%BD%D0%B0%D0%B2%D0%B0%D0%BD%D0%B5%20%D0%BD%D0%B0%20%D0%BE%D0%B3%D0%BD%D0%B5%D1%81%D1%82%D1%80%D0%B5%D0%BB%D0%BD%D0%BE%20%D0%BE%D1%80%D1%8A%D0%B6%D0%B8%D0%B5%3A%26lt%3Bdiv%26gt%3B%D0%BF%D0%BE%D0%B4%D0%BE%D0%B1%D0%BD%D0%BE%20%D0%BD%D0%B0%20%D1%81%D1%82%D1%80.%205%20%D0%BE%D1%82%26lt%3B%2Fdiv%26gt%3B%26lt%3Bdiv%26gt%3Bhttps%3A%2F%2Fwww.bombmanual.com%2Fprint%2FKeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf%26amp%3Bnbsp%3B%26lt%3B%2Fdiv%26gt%3B%22%20style%3D%22rounded%3D0%3BwhiteSpace%3Dwrap%3Bhtml%3D1%3B%22%20vertex%3D%221%22%20parent%3D%221%22%3E%3CmxGeometry%20x%3D%221060%22%20y%3D%221910%22%20width%3D%22380%22%20height%3D%2260%22%20as%3D%22geometry%22%2F%3E%3C%2FmxCell%3E%3C%2Froot%3E%3C%2FmxGraphModel%3E&lt;/span&gt;&lt;span style=&quot;background-color: initial; text-wrap: nowrap; color: rgba(0, 0, 0, 0); font-family: monospace; font-size: 0px; text-align: start;&quot;&gt;%3CmxGraphModel%3E%3Croot%3E%3CmxCell%20id%3D%220%22%2F%3E%3CmxCell%20id%3D%221%22%20parent%3D%220%22%2F%3E%3CmxCell%20id%3D%222%22%20value%3D%22%D0%B2%D1%8A%D0%BF%D1%80%D0%BE%D1%81%D0%BD%D0%B8%D0%BA%20%D0%B7%D0%B0%20%D1%80%D0%B0%D0%B7%D0%BF%D0%BE%D0%B7%D0%BD%D0%B0%D0%B2%D0%B0%D0%BD%D0%B5%20%D0%BD%D0%B0%20%D0%BE%D0%B3%D0%BD%D0%B5%D1%81%D1%82%D1%80%D0%B5%D0%BB%D0%BD%D0%BE%20%D0%BE%D1%80%D1%8A%D0%B6%D0%B8%D0%B5%3A%26lt%3Bdiv%26gt%3B%D0%BF%D0%BE%D0%B4%D0%BE%D0%B1%D0%BD%D0%BE%20%D0%BD%D0%B0%20%D1%81%D1%82%D1%80.%205%20%D0%BE%D1%82%26lt%3B%2Fdiv%26gt%3B%26lt%3Bdiv%26gt%3Bhttps%3A%2F%2Fwww.bombmanual.com%2Fprint%2FKeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf%26amp%3Bnbsp%3B%26lt%3B%2Fdiv%26gt%3B%22%20style%3D%22rounded%3D0%3BwhiteSpace%3Dwrap%3Bhtml%3D1%3B%22%20vertex%3D%221%22%20parent%3D%221%22%3E%3CmxGeometry%20x%3D%221060%22%20y%3D%221910%22%20width%3D%22380%22%20height%3D%2260%22%20as%3D%22geometry%22%2F%3E%3C%2FmxCell%3E%3C%2Froot%3E%3C%2FmxGraphModel%3E&lt;/span&gt;&lt;span style=&quot;background-color: initial; text-wrap: nowrap; color: rgba(0, 0, 0, 0); font-family: monospace; font-size: 0px; text-align: start;&quot;&gt;%3CmxGraphModel%3E%3Croot%3E%3CmxCell%20id%3D%220%22%2F%3E%3CmxCell%20id%3D%221%22%20parent%3D%220%22%2F%3E%3CmxCell%20id%3D%222%22%20value%3D%22%D0%B2%D1%8A%D0%BF%D1%80%D0%BE%D1%81%D0%BD%D0%B8%D0%BA%20%D0%B7%D0%B0%20%D1%80%D0%B0%D0%B7%D0%BF%D0%BE%D0%B7%D0%BD%D0%B0%D0%B2%D0%B0%D0%BD%D0%B5%20%D0%BD%D0%B0%20%D0%BE%D0%B3%D0%BD%D0%B5%D1%81%D1%82%D1%80%D0%B5%D0%BB%D0%BD%D0%BE%20%D0%BE%D1%80%D1%8A%D0%B6%D0%B8%D0%B5%3A%26lt%3Bdiv%26gt%3B%D0%BF%D0%BE%D0%B4%D0%BE%D0%B1%D0%BD%D0%BE%20%D0%BD%D0%B0%20%D1%81%D1%82%D1%80.%205%20%D0%BE%D1%82%26lt%3B%2Fdiv%26gt%3B%26lt%3Bdiv%26gt%3Bhttps%3A%2F%2Fwww.bombmanual.com%2Fprint%2FKeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf%26amp%3Bnbsp%3B%26lt%3B%2Fdiv%26gt%3B%22%20style%3D%22rounded%3D0%3BwhiteSpace%3Dwrap%3Bhtml%3D1%3B%22%20vertex%3D%221%22%20parent%3D%221%22%3E%3CmxGeometry%20x%3D%221060%22%20y%3D%221910%22%20width%3D%22380%22%20height%3D%2260%22%20as%3D%22geometry%22%2F%3E%3C%2FmxCell%3E%3C%2Froot%3E%3C%2FmxGraphModel%3E&lt;/span&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045" y="1965" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-5" value="арсенален началник&lt;div&gt;от позицията на притежателя ще разбере кой е човекът&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="515.09" y="1980" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-10" target="z_mv8qTKpuxhF5RxKh7l-12" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="1260" />
+              <mxPoint x="910" y="1178" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-10" value="книга по разпознаване на биологични отрови&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;има страница с текст, нужна е другата страница с изрезките и стрелките кой цвят вещество кой вид отрова е&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1240" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-101" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-12" target="iQ0GR19ANJNZZCqnPlIq-5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-123" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="MAjKp2B558adYnGrGkdU-7" target="93cE1AyJ9QEpsU_W-J-o-3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1046" y="1560" />
+              <mxPoint x="275" y="1560" />
+              <mxPoint x="275" y="1850" />
+              <mxPoint x="-72" y="1850" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-12" value="криминален лекар" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="529.9999999999999" y="1425" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-13" target="93cE1AyJ9QEpsU_W-J-o-12" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1630" y="2360" />
+              <mxPoint x="1630" y="2450" />
+              <mxPoint x="-364" y="2450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-13" value="касова бележка от шампанско и марката му и името на клиента - femme fatale" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2330" width="350" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-18" target="93cE1AyJ9QEpsU_W-J-o-11" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1600" y="2250" />
+              <mxPoint x="1600" y="2410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-18" value="предната страница на вестник&lt;div&gt;- заглавната статия е &quot;Актрисата ... отново наследява състоянието на търговец&quot;. *Статията е залепена върху стар вестник&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2195" width="350" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-20" target="93cE1AyJ9QEpsU_W-J-o-14" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-41" y="2480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-20" value="&lt;h1 style=&quot;line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;празни стъклени епруветки в якето, всяка с етикет химична формула&lt;/span&gt;&lt;/h1&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2440" width="350" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-22" target="93cE1AyJ9QEpsU_W-J-o-7" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="2215" />
+              <mxPoint x="650" y="2215" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-22" value="&lt;h1 style=&quot;text-align: left; line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Няма обоняние или познания или достъп до отрови.&lt;/span&gt;&lt;/h1&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1044.02" y="2205" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-24" target="93cE1AyJ9QEpsU_W-J-o-20" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-24" target="93cE1AyJ9QEpsU_W-J-o-22" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="2963" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-24" value="&lt;h1 style=&quot;line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;писмо до вестника&lt;/span&gt;&lt;/h1&gt;&lt;div&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Здраве желаем другари, прикачен е репортаж за нивото на образованието по биология в родния институт по природни науки&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;За родину,&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Веси&lt;/span&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2953.5" width="350" height="136.5" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-27" target="93cE1AyJ9QEpsU_W-J-o-5" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1520" y="2130" />
+              <mxPoint x="1520" y="2260" />
+              <mxPoint x="-460" y="2260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-27" value="писмо от изнудвач&lt;div&gt;казващо на музиканта да плати месечната &quot;такса&quot; от 205 лв. за да не бъде предаден на милицията&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2090" width="350" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-87" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.75;exitDx=0;exitDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-86" target="iQ0GR19ANJNZZCqnPlIq-8" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1650" y="1650" />
+            </Array>
+            <mxPoint x="1650" y="1532.5" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-86" value="&lt;div&gt;оригами саксофон, който се разгъва и чете:&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;дневника на изобретателя: текста вътре е написан огледално и може да се прочете само в огледало заради необичания фонт. Пише че е изобретил кислородното устройство.&lt;/span&gt;&amp;nbsp;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1575" width="350" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-89" target="iQ0GR19ANJNZZCqnPlIq-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="2650" />
+              <mxPoint x="1500" y="1520" />
+              <mxPoint x="-305" y="1520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-89" value="знае, че съпругата на архитекта е изследовател по химия в БАН" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045.98" y="2640" width="380" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-94" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-92" target="870wMmt_C4Bq-2m_nUi_-89" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1429" y="2663" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-122" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-92" target="93cE1AyJ9QEpsU_W-J-o-15" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-160" y="2660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-92" value="благодарствено писмо от контраразузнаване&lt;div&gt;до шефа на химичната фабрика за колаборацията му с г-жа Архитектова в разработката на химична отрова която се нанася по острие или върха на куршум за да парализира белите дробове на жертва дори при лека повърхностна рана&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2630" width="350" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-98" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-95" target="93cE1AyJ9QEpsU_W-J-o-8" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="515" y="2130" />
+              <mxPoint x="-317" y="2130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-95" target="93cE1AyJ9QEpsU_W-J-o-7" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="115" y="2160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-95" value="хижарката" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="515.09" y="2090" width="290.93" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-97" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-96" target="870wMmt_C4Bq-2m_nUi_-95" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-96" target="870wMmt_C4Bq-2m_nUi_-22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-96" value="знае, че музикантът е помагала за направата на коктейлите,&lt;div&gt;но също че тя няма обоняние или представа как да смесва или следи пропорции&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1044.02" y="2110" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-99" value="&lt;h1 style=&quot;line-height: 50%;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;Етикетите на епруветките са на безвредни вещества, но са трудни за разчитане защото пише само химичната им формула.&lt;/span&gt;&lt;/h1&gt;" style="text;html=1;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="20" y="2500" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-103" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-102" target="870wMmt_C4Bq-2m_nUi_-12" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="990" y="1455" />
+              <mxPoint x="990" y="1455" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-102" value="списък с външни белези и причини за смърт:&lt;div&gt;кръгла обгорена рана - огнестрелно оръжие;&lt;/div&gt;&lt;div&gt;широка повърхностна рана по главата - тъпо оръжие;&lt;/div&gt;&lt;div&gt;плоска кървяща рана - хладно оръжие;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;посинено лице - задушаване;&lt;/span&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;втвърдени крайници - животинско отравяне (ухапване, обождане)&lt;/div&gt;&lt;div&gt;червена кожа - излагане на радиация&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045.98" y="1380" width="380" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-104" value="" style="shape=mxgraph.signs.people.male;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-690" y="1166.5" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-107" value="" style="shape=mxgraph.signs.people.female;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-700" y="2220" width="23.26" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-108" value="" style="shape=mxgraph.signs.people.female;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-700" y="2395" width="23.26" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-109" value="" style="shape=mxgraph.signs.people.female;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-700" y="2905" width="23.26" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-110" value="" style="shape=mxgraph.signs.people.male;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-700" y="1761.5" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-111" value="" style="shape=mxgraph.signs.people.male;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-703.74" y="2550" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-112" value="" style="shape=mxgraph.signs.people.male;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-700" y="1896.5" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-113" value="" style="shape=mxgraph.signs.people.male;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-701.87" y="3046.5" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-115" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-114" target="93cE1AyJ9QEpsU_W-J-o-21" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="2300" />
+              <mxPoint x="880" y="2850" />
+              <mxPoint x="-271" y="2850" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-114" value="музикантът знае че учителката е била в джаз група като ученичка и прякорът й е бил &quot;отровната Иветта&quot;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045.98" y="2270" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-116" value="за всички:&lt;div&gt;разследване - събирай информация за мотивите, възможностите за извършване на убийството (време, място), оръжието на убийството и алибитата на заподозрените;&lt;/div&gt;&lt;div&gt;задаване на въпроси - някои факти може да откриеш чрез добре формулиран въпрос към някого който знае&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1044.02" y="1133.5" width="380" height="96.5" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-120" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-117" target="870wMmt_C4Bq-2m_nUi_-119" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="990" y="2530" />
+              <mxPoint x="990" y="2530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-117" value="пъзел от вертикални клечки които трябва да бъдат наредени според числа (намерени на долната страна на зарове) и те поясняват на коя формула кое вещество отговаря, колко е опасно и как вреди&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;подсказка: Your knowledge of chemistry is clouded by your vices - it becomes clear only where the roll of the dice cannot be seen and the fat cigars are hidden (да се види на кое число е залепено черно на заровете и да се обърнат пурите с лице надолу)&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045.98" y="2498.5" width="380" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-119" value="&amp;nbsp;докторант по форензика от Италия" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="516.02" y="2500" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-121" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.368;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="870wMmt_C4Bq-2m_nUi_-119" target="870wMmt_C4Bq-2m_nUi_-99" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-127" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="870wMmt_C4Bq-2m_nUi_-126" target="870wMmt_C4Bq-2m_nUi_-117" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="870wMmt_C4Bq-2m_nUi_-126" value="&lt;h1 style=&quot;line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;зарове с числа залепени от долните им страни&lt;/span&gt;&lt;/h1&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2498.5" width="350" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="DwUlyyWffFal7lQU7kZB-1" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1410" y="2488" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="DwUlyyWffFal7lQU7kZB-2" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1955" y="2181.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="DwUlyyWffFal7lQU7kZB-3" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="2315" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="DwUlyyWffFal7lQU7kZB-4" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1960" y="2935" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="mQncY7Xybt33am8NbxC9-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1520" y="2130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-1" value="205 лв. в джоба на Веси" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1990" width="350" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-3" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1960" y="1980" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-4" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1955" y="2071.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-5" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1970" y="1710" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="mQncY7Xybt33am8NbxC9-6" target="93cE1AyJ9QEpsU_W-J-o-18" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-557" y="2832" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mQncY7Xybt33am8NbxC9-6" value="&lt;h1 style=&quot;line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;писмо&lt;/span&gt;&lt;/h1&gt;&lt;h1 style=&quot;line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;стипендия от 205 лв. дадена на Веси за заслуги към журналистиката; в послеписа пише че комитетът не разбира защо дружа с професора в уни, който така грубо е отрекъл телевизията казвайки че е моментна мода която бързо ще отмине, и сега цели 3 години след създаването на БНТ горчиво съжалява и се моли за позиция на истински журналист&lt;/span&gt;&lt;/h1&gt;&lt;div&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;но няма да бъде допуснат да излезе от университета&lt;/span&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2740" width="350" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-1" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="1568" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-4" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="1133.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-5" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1400" y="1370" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-7" value="изобретателя знае че космонавта винаги има нож в себе си" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1045.98" y="1540" width="380" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="MAjKp2B558adYnGrGkdU-9" target="93cE1AyJ9QEpsU_W-J-o-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1460" y="1935" />
+              <mxPoint x="1460" y="2050" />
+              <mxPoint x="-555" y="2050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-9" value="писмо до приятелката на космонавта от него&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;гласи че не иска режима да се разклати защото първо финансирането за неговата мисия ще замине&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1900" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-13" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1400" y="1523" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-15" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1420" y="2620" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-16" value="заедо с Веси и архитекта са пили коктейли около 20 минути преди убийството. Веси е разказвал на министъра за скорошното разследване на образователната система което е првил. Също за момент е споменал, че прави ново разследване за нередности покрай конкурси за обществени поръчки, например как победителя в конкурса може да е роднина на вземащия решение.&amp;nbsp;&lt;span style=&quot;background-color: initial;&quot;&gt;Арxитекта почти не е говорил и е бил&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;по-заинтересован от коктейлите.&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1048.48" y="3046.5" width="380" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-18" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="2614.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-20" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1417.5" y="3039" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-21" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1400" y="1950" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-22" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1410" y="1124.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-24" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1400" y="1788" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-25" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1400" y="1870" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-27" value="" style="shape=mxgraph.signs.people.male;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-701.87" y="1637" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-29" value="" style="shape=mxgraph.signs.people.female;html=1;pointerEvents=1;fillColor=#000000;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;" parent="1" vertex="1">
+          <mxGeometry x="-703.74" y="2655" width="23.26" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-31" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1970" y="1881.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="MAjKp2B558adYnGrGkdU-32" target="870wMmt_C4Bq-2m_nUi_-10" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1650" y="1450" />
+              <mxPoint x="1590" y="1450" />
+              <mxPoint x="1590" y="1275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-32" value="чаша за коктейл, отровена с конкретен цвят" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1412" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="MAjKp2B558adYnGrGkdU-34" target="870wMmt_C4Bq-2m_nUi_-10" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1620" y="1355" />
+              <mxPoint x="1620" y="1292" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-34" value="пъзел за да се сглоби лист с дупки, може да се наложи върху страница на книга и да покаже резултата за лаборанта" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="1320" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-38" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1990" y="1310" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="MAjKp2B558adYnGrGkdU-39" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="1230" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-1" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="2740" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-2" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="790" y="1412" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-3" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="780" y="1710" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-4" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="790" y="1870" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-5" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="790" y="1960" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-6" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-725.5" y="2490" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-7" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-732.98" y="1595" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-8" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-732.98" y="3004.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-9" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-725.5" y="1129" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-10" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-725.5" y="1710" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-11" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-725.5" y="1858" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-14" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-729.24" y="2190" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-15" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="780" y="2071.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-16" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1410" y="2090" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-17" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1410" y="2194" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-18" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1417.5" y="2260" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="NjJ5Jj3JCiT5NyiH67EW-19" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="2494" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="m6niJ07vVEU-7mSPjoxz-1" value="разследване" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="400" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="m6niJ07vVEU-7mSPjoxz-2" value="гласуване" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="545" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="m6niJ07vVEU-7mSPjoxz-3" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;чеклист&lt;/h1&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;- пропове&lt;/span&gt;&lt;/div&gt;&lt;div&gt;- принтове&lt;/div&gt;&lt;div&gt;- карти гласуване&lt;/div&gt;&lt;div&gt;- наградни картички&lt;/div&gt;&lt;div&gt;- скрити доказателства&lt;/div&gt;&lt;div&gt;- табелки за избиране на герой:&lt;/div&gt;&lt;div&gt;&amp;nbsp; - заподозрени&lt;/div&gt;&lt;div&gt;&amp;nbsp; - разследващи&lt;/div&gt;&lt;div&gt;&amp;nbsp; - помагащи/милиция&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1275" y="395" width="180" height="225" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-1" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-727.37" y="2360" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-2" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-727.37" y="2614.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-3" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="-725.5" y="2870" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;dashPattern=12 12;" parent="1" source="pA0ObAiwxEG3cjrO40Ht-15" target="870wMmt_C4Bq-2m_nUi_-13" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="805.0900000000001" y="2367.5" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="990" y="2600" />
+              <mxPoint x="990" y="2345" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;dashed=1;dashPattern=8 8;" parent="1" source="pA0ObAiwxEG3cjrO40Ht-5" target="870wMmt_C4Bq-2m_nUi_-27" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="2300" />
+              <mxPoint x="850" y="2170" />
+              <mxPoint x="1590" y="2170" />
+              <mxPoint x="1590" y="2150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-5" value="следотърсач" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="516.02" y="2280" width="290" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-9" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="790" y="1133.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-10" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="790" y="1272" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-12" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="790" y="2265" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-13" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;dashed=1;dashPattern=8 8;" parent="1" target="MAjKp2B558adYnGrGkdU-9" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1590" y="2150" as="sourcePoint" />
+            <mxPoint x="1590" y="1950" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1590" y="1953" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-14" value="" style="endArrow=classic;html=1;rounded=0;dashed=1;dashPattern=8 8;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1590" y="1960" as="sourcePoint" />
+            <mxPoint x="2000" y="3020" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1590" y="1870" />
+              <mxPoint x="2200" y="1870" />
+              <mxPoint x="2200" y="3020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-15" value="инспектор хазарт, алкохол и тютюн" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="516.02" y="2570" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-16" value="" style="endArrow=classic;html=1;rounded=0;dashed=1;dashPattern=12 12;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1570" y="2350" as="sourcePoint" />
+            <mxPoint x="1650" y="2510" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1570" y="2510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-17" value="&lt;h1 style=&quot;line-height: 12px;&quot;&gt;&lt;span style=&quot;font-size: 12px; font-weight: 400;&quot;&gt;пури за химичния пъзел&lt;/span&gt;&lt;/h1&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="1650" y="2560" width="350" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-18" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="1980" y="2548.5" width="52.5" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-19" value="" style="endArrow=classic;html=1;rounded=0;dashed=1;dashPattern=12 12;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1570" y="2510" as="sourcePoint" />
+            <mxPoint x="1650" y="2570" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1570" y="2570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pA0ObAiwxEG3cjrO40Ht-20" value="" style="sketch=0;html=1;aspect=fixed;strokeColor=none;shadow=0;align=center;fillColor=#2D9C5E;verticalAlign=top;labelPosition=center;verticalLabelPosition=bottom;shape=mxgraph.gcp2.check" parent="1" vertex="1">
+          <mxGeometry x="798" y="2560" width="52.5" height="42" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

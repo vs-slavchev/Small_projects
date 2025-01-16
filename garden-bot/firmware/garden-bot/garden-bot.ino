@@ -23,6 +23,7 @@
 #endif
 
  
+// SETTINGS
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
 
@@ -37,10 +38,11 @@
 #define AIR_MOISTURE 2900
 #define WATER_MOISTURE 1000
 
-#define WATERING_DURATION_S 15
-#define WATERING_THRESHOLD_PCT 75
+#define WATERING_DURATION_S 10
+// #define WATERING_THRESHOLD_PCT 75
+#define SECONDS_BETWEEN_WATERING 14400 // 4h * 60m * 60s
 
-#define SECONDS_TO_SLEEP  1800 // 60s * 30m
+#define SECONDS_TO_SLEEP  1800 // 60s * 30m = 1800
 // #define SECONDS_TO_SLEEP 3
 const uint64_t uS_TO_SLEEP = SECONDS_TO_SLEEP * 1000000ull;
  
@@ -51,6 +53,7 @@ int battery_mV = 0;
 int moisturePercent_1 = 0;
 int moisturePercent_2 = 0;
 bool watered = false;
+RTC_DATA_ATTR int seconds_since_last_watering = 0;
  
 void connectWiFi()
 {
@@ -159,8 +162,11 @@ void readMoisture() {
 }
 
 void powerPump() {
-  bool startPump = (moisturePercent_1 + moisturePercent_2) / 2 < WATERING_THRESHOLD_PCT;
+  //bool startPump = (moisturePercent_1 + moisturePercent_2) / 2 < WATERING_THRESHOLD_PCT;
+  bool startPump = seconds_since_last_watering >= SECONDS_BETWEEN_WATERING;
   if (!startPump) {
+    seconds_since_last_watering += SECONDS_TO_SLEEP;
+    debugln((String)"set seconds_since_last_watering to:  " + seconds_since_last_watering);
     return;
   }
   
@@ -171,6 +177,8 @@ void powerPump() {
 
   digitalWrite(PUMP_PIN, LOW);
   watered = true;
+  seconds_since_last_watering = SECONDS_TO_SLEEP;
+  debugln((String)"restarted seconds_since_last_watering");
 }
 
 void deepSleep()
