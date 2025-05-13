@@ -27,22 +27,11 @@ fetchDataJSON()
     moisture1Values = dataObj.data.moisture_1.map((item) => item.value);
     moisture2Values = dataObj.data.moisture_2.map((item) => item.value);
     wateredValues = dataObj.data.watered.map((item) => item.value ? 100 : 0);
+    tempValues = dataObj.data.temp.map((item) => item.value);
 
 
-    var lastMoisture1 = moisture1Values[moisture1Values.length - 1];
-    var lastMoisture2 = moisture2Values[moisture2Values.length - 1];
-
-    document.getElementById("moisture_1").innerHTML = lastMoisture1 + "%";
-    document.getElementById("moisture_2").innerHTML = lastMoisture2 + "%";
-
-    var currentBatteryPercent = batteryValues[batteryValues.length - 1];
-    document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
-    document.getElementById("battery-indicator").style = "height:" + currentBatteryPercent + "%;";
-    if (currentBatteryPercent < 20) {
-      document.getElementById("battery-indicator").classList.add("alert");
-    } else if (currentBatteryPercent < 50) {
-      document.getElementById("battery-indicator").classList.add("warn");
-    }
+    getLastMoistureData();
+    getLastBatteryData();
 
     var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
     document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
@@ -72,6 +61,11 @@ fetchDataJSON()
           name: "watered",
           chartType: "bar",
           values: wateredValues
+        },
+        {
+          name: "temp",
+          chartType: "line",
+          values: tempValues
         }
       ],
       yMarkers: [{ label: "water", value: 75, options: { labelPos: "left" } }],
@@ -109,6 +103,24 @@ fetchDataJSON()
       }
     })
 
+    function getLastMoistureData() {
+      var lastMoisture1 = moisture1Values[moisture1Values.length - 1];
+      var lastMoisture2 = moisture2Values[moisture2Values.length - 1];
+
+      document.getElementById("moisture_1").innerHTML = lastMoisture1 + "%";
+      document.getElementById("moisture_2").innerHTML = lastMoisture2 + "%";
+    }
+
+    function getLastBatteryData() {
+      var currentBatteryPercent = batteryValues[batteryValues.length - 1];
+      document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
+      document.getElementById("battery-indicator").style = "height:" + currentBatteryPercent + "%;";
+      if (currentBatteryPercent < 20) {
+        document.getElementById("battery-indicator").classList.add("alert");
+      } else if (currentBatteryPercent < 50) {
+        document.getElementById("battery-indicator").classList.add("warn");
+      }
+    }
   })
   .catch(error => {
     console.error('There was a problem with the fetch operation:', error);
