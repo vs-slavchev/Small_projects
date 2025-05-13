@@ -1,4 +1,8 @@
 #include "secrets.h"
+#include "config.h"
+#include "debug.h"
+
+// dependencies
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -6,70 +10,48 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 #include "driver/adc.h"
+#include "time.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-// #define debug_print
-#if defined debug_print
-   #define debug_begin(x)        Serial.begin(x)
-   #define debug(x)              Serial.print(x)
-   #define debugln(x)            Serial.println(x)
-   #define debugf(...)           Serial.printf(__VA_ARGS__)
-   #define debugFlush()          Serial.flush()
-#else
-   #define debug_begin(x)
-   #define debug(x)
-   #define debugln(x)
-   #define debugf(...)
-   #define debugFlush()
-#endif
 
- 
-// SETTINGS
-#define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
-#define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
-
-#define PUMP_PIN 32
-#define SENSOR_POWER_PIN 33
-#define MOISTURE_1_PIN 34
-#define MOISTURE_2_PIN 35
-#define BATTERY_GAUGE_PIN 39
-// #define POTENTIOMETER_PIN 36
-
-// values gotten from testing
-#define AIR_MOISTURE 2900
-#define WATER_MOISTURE 1000
-
-#define WATERING_DURATION_S 10
-// #define WATERING_THRESHOLD_PCT 75
-#define SECONDS_BETWEEN_WATERING 14400 // 4h * 60m * 60s
-
-#define SECONDS_TO_SLEEP  1800 // 60s * 30m = 1800
-// #define SECONDS_TO_SLEEP 3
-const uint64_t uS_TO_SLEEP = SECONDS_TO_SLEEP * 1000000ull;
  
 WiFiClientSecure net = WiFiClientSecure();
 PubSubClient client(net);
+
+unsigned long startTime;
 
 int battery_mV = 0;
 int moisturePercent_1 = 0;
 int moisturePercent_2 = 0;
 bool watered = false;
-RTC_DATA_ATTR int seconds_since_last_watering = 0;
+int tempC = -100;
+RTC_DATA_ATTR int seconds_since_last_watering = 3600*24*10;
+RTC_DATA_ATTR struct tm timeinfo = { 0, 0, 13, 2, 6, 123 };
+RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
+
+
  
 void connectWiFi()
 {
   adc_power_on();
-  // WiFi.disconnect(false);  // Reconnect the network
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
  
-  debugln("Connecting to Wi-Fi");
+  debug("Connecting to Wi-Fi");
  
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     debug(".");
   }
-  debugln("Wi-Fi connected");
+  debugln(" Wi-Fi connected");
+}
+
+void disconnectWiFi() {
+    WiFi.disconnect(true);  // Disconnect from the network
+    WiFi.mode(WIFI_OFF);    // Switch WiFi off
+    debugln("Disconnected from Wi-Fi");
 }
 
 void connectAWS()
@@ -87,7 +69,7 @@ void connectAWS()
  
   debugln("Connecting to AWS IOT");
  
-  while (!client.connect(THINGNAME))
+  while (!client.connect(AWS_THINGNAME))
   {
     debug(".");
     delay(100);
@@ -108,15 +90,17 @@ void connectAWS()
 void publishMessage()
 {
   StaticJsonDocument<200> doc;
-  doc["device"] = "garden_bot1";
+  doc["device"] = BOT_NAME;
   doc["battery"] = battery_mV;
   doc["moisture_1"] = moisturePercent_1;
   doc["moisture_2"] = moisturePercent_2;
   doc["watered"] = watered;
+  doc["temp"] = tempC;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
  
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+  debugln((String)"Published message: " + jsonBuffer);
 }
  
 void messageHandler(char* topic, byte* payload, unsigned int length)
@@ -124,12 +108,24 @@ void messageHandler(char* topic, byte* payload, unsigned int length)
   //won't handle messages
 }
 
+void saveCurrentTime() {
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); // get internet time
+  if(!getLocalTime(&timeinfo)){
+    debugln("Failed to obtain internet time, adding sleep time to timeinfo");
+    timeinfo.tm_sec += SECONDS_TO_SLEEP;
+    mktime(&timeinfo); // normalize the time structure if seconds overflow
+    return;
+  }
+  debugln((String)"Current time: " + asctime(&timeinfo));
+}
+
 void readBattery() {
   float batteryInput = analogRead(BATTERY_GAUGE_PIN);
   
   float input_voltage = (batteryInput * 4.2) / 4095.0;
   battery_mV = input_voltage * 1000;
-  debugln((String)"batt input: " + batteryInput + (String)"; battery voltage [0-4.2V]: " + input_voltage + (String)"; batt mV: " + battery_mV);
+  debugln((String)"batt input: " + batteryInput + 
+    (String)"; battery voltage [0-4.2V]: " + input_voltage + (String)"; batt mV: " + battery_mV);
 }
 
 int averageReadings(int pin) {
@@ -158,27 +154,70 @@ void readMoisture() {
   
   int averageMoisturePercent = (moisturePercent_1 + moisturePercent_2) / 2;
   
-  debugf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n", moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
+  debugf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n",
+    moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
+}
+
+void readTemperature() {
+    // setup
+    OneWire oneWire(ONE_WIRE_BUS);
+    DallasTemperature sensors(&oneWire);
+    sensors.begin();
+
+    sensors.requestTemperatures(); 
+    tempC = round(sensors.getTempCByIndex(0)); // first on bus
+    debugf("Temperature: %d°C\n", tempC);
+
+    maxRecentTemperature = max(maxRecentTemperature, tempC);
+}
+
+bool shouldWater() {
+  bool enoughTimePassedSinceWateringForRecentMaxTemps = seconds_since_last_watering >= calculateSecondsBetweenWateringFromMaxRecentTemperature();
+  bool isMorning = timeinfo.tm_hour == 8; // 8am
+  bool isHotAfternoon = timeinfo.tm_hour == 15 && maxRecentTemperature >= 31;
+  bool shouldWater = enoughTimePassedSinceWateringForRecentMaxTemps && (isMorning || isHotAfternoon);
+  if (!shouldWater) {
+    seconds_since_last_watering += SECONDS_TO_SLEEP;
+    debugln((String)"set seconds_since_last_watering to:  " + seconds_since_last_watering);
+  }
+  return shouldWater;
+}
+
+int calculateSecondsBetweenWateringFromMaxRecentTemperature() {
+  if (maxRecentTemperature >= 31) {
+    return 3600 * 6; // 6 hours
+  } else if (maxRecentTemperature >= 25) {
+    return 3600 * 15; // 15 hours
+  } else if (maxRecentTemperature >= 19) {
+    return 3600 * 24 * 2; // 2 days
+  } else if (maxRecentTemperature >= 15) {
+    return 3600 * 24 * 3; // 3 days
+  } else if (maxRecentTemperature >= 10) {
+    return 3600 * 24 * 4; // 4 days
+  } else {
+    return 3600 * 24 * 5; // 5 days
+  }
 }
 
 void powerPump() {
-  //bool startPump = (moisturePercent_1 + moisturePercent_2) / 2 < WATERING_THRESHOLD_PCT;
-  bool startPump = seconds_since_last_watering >= SECONDS_BETWEEN_WATERING;
-  if (!startPump) {
-    seconds_since_last_watering += SECONDS_TO_SLEEP;
-    debugln((String)"set seconds_since_last_watering to:  " + seconds_since_last_watering);
-    return;
-  }
-  
   pinMode(PUMP_PIN, OUTPUT);
   digitalWrite(PUMP_PIN, HIGH);
 
-  delay(WATERING_DURATION_S * 1000);
+  debugf("starting watering for %d seconds", WATERING_DURATION_S);
+  for (int i = 0; i < WATERING_DURATION_S; i++) {
+    delay(1000);
+    debug(".");
+    flashOffDiagnosticLed();
+  }
 
   digitalWrite(PUMP_PIN, LOW);
+}
+
+void finishWatering() {
   watered = true;
   seconds_since_last_watering = SECONDS_TO_SLEEP;
-  debugln((String)"restarted seconds_since_last_watering");
+  maxRecentTemperature = INT_MIN;
+  debugln((String)"\nrestarted seconds_since_last_watering and reset maxRecentTemperature");
 }
 
 void deepSleep()
@@ -191,25 +230,40 @@ void deepSleep()
   // esp_bluedroid_disable();
   // esp_bt_controller_disable();
   // esp_wifi_stop();
-  esp_sleep_enable_timer_wakeup(uS_TO_SLEEP);
-  debugln("Setup ESP32 to sleep for " + String(SECONDS_TO_SLEEP) + " seconds");
+  unsigned long secondsWorked = (millis() - startTime) / 1000;
+  debugln((String)"secondsWorked: " + secondsWorked);
+  uint64_t microSecondsToSleep = (SECONDS_TO_SLEEP - secondsWorked + 1) * 1000000ull;
+  esp_sleep_enable_timer_wakeup(microSecondsToSleep);
+  debugln("Sleeping for " + String(microSecondsToSleep / 1000000) + " seconds");
   debugFlush(); 
   esp_deep_sleep_start();
 }
  
 void setup()
 {
+  // setup
   setCpuFrequencyMhz(80);
   debug_begin(9600);
   //set the resolution to 12 bits (0-4096)
   analogReadResolution(12);
+  turnOnDiagnosticLed();
+  startTime = millis();
 
+  // read sensors
   readBattery();
   readMoisture();
-
-  powerPump();
+  readTemperature();
 
   connectWiFi();
+  saveCurrentTime();
+
+  if (shouldWater()) {
+      disconnectWiFi(); // to save energy
+      powerPump();  
+      finishWatering();
+      connectWiFi();
+  }
+
   connectAWS();
   publishMessage();
   client.loop();

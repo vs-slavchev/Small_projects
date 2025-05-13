@@ -1,7 +1,7 @@
 #include <pgmspace.h>
  
 #define SECRET
-#define THINGNAME "***************"                         //change this
+#define AWS_THINGNAME "***************"                         //change this
  
 const char WIFI_SSID[] = "***************";               //change this
 const char WIFI_PASSWORD[] = "***************";           //change this
