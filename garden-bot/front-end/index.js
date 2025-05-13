@@ -118,7 +118,6 @@ fetchDataJSON()
     function getLastBatteryData() {
       var currentBatteryPercent = batteryValues[batteryValues.length - 1];
       document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
-      document.getElementById("battery-emoji").innerHTML = "🔋" + getBatteryEmoji(currentBatteryPercent);
 
       var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
       document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
@@ -127,7 +126,6 @@ fetchDataJSON()
     function getLastTemperature() {
       var currentTemperature = tempValues[tempValues.length - 1];
       document.getElementById("temperature").innerHTML = `${currentTemperature}°C`;
-      document.getElementById("temperature-emoji").innerHTML = `🌡️${getTemperatureEmoji(currentTemperature)}`;
     }
   })
   .catch(error => {
@@ -156,20 +154,4 @@ function getMoistureEmoji(value) {
   if (value < 70) return "💧"; // Moderately dry
   if (value < 90) return "💦"; // Good moisture
   return "🌊"; // High moisture
-}
-
-function getBatteryEmoji(value) {
-  if (value < 20) return "🔴"; // Critical
-  if (value < 50) return "🟠"; // Low
-  if (value < 80) return "🟡"; // Moderate
-  if (value < 95) return "🟢"; // Good
-  return "⚡"; // Full
-}
-
-function getTemperatureEmoji(value) {
-  if (value < -10) return "🥶";
-  if (value < 0) return "❄️"; // Freezing
-  if (value < 15) return "🌤️"; // Cold
-  if (value < 30) return "☀️"; // Comfortable
-  return "🔥"; // Hot
 }
