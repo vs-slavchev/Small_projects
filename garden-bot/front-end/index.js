@@ -32,11 +32,7 @@ fetchDataJSON()
 
     getLastMoistureData();
     getLastBatteryData();
-
-    var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
-    document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
-
-
+    getLastTemperature();
 
     // frappe line chart
     const graphData = {
@@ -68,7 +64,7 @@ fetchDataJSON()
           values: tempValues
         }
       ],
-      yMarkers: [{ label: "water", value: 75, options: { labelPos: "left" } }],
+      // yMarkers: [{ label: "water", value: 75, options: { labelPos: "left" } }],
       // yRegions: [
       //   { label: "Region", start: -10, end: 50, options: { labelPos: "right" } }
       // ]
@@ -82,7 +78,7 @@ fetchDataJSON()
       height: 600,
       // valuesOverPoints: 1,
       truncateLegends: true,
-      colors: ["#30b455", "#97E7E1", "#6AD4DD"],
+      colors: ["#30b455", "#97E7E1", "#6AD4DD", "#0000FF", "#FF7700"],
       axisOptions: {
         xAxisMode: "tick",
         xIsSeries: true,
@@ -114,17 +110,24 @@ fetchDataJSON()
 
       document.getElementById("moisture_1").innerHTML = lastMoisture1 + "%";
       document.getElementById("moisture_2").innerHTML = lastMoisture2 + "%";
+
+      document.getElementById("moisture_1_emoji").innerHTML = getMoistureEmoji(lastMoisture1);
+      document.getElementById("moisture_2_emoji").innerHTML = getMoistureEmoji(lastMoisture2);
     }
 
     function getLastBatteryData() {
       var currentBatteryPercent = batteryValues[batteryValues.length - 1];
       document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
-      document.getElementById("battery-indicator").style = "height:" + currentBatteryPercent + "%;";
-      if (currentBatteryPercent < 20) {
-        document.getElementById("battery-indicator").classList.add("alert");
-      } else if (currentBatteryPercent < 50) {
-        document.getElementById("battery-indicator").classList.add("warn");
-      }
+      document.getElementById("battery-emoji").innerHTML = "🔋" + getBatteryEmoji(currentBatteryPercent);
+
+      var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
+      document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
+    }
+
+    function getLastTemperature() {
+      var currentTemperature = tempValues[tempValues.length - 1];
+      document.getElementById("temperature").innerHTML = `${currentTemperature}°C`;
+      document.getElementById("temperature-emoji").innerHTML = `🌡️${getTemperatureEmoji(currentTemperature)}`;
     }
   })
   .catch(error => {
@@ -146,4 +149,27 @@ function timestampMillisToCurrentTime(dateTime) {
   var localeDateTime = new Date(dateTime).toTimeString();
   // get only first 5 characters
   return localeDateTime.substring(0, 5);
+}
+
+function getMoistureEmoji(value) {
+  if (value < 25) return "🏜️"; // Very dry
+  if (value < 70) return "💧"; // Moderately dry
+  if (value < 90) return "💦"; // Good moisture
+  return "🌊"; // High moisture
+}
+
+function getBatteryEmoji(value) {
+  if (value < 20) return "🔴"; // Critical
+  if (value < 50) return "🟠"; // Low
+  if (value < 80) return "🟡"; // Moderate
+  if (value < 95) return "🟢"; // Good
+  return "⚡"; // Full
+}
+
+function getTemperatureEmoji(value) {
+  if (value < -10) return "🥶";
+  if (value < 0) return "❄️"; // Freezing
+  if (value < 15) return "🌤️"; // Cold
+  if (value < 30) return "☀️"; // Comfortable
+  return "🔥"; // Hot
 }
