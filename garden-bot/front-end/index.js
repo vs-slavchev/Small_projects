@@ -28,7 +28,7 @@ fetchDataJSON()
     moisture2Values = dataObj.data.moisture_2.map((item) => item.value);
     wateredValues = dataObj.data.watered.map((item) => item.value ? 100 : 0);
     tempValues = dataObj.data.temp.map((item) => item.value);
-
+    tempValues = tempValues.map((item) => item == -127 ? 0 : item);
 
     getLastMoistureData();
     getLastBatteryData();
@@ -85,7 +85,12 @@ fetchDataJSON()
       colors: ["#30b455", "#97E7E1", "#6AD4DD"],
       axisOptions: {
         xAxisMode: "tick",
-        xIsSeries: true
+        xIsSeries: true,
+        yAxisMode: "span",
+        yAxis: {
+          min: -20,
+          max: 100
+        }
       },
       lineOptions: {
         hideDots: 1,
