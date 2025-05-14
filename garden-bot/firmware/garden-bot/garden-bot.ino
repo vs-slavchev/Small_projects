@@ -166,6 +166,10 @@ void readTemperature() {
 
     sensors.requestTemperatures(); 
     tempC = round(sensors.getTempCByIndex(0)); // first on bus
+    if (tempC == -127 || tempC > 50) {
+      debugln("Temperature reading was corrupted");
+      tempC = 0;
+    }
     debugf("Temperature: %d°C\n", tempC);
 
     maxRecentTemperature = max(maxRecentTemperature, tempC);
