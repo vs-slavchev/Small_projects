@@ -23,7 +23,19 @@ body {
     text-align: center;
     font-size: 4em;
     padding-right: 1vw;
-    ;
+}
+
+/* dropdown menu */
+#filter {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.filter-select {
+    font-size: 1.2em;
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
 }
 
 
@@ -44,7 +56,7 @@ body {
     visibility: hidden;
 }
 
-.x.axis > g:not(:first-child,:last-child,:nth-child(12),:nth-child(24),:nth-child(36)) {
+.x.axis > g:not(:first-child,:last-child,:nth-child(12),:nth-child(24),:nth-child(36),:nth-child(48),:nth-child(60),:nth-child(72),:nth-child(84),:nth-child(96),:nth-child(108),:nth-child(120),:nth-child(132)) {
     width: 0px;
     height: 0px;
     visibility: hidden;
