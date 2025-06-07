@@ -41,6 +41,7 @@ function updateChart(responseData) {
     return;
   }
 
+  renderLastUpdatesTime();
   getLastMoistureData();
   getLastBatteryData();
   getLastTemperature();
@@ -75,7 +76,7 @@ function updateChart(responseData) {
         values: tempValues
       }
     ],
-    // yMarkers: [{ label: "water", value: 75, options: { labelPos: "left" } }],
+    yMarkers: [{ label: "30°C", value: 30, options: { labelPos: "left" } }],
     // yRegions: [
     //   { label: "Region", start: -10, end: 50, options: { labelPos: "right" } }
     // ]
@@ -126,16 +127,32 @@ function updateChart(responseData) {
     document.getElementById("moisture_2_emoji").innerHTML = getMoistureEmoji(lastMoisture2);
   }
 
-  function getLastBatteryData() {
-    var currentBatteryPercent = batteryValues[batteryValues.length - 1];
-    document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
-
+  function renderLastUpdatesTime() {
+    // set last updated time
     if (dataObj.data.battery.length === 0) {
-      document.getElementById("last-updated-time").innerHTML = "No data";
+      document.getElementById("last-updated-time").innerHTML = "no data";
       return;
     }
     var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
     document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
+
+    // set last watered
+    const lastWateredIndex = wateredValues.lastIndexOf(100);
+    if (lastWateredIndex !== -1) {
+      const lastWateredTime = timeLabels[lastWateredIndex];
+      document.getElementById("last-watered-time").innerHTML = lastWateredTime;
+    } else {
+      document.getElementById("last-watered-time").innerHTML = "no data";
+    }
+  
+    // Set the max temperature value
+    const maxTemperature = Math.max(...tempValues);
+    document.getElementById("max-temperature").innerHTML = `${maxTemperature}°C`;
+  }
+
+  function getLastBatteryData() {
+    var currentBatteryPercent = batteryValues[batteryValues.length - 1];
+    document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
   }
 
   function getLastTemperature() {
