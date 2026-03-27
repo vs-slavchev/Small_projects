@@ -38,6 +38,18 @@ body {
     border: 1px solid #ccc;
 }
 
+div#filter label {
+    font-size: 2.5em;
+    margin-right: 10px;
+}
+
+@media (min-width: 768px) {
+    div#filter label {
+        font-size: 1.5em;
+        margin-right: 10px;
+    }
+}
+
 
 /* 
 .chart-draw-area {
@@ -73,4 +85,28 @@ div#last-updated p, span {
 .section-title {
     font-size: 3em;
     text-align: center;
+}
+
+
+
+/* last updates fields */
+#last-updated {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (min-width: 768px) {
+
+    /* Apply styles for desktop screens */
+    #last-updated {
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+    }
+
+    #last-updated p {
+        margin: 0;
+        /* Remove default margin for better alignment */
+    }
 }
