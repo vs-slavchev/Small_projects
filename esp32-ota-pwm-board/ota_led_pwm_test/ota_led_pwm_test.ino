@@ -2,6 +2,7 @@
 #include <ArduinoOTA.h>
 #include "../secrets.h"
 
+static const char* OTA_HOSTNAME = "esp32-plant-stand-test";
 static const uint8_t PWM_PIN = 32;
 
 void connectWiFi() {
@@ -19,7 +20,7 @@ void connectWiFi() {
 }
 
 void setupOTA() {
-	ArduinoOTA.setHostname("esp32-plant-stand");
+	ArduinoOTA.setHostname(OTA_HOSTNAME);
 	ArduinoOTA.setPassword(OTA_PASSWORD);
 
 	ArduinoOTA.onStart([]() {

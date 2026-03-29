@@ -27,6 +27,8 @@
 #include <stdarg.h>
 #include "../secrets.h"
 
+static const char* OTA_HOSTNAME = "esp32-plant-stand";
+
 // -------- NTP Servers --------
 const char* NTP_PRIMARY   = "pool.ntp.org";
 const char* NTP_SECONDARY = "time.nist.gov";
@@ -186,7 +188,7 @@ void connectWiFi() {
 }
 
 void setupOTA() {
-	ArduinoOTA.setHostname("esp32-plant-stand");
+	ArduinoOTA.setHostname(OTA_HOSTNAME);
 	ArduinoOTA.setPassword(OTA_PASSWORD);
 
 	ArduinoOTA.onStart([]() {
