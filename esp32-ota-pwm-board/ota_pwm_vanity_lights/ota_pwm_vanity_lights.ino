@@ -4,29 +4,29 @@
 		- Wi-Fi + OTA updates using shared secrets config
 		- NTP time sync with Europe/Sofia timezone
 		- MOSFET-driven PWM control for an LED strip
-		- APDS-9960 gesture control using interrupt-driven handling
-		- Gesture debounce to suppress duplicate swipe events
+		- Rotary encoder input using interrupt-driven reading
+		- Software debounce for rotary changes and button clicks
 
-	Gesture map:
-		- Up:    set brightness to 100%
-		- Down:  set brightness to 0%
-		- Left:  reduce brightness by 20%
-		- Right: increase brightness by 20%
+	Control map:
+		- Rotate right / clockwise: increase brightness by 3%
+		- Rotate left / counter-clockwise: decrease brightness by 3%
+		- Button press: toggle off/on with eased animation
 
 	Quiet hours:
-		- Turning the strip on is blocked between 00:00 and 07:30 local time.
-		- If local time is unavailable, turn-on requests are rejected for safety.
+		- Turning the strip on above 10% is limited to 10% between 00:00 and 07:30 local time.
+		- If local time is unavailable, turn-on requests are allowed.
 
 	Hardware defaults used here:
 		- PWM output: GPIO 32
-		- APDS-9960 INT: GPIO 27
-		- I2C: ESP32 default pins via Wire.begin()
+		- Encoder CLK/A: GPIO 19
+		- Encoder DT/B: GPIO 21
+		- Encoder SW: GPIO 22
 */
 
 #include <WiFi.h>
 #include <ArduinoOTA.h>
-#include <Wire.h>
-#include <SparkFun_APDS9960.h>
+#include <AiEsp32RotaryEncoder.h>
+#include <esp_arduino_version.h>
 #include <time.h>
 #include "../secrets.h"
 
@@ -36,38 +36,147 @@ static const char* NTP_SECONDARY = "time.nist.gov";
 static const char* TZ_INFO = "EET-2EEST,M3.5.0/3,M10.5.0/4";
 
 static const uint8_t PWM_PIN = 32;
+static const uint8_t ONBOARD_LED_PIN = 2;
 static const uint8_t PWM_CHANNEL = 0;
 static const uint32_t PWM_FREQ = 5000;
 static const uint8_t PWM_RES_BITS = 13;
 
-static const uint8_t APDS_INT_PIN = 27;
-static const unsigned long GESTURE_DEBOUNCE_MS = 350;
-static const unsigned long TIME_LOG_INTERVAL_MS = 60000;
+static const uint8_t ENCODER_CLK_PIN = 19;
+static const uint8_t ENCODER_DT_PIN = 21;
+static const uint8_t ENCODER_SW_PIN = 22;
+static const int ENCODER_VCC_PIN = -1;
+static const uint8_t ENCODER_STEPS = 4;
+
 static const unsigned long TIME_RESYNC_INTERVAL_MS = 3600000;
 static const unsigned long BRIGHTNESS_ANIMATION_MS = 450;
+static const unsigned long ROTARY_DEBOUNCE_MS = 35;
+static const unsigned long BUTTON_DEBOUNCE_MS = 180;
+static const unsigned long BUTTON_CLICK_TIMEOUT_MS = 400;
+static const uint8_t BRIGHTNESS_STEP_PCT = 3;
+static const uint8_t QUIET_HOURS_MAX_BRIGHTNESS_PCT = 10;
 static const time_t MIN_VALID_EPOCH = 1704067200; // 2024-01-01 00:00:00 UTC
 
-SparkFun_APDS9960 apds;
-volatile bool gestureInterruptPending = false;
+static const long ENCODER_MIN_LEVEL = 0;
+static const long ENCODER_MAX_LEVEL = (100 + BRIGHTNESS_STEP_PCT - 1) / BRIGHTNESS_STEP_PCT;
+
+AiEsp32RotaryEncoder rotaryEncoder(
+	ENCODER_CLK_PIN,
+	ENCODER_DT_PIN,
+	ENCODER_SW_PIN,
+	ENCODER_VCC_PIN,
+	ENCODER_STEPS,
+	false
+);
 
 uint8_t currentBrightnessPct = 0;
 uint8_t targetBrightnessPct = 0;
 uint8_t animationStartBrightnessPct = 0;
-unsigned long lastGestureHandledMs = 0;
-unsigned long lastTimeLogMs = 0;
+uint8_t rememberedOnBrightnessPct = 100;
+long lastEncoderLevel = ENCODER_MIN_LEVEL;
+unsigned long lastEncoderHandledMs = 0;
+unsigned long lastButtonHandledMs = 0;
 unsigned long lastTimeSetupMs = 0;
 unsigned long brightnessAnimationStartMs = 0;
 bool timeConfigured = false;
-bool apdsReady = false;
+bool awaitingTimeSyncLog = false;
 bool brightnessAnimationActive = false;
+bool hasUsedButtonTurnOn = false;
 
-void IRAM_ATTR onGestureInterrupt() {
-	gestureInterruptPending = true;
+void IRAM_ATTR readEncoderISR() {
+	rotaryEncoder.readEncoder_ISR();
 }
 
 uint32_t dutyFromPercent(uint8_t percent) {
 	const uint32_t dutyMax = (1U << PWM_RES_BITS) - 1U;
 	return ((uint32_t)percent * dutyMax) / 100U;
+}
+
+bool attachPwmOutput() {
+	#if ESP_ARDUINO_VERSION_MAJOR >= 3
+	return ledcAttachChannel(PWM_PIN, PWM_FREQ, PWM_RES_BITS, PWM_CHANNEL);
+	#else
+	ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RES_BITS);
+	ledcAttachPin(PWM_PIN, PWM_CHANNEL);
+	return true;
+	#endif
+}
+
+void writePwmDuty(uint32_t duty) {
+	#if ESP_ARDUINO_VERSION_MAJOR >= 3
+	ledcWriteChannel(PWM_CHANNEL, duty);
+	#else
+	ledcWrite(PWM_CHANNEL, duty);
+	#endif
+}
+
+long brightnessPercentToEncoderLevel(uint8_t percent) {
+	if (percent > 100) {
+		percent = 100;
+	}
+	if (percent == 100) {
+		return ENCODER_MAX_LEVEL;
+	}
+
+	return (long)((percent + (BRIGHTNESS_STEP_PCT / 2)) / BRIGHTNESS_STEP_PCT);
+}
+
+uint8_t encoderLevelToBrightnessPercent(long level) {
+	if (level < ENCODER_MIN_LEVEL) {
+		level = ENCODER_MIN_LEVEL;
+	}
+	if (level > ENCODER_MAX_LEVEL) {
+		level = ENCODER_MAX_LEVEL;
+	}
+	if (level == ENCODER_MAX_LEVEL) {
+		return 100;
+	}
+
+	return (uint8_t)(level * BRIGHTNESS_STEP_PCT);
+}
+
+uint8_t requestedBrightness() {
+	return brightnessAnimationActive ? targetBrightnessPct : currentBrightnessPct;
+}
+
+void syncEncoderToRequestedBrightness() {
+	long level = brightnessPercentToEncoderLevel(requestedBrightness());
+	rotaryEncoder.setEncoderValue(level);
+	lastEncoderLevel = rotaryEncoder.readEncoder();
+}
+
+uint8_t clampAwakeRestoreBrightness(uint8_t percent) {
+	if (percent > 100) {
+		percent = 100;
+	}
+	if (percent < QUIET_HOURS_MAX_BRIGHTNESS_PCT) {
+		return QUIET_HOURS_MAX_BRIGHTNESS_PCT;
+	}
+
+	return percent;
+}
+
+void rememberOnBrightness(uint8_t percent) {
+	if (percent == 0) {
+		return;
+	}
+
+	if (percent > 100) {
+		percent = 100;
+	}
+
+	rememberedOnBrightnessPct = percent;
+}
+
+uint8_t resolveButtonOnBrightness() {
+	if (!hasUsedButtonTurnOn) {
+		return 100;
+	}
+
+	if (isQuietHours()) {
+		return QUIET_HOURS_MAX_BRIGHTNESS_PCT;
+	}
+
+	return clampAwakeRestoreBrightness(rememberedOnBrightnessPct);
 }
 
 void writeBrightnessNow(uint8_t percent, bool verbose = true) {
@@ -77,7 +186,7 @@ void writeBrightnessNow(uint8_t percent, bool verbose = true) {
 
 	currentBrightnessPct = percent;
 	uint32_t duty = dutyFromPercent(percent);
-	ledcWrite(PWM_CHANNEL, duty);
+	writePwmDuty(duty);
 	if (verbose) {
 		Serial.printf("[PWM] Brightness set to %u%% (duty=%lu)\n", currentBrightnessPct, (unsigned long)duty);
 	}
@@ -86,13 +195,8 @@ void writeBrightnessNow(uint8_t percent, bool verbose = true) {
 	}
 }
 
-uint8_t requestedBrightness() {
-	return brightnessAnimationActive ? targetBrightnessPct : currentBrightnessPct;
-}
-
-float easeOutCubic(float t) {
-	float inv = 1.0f - t;
-	return 1.0f - (inv * inv * inv);
+float easeInCubic(float t) {
+	return t * t * t;
 }
 
 void startBrightnessTransition(uint8_t percent) {
@@ -123,9 +227,26 @@ void startBrightnessTransition(uint8_t percent) {
 }
 
 void setupPWM() {
-	ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RES_BITS);
-	ledcAttachPin(PWM_PIN, PWM_CHANNEL);
+	if (!attachPwmOutput()) {
+		Serial.println("[PWM] Failed to attach LEDC output");
+		return;
+	}
+
 	writeBrightnessNow(0);
+}
+
+void runStartupDiagnostic() {
+	pinMode(PWM_PIN, OUTPUT);
+	pinMode(ONBOARD_LED_PIN, OUTPUT);
+
+	for (uint8_t flash = 0; flash < 3; ++flash) {
+		digitalWrite(PWM_PIN, HIGH);
+		digitalWrite(ONBOARD_LED_PIN, HIGH);
+		delay(1000);
+		digitalWrite(PWM_PIN, LOW);
+		digitalWrite(ONBOARD_LED_PIN, LOW);
+		delay(500);
+	}
 }
 
 void connectWiFi() {
@@ -174,6 +295,7 @@ void setupOTA() {
 void setupTime() {
 	lastTimeSetupMs = millis();
 	timeConfigured = true;
+	awaitingTimeSyncLog = true;
 	configTzTime(TZ_INFO, NTP_PRIMARY, NTP_SECONDARY);
 	Serial.println("[Time] NTP + TZ config initiated (Europe/Sofia)");
 }
@@ -188,6 +310,16 @@ bool getLocalTimeFromClock(struct tm* timeInfo) {
 	return true;
 }
 
+bool formatLocalTime(char* buffer, size_t bufferSize) {
+	struct tm timeInfo;
+	if (!getLocalTimeFromClock(&timeInfo)) {
+		return false;
+	}
+
+	strftime(buffer, bufferSize, "%Y-%m-%d %H:%M:%S %Z", &timeInfo);
+	return true;
+}
+
 void ensureTimeConfigured() {
 	unsigned long nowMs = millis();
 	if (!timeConfigured || (WiFi.status() == WL_CONNECTED && (nowMs - lastTimeSetupMs) >= TIME_RESYNC_INTERVAL_MS)) {
@@ -195,44 +327,38 @@ void ensureTimeConfigured() {
 	}
 }
 
-void logLocalTime() {
-	struct tm timeInfo;
-	if (!getLocalTimeFromClock(&timeInfo)) {
-		Serial.println("[Time] Local time not available yet");
+void logTimeSyncStatus() {
+	if (!awaitingTimeSyncLog) {
 		return;
 	}
 
 	char buf[64];
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %Z", &timeInfo);
-	Serial.printf("[Time] %s\n", buf);
+	if (!formatLocalTime(buf, sizeof(buf))) {
+		return;
+	}
+
+	awaitingTimeSyncLog = false;
+	Serial.printf("[Time] Synced: %s\n", buf);
+}
+
+void logInputEvent(const char* label) {
+	char buf[64];
+	if (formatLocalTime(buf, sizeof(buf))) {
+		Serial.printf("[Input] %s at %s\n", label, buf);
+		return;
+	}
+
+	Serial.printf("[Input] %s at unknown time\n", label);
 }
 
 bool isQuietHours() {
 	struct tm timeInfo;
 	if (!getLocalTimeFromClock(&timeInfo)) {
-		return true;
+		return false;
 	}
 
 	int minutes = (timeInfo.tm_hour * 60) + timeInfo.tm_min;
 	return minutes < 450; // 07:30 = 450 minutes
-}
-
-bool canTurnOnNow() {
-	struct tm timeInfo;
-	if (!getLocalTimeFromClock(&timeInfo)) {
-		Serial.println("[Policy] Time unavailable; blocking turn-on request");
-		return false;
-	}
-
-	int minutes = (timeInfo.tm_hour * 60) + timeInfo.tm_min;
-	if (minutes < 450) {
-		char buf[32];
-		strftime(buf, sizeof(buf), "%H:%M:%S", &timeInfo);
-		Serial.printf("[Policy] Turn-on blocked during quiet hours at %s\n", buf);
-		return false;
-	}
-
-	return true;
 }
 
 bool requestBrightness(uint8_t targetPercent) {
@@ -240,11 +366,18 @@ bool requestBrightness(uint8_t targetPercent) {
 		targetPercent = 100;
 	}
 
-	if (currentBrightnessPct == 0 && targetPercent > 0 && !canTurnOnNow()) {
-		return false;
+	if (currentBrightnessPct == 0 && targetPercent > 0) {
+		if (isQuietHours() && targetPercent > QUIET_HOURS_MAX_BRIGHTNESS_PCT) {
+			Serial.printf("[Policy] Quiet hours active; limiting turn-on to %u%%\n", QUIET_HOURS_MAX_BRIGHTNESS_PCT);
+			targetPercent = QUIET_HOURS_MAX_BRIGHTNESS_PCT;
+		}
+	}
+	if (targetPercent > 0) {
+		rememberOnBrightness(targetPercent);
 	}
 
 	startBrightnessTransition(targetPercent);
+	syncEncoderToRequestedBrightness();
 	return true;
 }
 
@@ -261,113 +394,83 @@ void updateBrightnessAnimation() {
 	}
 
 	float t = (float)elapsedMs / (float)BRIGHTNESS_ANIMATION_MS;
-	float eased = easeOutCubic(t);
+	float eased = easeInCubic(t);
 	float delta = (float)targetBrightnessPct - (float)animationStartBrightnessPct;
 	uint8_t nextBrightness = (uint8_t)lroundf((float)animationStartBrightnessPct + (delta * eased));
 	writeBrightnessNow(nextBrightness, false);
 }
 
-void handleGesture(int gesture) {
-	switch (gesture) {
-		case DIR_UP:
-			Serial.println("[Gesture] UP");
-			requestBrightness(100);
-			break;
-		case DIR_DOWN:
-			Serial.println("[Gesture] DOWN");
-			requestBrightness(0);
-			break;
-		case DIR_LEFT: {
-			Serial.println("[Gesture] LEFT");
-			uint8_t base = requestedBrightness();
-			uint8_t target = (base >= 20) ? (base - 20) : 0;
-			requestBrightness(target);
-			break;
-		}
-		case DIR_RIGHT: {
-			Serial.println("[Gesture] RIGHT");
-			uint8_t base = requestedBrightness();
-			uint8_t target = (base <= 80) ? (base + 20) : 100;
-			requestBrightness(target);
-			break;
-		}
-		case DIR_NEAR:
-			Serial.println("[Gesture] NEAR ignored");
-			break;
-		case DIR_FAR:
-			Serial.println("[Gesture] FAR ignored");
-			break;
-		default:
-			Serial.printf("[Gesture] Unhandled code: %d\n", gesture);
-			break;
-	}
+void setupEncoder() {
+	rotaryEncoder.begin();
+	rotaryEncoder.isButtonPulldown = false;
+	rotaryEncoder.setup(readEncoderISR);
+	rotaryEncoder.setBoundaries(ENCODER_MIN_LEVEL, ENCODER_MAX_LEVEL, false);
+	rotaryEncoder.disableAcceleration();
+	rotaryEncoder.setEncoderValue(ENCODER_MIN_LEVEL);
+	lastEncoderLevel = rotaryEncoder.readEncoder();
+	Serial.println("[Encoder] Rotary encoder ready");
 }
 
-void processGestureInterrupt() {
-	if (!gestureInterruptPending || !apdsReady) {
+void processEncoderRotation() {
+	long encoderLevel = rotaryEncoder.readEncoder();
+	if (encoderLevel == lastEncoderLevel) {
 		return;
 	}
 
 	unsigned long now = millis();
-	if ((now - lastGestureHandledMs) < GESTURE_DEBOUNCE_MS) {
-		noInterrupts();
-		gestureInterruptPending = false;
-		interrupts();
+	if ((now - lastEncoderHandledMs) < ROTARY_DEBOUNCE_MS) {
 		return;
 	}
 
-	noInterrupts();
-	gestureInterruptPending = false;
-	interrupts();
+	long previousLevel = lastEncoderLevel;
+	lastEncoderLevel = encoderLevel;
+	lastEncoderHandledMs = now;
 
-	if (!apds.isGestureAvailable()) {
-		return;
+	if (encoderLevel > previousLevel) {
+		logInputEvent("ROTATE RIGHT");
+	} else {
+		logInputEvent("ROTATE LEFT");
 	}
 
-	int gesture = apds.readGesture();
-	if (gesture == DIR_NONE) {
-		return;
-	}
-
-	lastGestureHandledMs = now;
-	handleGesture(gesture);
+	requestBrightness(encoderLevelToBrightnessPercent(encoderLevel));
 }
 
-void setupGestureSensor() {
-	pinMode(APDS_INT_PIN, INPUT_PULLUP);
-
-	if (!apds.init()) {
-		Serial.println("[APDS9960] Initialization failed");
-		apdsReady = false;
+void processEncoderButton() {
+	if (!rotaryEncoder.isEncoderButtonClicked(BUTTON_CLICK_TIMEOUT_MS)) {
 		return;
 	}
 
-	if (!apds.enableGestureSensor(true)) {
-		Serial.println("[APDS9960] Gesture sensor enable failed");
-		apdsReady = false;
+	unsigned long now = millis();
+	if ((now - lastButtonHandledMs) < BUTTON_DEBOUNCE_MS) {
 		return;
 	}
 
-	attachInterrupt(digitalPinToInterrupt(APDS_INT_PIN), onGestureInterrupt, FALLING);
-	apdsReady = true;
-	Serial.println("[APDS9960] Gesture sensor ready");
+	lastButtonHandledMs = now;
+	if (requestedBrightness() == 0) {
+		logInputEvent("BUTTON ON");
+		hasUsedButtonTurnOn = true;
+		requestBrightness(resolveButtonOnBrightness());
+		return;
+	}
+
+	logInputEvent("BUTTON OFF");
+	requestBrightness(0);
 }
 
 void setup() {
+	runStartupDiagnostic();
 	Serial.begin(115200);
+	setupPWM();
 	delay(200);
 	Serial.println();
 	Serial.println("=== ESP32 OTA PWM Vanity Lights ===");
-
-	setupPWM();
-	Wire.begin();
 	connectWiFi();
 	setupOTA();
 	setupTime();
-	setupGestureSensor();
-
-	logLocalTime();
-	lastTimeLogMs = millis();
+	logTimeSyncStatus();
+	setupEncoder();
+	writeBrightnessNow(0, false);
+	syncEncoderToRequestedBrightness();
 }
 
 void loop() {
@@ -376,16 +479,12 @@ void loop() {
 	}
 
 	ensureTimeConfigured();
+	logTimeSyncStatus();
 
 	ArduinoOTA.handle();
-	processGestureInterrupt();
+	processEncoderRotation();
+	processEncoderButton();
 	updateBrightnessAnimation();
-
-	unsigned long now = millis();
-	if ((now - lastTimeLogMs) >= TIME_LOG_INTERVAL_MS) {
-		logLocalTime();
-		lastTimeLogMs = now;
-	}
 
 	delay(5);
 }

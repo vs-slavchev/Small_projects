@@ -7,40 +7,56 @@ This sketch controls a MOSFET-driven LED strip from an ESP32 using:
 - Wi-Fi connectivity
 - Arduino OTA updates
 - NTP-backed local time
-- APDS-9960 gesture input via interrupt pin
+- A 5-pin rotary encoder with push button
+- Interrupt-driven rotary reading through the `Ai Esp32 Rotary Encoder` library
 - PWM brightness control with eased transitions
 
 Primary sketch: `ota_pwm_vanity_lights.ino`
+
+## Required Library
+
+Install this Arduino library before building the sketch:
+
+- `Ai Esp32 Rotary Encoder` by Igor Antolic
+
+### Arduino IDE install steps
+
+1. Open `Sketch -> Include Library -> Manage Libraries...`
+2. Search for `ai rotary`
+3. Install `Ai Esp32 Rotary Encoder`
+
+The old APDS-9960 library is no longer required for this sketch.
 
 ## Hardware Assumptions
 
 - ESP32
 - LED strip driven through a MOSFET on PWM-capable `GPIO 32`
-- APDS-9960 gesture sensor
-- APDS-9960 interrupt pin connected to `GPIO 27`
-- I2C on ESP32 default `Wire.begin()` pins
+- Rotary encoder module with 5 pins: `CLK`, `DT`, `SW`, `VCC`, `GND`
+- Encoder rotation is read using interrupts on the two signal pins
+- Encoder button toggles the light on and off
 
-## APDS-9960 Wiring
+## Rotary Encoder Wiring
 
-The sketch assumes the APDS-9960 is wired to the ESP32 as follows:
+The sketch assumes the encoder is wired to the ESP32 as follows:
 
-- ESP32 `3V3` -> APDS-9960 `VCC`
-- ESP32 `GND` -> APDS-9960 `GND`
-- ESP32 `GPIO 21` -> APDS-9960 `SDA`
-- ESP32 `GPIO 22` -> APDS-9960 `SCL`
-- ESP32 `GPIO 27` -> APDS-9960 `INT`
+- ESP32 `GPIO 19` -> encoder `CLK` or `A`
+- ESP32 `GPIO 21` -> encoder `DT` or `B`
+- ESP32 `GPIO 22` -> encoder `SW`
+- ESP32 `3V3` -> encoder `VCC`
+- ESP32 `GND` -> encoder `GND`
 
-Notes:
+### Notes
 
-- `INT` is used for gesture-trigger interrupts and is configured as an input with pull-up
-- I2C pin assumptions come from the current `Wire.begin()` default pin mapping on ESP32
-- If different I2C pins are needed later, the sketch would need an explicit `Wire.begin(SDA, SCL)` update
+- This reuses the same ESP32 pins requested for the replacement: `19`, `21`, `22`
+- The encoder library is constructed with the final `false` argument so ESP32 uses pull-ups on the encoder signal pins
+- The button input also uses pull-up behavior
+- If your module is labeled `A`, `B`, `SW`, `+`, `GND`, connect `A -> GPIO 19`, `B -> GPIO 21`, `SW -> GPIO 22`, `+ -> 3V3`, `GND -> GND`
 
 ## Network and OTA
 
 - Wi-Fi credentials and OTA password are loaded from the shared `../secrets.h`
 - OTA hostname: `esp32-vanity-lights`
-- OTA must remain responsive while gesture and brightness logic are running
+- OTA must remain responsive while brightness and encoder logic are running
 
 ## Time Behavior
 
@@ -49,52 +65,72 @@ Notes:
   - `pool.ntp.org`
   - `time.nist.gov`
 - Time sync is initialized at boot
+- The first successful local-time read is logged after sync becomes available
 - The sketch uses the ESP32 local clock for runtime decisions
-- Gesture handling must not wait on blocking time lookups
-- Time config may be refreshed periodically, but turn-on gesture handling must remain immediate
+- Encoder handling must not wait on blocking network time requests
+- Time config may be refreshed periodically during runtime
 
 ## Quiet Hours Policy
 
-Turning the strip on is disallowed between `00:00` and `07:30` local time.
+Turning the strip on is allowed between `00:00` and `07:30` local time, but only up to `10%` brightness.
 
 ### Enforcement rule
 
-Only transitions from `0%` brightness to a value greater than `0%` are blocked.
+Only transitions from `0%` brightness to a value greater than `0%` are limited.
+
+### Quiet-hours cap
+
+- If a turn-on request from `0%` exceeds `10%` during quiet hours, it is reduced to `10%`
+- Requests at `10%` or below are allowed unchanged
+- Turn-off actions remain allowed
 
 ### If local time is unavailable
 
-- Any turn-on action from `0%` is blocked for safety
+- Turn-on actions remain allowed
 - Turn-off actions remain allowed
 
-## Gesture Handling
+## Encoder Handling
 
-The APDS-9960 is used in an interrupt-driven manner:
+The rotary encoder is used in an interrupt-driven manner:
 
-- The sensor asserts `INT`
-- The ISR only sets a pending flag
-- Gesture decoding is performed in the main loop
+- `GPIO 19` and `GPIO 21` are attached to interrupts through the encoder library
+- The ISR path updates the encoder state using `readEncoder_ISR()`
+- The main loop reads the current encoder position and applies brightness changes
 
 ### Debounce
 
-- Debounce window: `350 ms`
-- Gestures arriving within that window after a handled gesture are ignored
+The sketch adds software debounce on top of the library behavior:
 
-## Gesture Map
+- Rotary movement debounce window: `35 ms`
+- Button action debounce window: `180 ms`
+- Library click detection also performs its own short debounce internally
 
-- `UP` -> set brightness target to `100%`
-- `DOWN` -> set brightness target to `0%`
-- `LEFT` -> reduce brightness target by `20%`
-- `RIGHT` -> increase brightness target by `20%`
-- `NEAR` -> ignored
-- `FAR` -> ignored
+### Acceleration
+
+- Encoder acceleration is disabled because the brightness range is small and the control should remain predictable
+
+## Control Map
+
+- Rotate right / clockwise -> increase brightness by `3%`
+- Rotate left / counter-clockwise -> decrease brightness by `3%`
+- Short button press -> toggle the light off or back on
+
+Button turn-on behavior is:
+
+- First button turn-on after boot -> `100%`
+- Later button turn-ons during awake hours -> restore the previous remembered on level, but never below `10%`
+- Later button turn-ons during sleep hours -> `10%`
+
+The remembered on level is the last effective non-zero target brightness that the strip was using before being turned off.
 
 ## Brightness and Animation
 
 - PWM frequency: `5000 Hz`
 - PWM resolution: `13 bits`
 - Brightness range: `0%..100%`
+- Rotary changes target brightness in `3%` steps
 - Transitions are non-blocking
-- Transitions use an ease-out cubic curve
+- Transitions use an ease-in cubic curve
 - Current animation duration: `450 ms`
 
 ## Requested vs Current Brightness
@@ -104,95 +140,122 @@ The implementation distinguishes between:
 - **current brightness**: the live PWM output level at this instant
 - **requested/target brightness**: the destination level of the active transition
 
-During an active fade, `LEFT` and `RIGHT` modify the target brightness, not the current visible instantaneous level.
+During an active fade, a new rotation or button press replaces the current target with a new eased transition.
 
 ## Edge Cases and Expected Behavior
 
-### Swipe right while fully off
+### Rotate right while fully off during awake hours
 
-- Target becomes `20%`
-- If local time is valid and current time is after `07:30`, an eased fade starts from `0% -> 20%`
-- If current time is between `00:00` and `07:30`, the request is blocked
-- If time has not been synced yet, the request is blocked
+- Requested target becomes `3%`
+- An eased fade starts from `0% -> 3%`
+- The remembered on level becomes `3%`
 
-### Swipe up while fully off
+### Rotate right while fully off during sleep hours
 
-- Same as above, except target becomes `100%`
+- Requested target becomes `3%`
+- The quiet-hours policy still allows `3%` because it is at or below `10%`
+- An eased fade starts from `0% -> 3%`
+- The remembered on level becomes `3%`
 
-### Swipe left while fully off
+### Rotate quickly from off toward a high level during sleep hours
+
+- The encoder may request `12%`, `15%`, `18%`, or higher
+- The quiet-hours policy limits the effective target to `10%`
+- The encoder position is synchronized back to the limited target level so the knob state remains aligned with actual brightness
+- The remembered on level becomes `10%`
+
+### Rotate left while fully off
 
 - Target remains `0%`
 - No visible change
+- The remembered on level is unchanged
 
-### Swipe down while fully off
+### First button turn-on after boot during awake hours
 
-- Target remains `0%`
-- No visible change
+- Target becomes `100%`
+- An eased fade starts from `0% -> 100%`
+- The remembered on level becomes `100%`
 
-### Swipe down while still turning on
+### First button turn-on after boot during sleep hours
+
+- The button still requests `100%` as the first-on target
+- The quiet-hours policy limits the effective target to `10%`
+- An eased fade starts from `0% -> 10%`
+- The remembered on level becomes `10%`
+
+### Later button turn-on during awake hours with remembered level above `10%`
+
+- Target becomes the remembered level
+- Example: if the light was last on at `42%`, the next button turn-on requests `42%`
+
+### Later button turn-on during awake hours with remembered level below `10%`
+
+- The remembered level is clamped upward to `10%`
+- Example: if the light was last on at `3%`, the next button turn-on requests `10%`
+
+### Later button turn-on during sleep hours
+
+- Target becomes `10%` regardless of the remembered level
+
+### Press button while on
+
+- Target becomes `0%`
+- The strip fades down with the same ease-in animation
+- The current remembered on level is kept for the next button-on action
+
+### Press button to turn off during an active fade up
+
+- The active fade is replaced by a fade to `0%`
+- The remembered on level stays at the last effective non-zero target that was being faded toward
+
+### Press button to turn on after turning off during an active fade up
+
+- During awake hours, the strip restores that remembered target, clamped to at least `10%`
+- During sleep hours, the strip turns on at `10%`
+
+### Rotate during an active fade while already on
 
 - The active animation is replaced
-- A new eased fade starts from the current instantaneous brightness down to `0%`
+- A new fade starts from the current instantaneous brightness to the newly requested target
+- The remembered on level updates to the new effective target
 
-### Swipe up while still turning off
+### Rotate down to `0%` instead of using the button
 
-- If current brightness is still above `0%`, the strip is treated as already on
-- A new eased fade starts from the current instantaneous brightness to `100%`
-- This remains allowed during quiet hours because the guard only blocks transitions from exactly `0%`
+- The strip fades to `0%`
+- The last remembered non-zero target remains available for a later button turn-on
 
-### Swipe right while still turning off
+### Rotate to `1` detent below `10%` and then turn off with the button
 
-- If current brightness is still above `0%`, the fade may reverse upward
-- The new target increases by `20%` from the requested target logic
-- If brightness has already reached `0%`, quiet-hours and time-availability rules apply again
+- The light can be manually operated below `10%` during awake hours using rotation
+- A later button turn-on during awake hours restores at least `10%`, not the lower remembered level
 
-### Swipe left while still turning on
+### Repeated fast detents
 
-- Reduction is based on the current requested target, not the visible instantaneous level
-- Example: if the strip is fading toward `100%`, `LEFT` changes target to `80%`
+- Rotary changes inside the `35 ms` debounce window are ignored until the input settles
+- The final accepted detent sets the next target
 
-### Swipe right while still turning on
+### Repeated fast button presses
 
-- Increase is based on the current requested target, not the visible instantaneous level
-- Example: if the current target is `60%`, `RIGHT` changes it to `80%`
-
-### Repeated fast swipes
-
-- Any gesture received within `350 ms` of the previous handled gesture is ignored
-- This includes gestures in a different direction
-
-### Multiple interrupts from one swipe
-
-- Duplicate events are typically suppressed by the debounce window
-- If duplicate events arrive outside the debounce window, they may still be processed
+- Presses inside the `180 ms` debounce window are ignored
 
 ### Time unavailable after boot
 
-- Any turn-on request from `0%` is blocked
+- Turn-on actions remain allowed
+- Button turn-on falls back to the awake-hours rule: first button turn-on requests `100%`, later button turn-ons restore the remembered level clamped to at least `10%`
 - Turn-off remains allowed
 
 ### Wi-Fi disconnected after time was previously synced
 
-- Gesture handling remains immediate
+- Encoder handling remains immediate
 - Quiet-hours decisions continue using the local ESP32 clock
-- Runtime behavior does not require a live NTP request per gesture
+- Runtime behavior does not require a live NTP request per interaction
 
-### APDS-9960 initialization failure
+### Encoder moved to full scale with `3%` steps
 
-- Gesture control is unavailable
-- Wi-Fi, OTA, time, and PWM subsystems continue to function
+- The internal encoder range reserves a final top step so full brightness is still reachable
+- Rotating to the topmost encoder level maps to `100%`
 
-### `NEAR` and `FAR` gestures
+### Missing library or wrong wiring
 
-- Ignored by design
-
-## Known Current Behavior
-
-The quiet-hours block only applies to transitions from exactly `0%` to a value above `0%`.
-
-This means:
-
-- Increasing brightness while already on is allowed during quiet hours
-- If the strip is fading down but has not yet reached `0%`, a new increase gesture can reverse the fade during quiet hours
-
-This is intentional according to the current implementation and should be preserved unless the policy is explicitly changed.
+- If `Ai Esp32 Rotary Encoder` is not installed, compilation fails until the library is added
+- If the encoder is wired incorrectly, OTA, Wi-Fi, time, and PWM can still operate, but local input control will not behave correctly
