@@ -1,0 +1,5 @@
+requests
+openpyxl
+Pillow
+python-dateutil
+pyinstaller
