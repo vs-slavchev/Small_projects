@@ -1,0 +1,11 @@
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# JavaScript-rendered pages
+# After pip install, run:  playwright install chromium
+playwright>=1.40.0
+
+# Offline TTS voice cloning (downloads XTTS v2 model ~2 GB on first run)
+TTS>=0.22.0
