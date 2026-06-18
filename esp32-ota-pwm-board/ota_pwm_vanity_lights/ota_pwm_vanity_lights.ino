@@ -28,7 +28,7 @@
 #include <AiEsp32RotaryEncoder.h>
 #include <esp_arduino_version.h>
 #include <time.h>
-#include "../secrets.h"
+#include "secrets.h"
 
 static const char* OTA_HOSTNAME = "esp32-vanity-lights";
 static const char* NTP_PRIMARY = "pool.ntp.org";
@@ -41,7 +41,7 @@ static const uint8_t PWM_CHANNEL = 0;
 static const uint32_t PWM_FREQ = 5000;
 static const uint8_t PWM_RES_BITS = 13;
 
-static const uint8_t ENCODER_CLK_PIN = 19;
+static const uint8_t ENCODER_CLK_PIN = 18;
 static const uint8_t ENCODER_DT_PIN = 21;
 static const uint8_t ENCODER_SW_PIN = 22;
 static const int ENCODER_VCC_PIN = -1;
