@@ -201,7 +201,6 @@ function renderFilterUI() {
   });
   document.getElementById('device-label').textContent = state.device;
   document.getElementById('device-menu').hidden = !state.deviceOpen;
-  document.getElementById('footnote').textContent = state.device + ' · reports ~every 30 min · gaps tolerated';
 }
 
 function fetchAndRender() {
