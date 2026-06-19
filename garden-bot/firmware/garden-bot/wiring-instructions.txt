@@ -1,0 +1,88 @@
+Garden Bot - Wiring Instructions
+==================================
+
+All MOSFETs on the PCB are N-channel low-side switches. They switch the
+GND side of their load, not the positive side.
+
+PCB HEADERS REFERENCE
+---------------------
+Header 1 (sensor): pin 34 | pin 35 | 3.3V | GND (switched)
+Header 2 (sensor): pin 17 | pin 18 | 3.3V | GND (switched)
+Header 3 (sensor): pin 36 | pin 39 | 3.3V | GND (switched)
+  (Pin 16 MOSFET switches the GND rail of all three headers together.
+   3.3V on all headers is always on.)
+
+Programming header: TX | RX | 3.3V | GND (permanent)
+
+
+1. PUMP
+-------
+Pin 32 drives an N-channel low-side MOSFET. The MOSFET sits between the
+pump and GND — it switches the ground side of the load.
+A flywheel diode is already present on the PCB for this output.
+
+  Pump wire 1  →  Battery positive
+  Pump wire 2  →  PCB pin 32 MOSFET load terminal (drain)
+  (PCB routes MOSFET source → GND internally)
+
+
+2. MOISTURE SENSOR (capacitive, analog output)
+-----------------------------------------------
+Uses header 1. Pin 16 switches the header GND, cutting the sensor circuit
+during sleep.
+
+  Sensor VCC   →  Header 1, 3.3V
+  Sensor GND   →  Header 1, GND (switched)
+  Sensor AO    →  Header 1, pin 34
+
+
+3. WATER LEVEL SENSOR (two bare wire probes)
+---------------------------------------------
+Two wires submerged near the bottom of the water tank.
+Uses header 2. No VCC or GND from the header are used —
+the GPIO pins drive each other directly.
+
+  Probe wire A  →  Header 2, pin 17
+  Probe wire B  →  Header 2, pin 18
+
+  Header 2, 3.3V and GND pins are unused for this sensor.
+
+
+4. TEMPERATURE SENSOR (DS18B20)
+---------------------------------
+VCC is driven directly by pin 13 (GPIO output, not a sensor header).
+This allows the sensor to be fully powered down during sleep.
+Pins 13 and 14 must be accessible on your PCB (test pads or solder points).
+
+Required external component: 1x 4.7kΩ resistor (pull-up on data line)
+
+  DS18B20 VCC   →  ESP32 pin 13
+  DS18B20 GND   →  permanent GND (e.g. programming header GND)
+  DS18B20 DATA  →  ESP32 pin 14
+  4.7kΩ resistor between pin 14 (DATA) and pin 13 (VCC)
+    (pull-up disappears during sleep when pin 13 goes LOW)
+
+
+5. BATTERY VOLTAGE DIVIDER
+----------------------------
+Allows the ESP32 to measure battery charge level.
+Uses pin 35 from header 1 as the ADC input.
+ADC1 channel — no conflict with WiFi.
+
+IMPORTANT: the GND pins on all sensor headers are switched by pin 16.
+The 47kΩ resistor must connect to a permanent GND (e.g. programming
+header GND or battery negative terminal directly), not a header GND.
+
+Required external components: 1x 20kΩ resistor, 1x 47kΩ resistor
+
+  Battery positive  →  20kΩ  →  junction
+                                    |
+                                 pin 35  (Header 1, pin 35)
+                                    |
+                                 47kΩ
+                                    |
+                              permanent GND  (battery negative)
+
+  The 3.3V pin on header 1 is NOT used for this circuit.
+  The voltage at junction (pin 35) will be at most ~2.95V at full
+  charge (4.2V battery), safely within the ESP32 ADC input range.

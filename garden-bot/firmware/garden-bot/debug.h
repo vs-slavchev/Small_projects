@@ -17,8 +17,6 @@
    #define debugFlush()
 #endif
 
-void turnOnDiagnosticLed();
-void flashOffDiagnosticLed();
 #endif
 
 

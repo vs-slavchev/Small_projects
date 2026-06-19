@@ -1,0 +1,10 @@
+Full checklist before hitting upload:
+
+EN pin of programmer board shorted to GND
+Programmer TX → target GPIO 3
+Programmer RX → target GPIO 1
+Common GND between both boards
+Target ESP32 powered (3.3V from programmer board's 3.3V pin or your own supply)
+Target GPIO 0 pulled LOW (BOOT button held or jumpered to GND)
+Target EN briefly pulled LOW then released (RESET) to enter flash mode
+Hit upload in Arduino IDE

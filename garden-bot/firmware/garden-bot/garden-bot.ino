@@ -15,15 +15,15 @@
 #include <DallasTemperature.h>
 
 
- 
+
 WiFiClientSecure net = WiFiClientSecure();
 PubSubClient client(net);
 
 unsigned long startTime;
 
 int battery_mV = 0;
-int moisturePercent_1 = 0;
-int moisturePercent_2 = 0;
+int moisturePercent = 0;
+bool water_available = false;
 bool watered = false;
 int tempC = -100;
 RTC_DATA_ATTR int seconds_since_last_watering = 3600*24*10;
@@ -31,15 +31,14 @@ RTC_DATA_ATTR struct tm timeinfo = { 0, 0, 13, 2, 6, 123 };
 RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
 
 
- 
+
 void connectWiFi()
 {
-  adc_power_on();
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
- 
+
   debug("Connecting to Wi-Fi");
- 
+
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
@@ -49,83 +48,77 @@ void connectWiFi()
 }
 
 void disconnectWiFi() {
-    WiFi.disconnect(true);  // Disconnect from the network
-    WiFi.mode(WIFI_OFF);    // Switch WiFi off
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
     debugln("Disconnected from Wi-Fi");
 }
 
 void connectAWS()
 {
-  // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
   net.setCertificate(AWS_CERT_CRT);
   net.setPrivateKey(AWS_CERT_PRIVATE);
- 
-  // Connect to the MQTT broker on the AWS endpoint we defined earlier
+
   client.setServer(AWS_IOT_ENDPOINT, 8883);
- 
-  // Create a message handler
   client.setCallback(messageHandler);
- 
+
   debugln("Connecting to AWS IOT");
- 
+
   while (!client.connect(AWS_THINGNAME))
   {
     debug(".");
     delay(100);
   }
- 
+
   if (!client.connected())
   {
     debugln("AWS IoT Timeout!");
     return;
   }
- 
-  // Subscribe to a topic
+
   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
- 
   debugln("AWS IoT Connected!");
 }
- 
+
 void publishMessage()
 {
   StaticJsonDocument<200> doc;
   doc["device"] = BOT_NAME;
   doc["battery"] = battery_mV;
-  doc["moisture_1"] = moisturePercent_1;
-  doc["moisture_2"] = moisturePercent_2;
+  doc["moisture"] = moisturePercent;
   doc["watered"] = watered;
   doc["temp"] = tempC;
+  doc["water_available"] = water_available;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
- 
+
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
   debugln((String)"Published message: " + jsonBuffer);
 }
- 
+
 void messageHandler(char* topic, byte* payload, unsigned int length)
 {
   //won't handle messages
 }
 
 void saveCurrentTime() {
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); // get internet time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   if(!getLocalTime(&timeinfo)){
     debugln("Failed to obtain internet time, adding sleep time to timeinfo");
     timeinfo.tm_sec += SECONDS_TO_SLEEP;
-    mktime(&timeinfo); // normalize the time structure if seconds overflow
+    mktime(&timeinfo);
     return;
   }
   debugln((String)"Current time: " + asctime(&timeinfo));
 }
 
 void readBattery() {
-  float batteryInput = analogRead(BATTERY_GAUGE_PIN);
-  
-  float input_voltage = (batteryInput * 4.2) / 4095.0;
-  battery_mV = input_voltage * 1000;
-  debugln((String)"batt input: " + batteryInput + 
-    (String)"; battery voltage [0-4.2V]: " + input_voltage + (String)"; batt mV: " + battery_mV);
+  float raw = analogRead(BATTERY_GAUGE_PIN);
+  float adc_voltage = raw * 3.3f / 4095.0f;
+  float battery_voltage = adc_voltage * BATTERY_DIVIDER_NUM / BATTERY_DIVIDER_DEN;
+  battery_mV = battery_voltage * 1000;
+  debugf("batt raw: %.0f; adc: %.3fV; batt: %.3fV; mV: %d\n",
+    raw, adc_voltage, battery_voltage, battery_mV);
 }
 
 int averageReadings(int pin) {
@@ -135,7 +128,7 @@ int averageReadings(int pin) {
     sum += analogRead(pin);
     delay(20);
   }
-  return sum / numberReadings; 
+  return sum / numberReadings;
 }
 
 void readMoisture() {
@@ -143,63 +136,95 @@ void readMoisture() {
   digitalWrite(SENSOR_POWER_PIN, HIGH);
   delay(50);
 
-  int moisture1_raw = averageReadings(MOISTURE_1_PIN);
-  int moisture2_raw = averageReadings(MOISTURE_2_PIN);
+  int moisture_raw = averageReadings(MOISTURE_PIN);
   digitalWrite(SENSOR_POWER_PIN, LOW);
 
-  moisturePercent_1 = map(moisture1_raw, AIR_MOISTURE, WATER_MOISTURE, 0, 100);
-  moisturePercent_1 = constrain(moisturePercent_1, 0, 100);
-  moisturePercent_2 = map(moisture2_raw, AIR_MOISTURE, WATER_MOISTURE, 0, 100);
-  moisturePercent_2 = constrain(moisturePercent_2, 0, 100);
-  
-  int averageMoisturePercent = (moisturePercent_1 + moisturePercent_2) / 2;
-  
-  debugf("moisture1: raw = %d, pct = %d; moisture2: raw = %d, pct = %d avg = %d\n",
-    moisture1_raw, moisturePercent_1, moisture2_raw, moisturePercent_2, averageMoisturePercent);
+  moisturePercent = map(moisture_raw, AIR_MOISTURE, WATER_MOISTURE, 0, 100);
+  moisturePercent = constrain(moisturePercent, 0, 100);
+
+  debugf("moisture: raw=%d, pct=%d\n", moisture_raw, moisturePercent);
 }
 
 void readTemperature() {
-    // setup
-    OneWire oneWire(ONE_WIRE_BUS);
-    DallasTemperature sensors(&oneWire);
-    sensors.begin();
+  pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
+  digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
+  delay(50);
 
-    sensors.requestTemperatures(); 
-    tempC = round(sensors.getTempCByIndex(0)); // first on bus
-    if (tempC == -127 || tempC > 50) {
-      debugln("Temperature reading was corrupted");
-      tempC = 0;
-    }
-    debugf("Temperature: %d°C\n", tempC);
+  OneWire oneWire(ONE_WIRE_BUS);
+  DallasTemperature sensors(&oneWire);
+  sensors.begin();
+  sensors.requestTemperatures();
+  tempC = round(sensors.getTempCByIndex(0));
+  if (tempC == -127 || tempC > 50) {
+    debugln("Temperature reading was corrupted");
+    tempC = 0;
+  }
 
-    maxRecentTemperature = max(maxRecentTemperature, tempC);
+  digitalWrite(TEMPERATURE_POWER_PIN, LOW);
+  debugf("Temperature: %d°C\n", tempC);
+
+  maxRecentTemperature = max(maxRecentTemperature, tempC);
+}
+
+void readWaterLevel() {
+  pinMode(WATER_LEVEL_PIN_A, OUTPUT);
+  pinMode(WATER_LEVEL_PIN_B, OUTPUT);
+  digitalWrite(WATER_LEVEL_PIN_A, LOW);
+  digitalWrite(WATER_LEVEL_PIN_B, LOW);
+  delay(10);
+
+  // Measurement 1: A=HIGH, B=input → read B
+  digitalWrite(WATER_LEVEL_PIN_A, HIGH);
+  pinMode(WATER_LEVEL_PIN_B, INPUT_PULLDOWN);
+  delay(10);
+  bool reading1 = digitalRead(WATER_LEVEL_PIN_B);
+
+  // Both LOW between measurements
+  pinMode(WATER_LEVEL_PIN_B, OUTPUT);
+  digitalWrite(WATER_LEVEL_PIN_A, LOW);
+  digitalWrite(WATER_LEVEL_PIN_B, LOW);
+  delay(10);
+
+  // Measurement 2: B=HIGH, A=input → read A
+  digitalWrite(WATER_LEVEL_PIN_B, HIGH);
+  pinMode(WATER_LEVEL_PIN_A, INPUT_PULLDOWN);
+  delay(10);
+  bool reading2 = digitalRead(WATER_LEVEL_PIN_A);
+
+  // Both LOW after measurements
+  pinMode(WATER_LEVEL_PIN_A, OUTPUT);
+  digitalWrite(WATER_LEVEL_PIN_A, LOW);
+  digitalWrite(WATER_LEVEL_PIN_B, LOW);
+
+  water_available = reading1 && reading2;
+  debugf("Water level: r1=%d, r2=%d, available=%d\n", reading1, reading2, water_available);
 }
 
 bool shouldWater() {
   bool enoughTimePassedSinceWateringForRecentMaxTemps = seconds_since_last_watering >= calculateSecondsBetweenWateringFromMaxRecentTemperature();
-  bool isMorning = timeinfo.tm_hour == 8; // 8am
+  bool isMorning = timeinfo.tm_hour == 8;
   bool isHotAfternoon = timeinfo.tm_hour == 15 && maxRecentTemperature >= 31;
   bool shouldWater = enoughTimePassedSinceWateringForRecentMaxTemps && (isMorning || isHotAfternoon);
   if (!shouldWater) {
     seconds_since_last_watering += SECONDS_TO_SLEEP;
-    debugln((String)"set seconds_since_last_watering to:  " + seconds_since_last_watering);
+    debugln((String)"set seconds_since_last_watering to: " + seconds_since_last_watering);
   }
   return shouldWater;
 }
 
 int calculateSecondsBetweenWateringFromMaxRecentTemperature() {
   if (maxRecentTemperature >= 31) {
-    return 3600 * 6; // 6 hours
+    return 3600 * 6;
   } else if (maxRecentTemperature >= 25) {
-    return 3600 * 15; // 15 hours
+    return 3600 * 15;
   } else if (maxRecentTemperature >= 19) {
-    return 3600 * 24 * 2; // 2 days
+    return 3600 * 24 * 2;
   } else if (maxRecentTemperature >= 15) {
-    return 3600 * 24 * 3; // 3 days
+    return 3600 * 24 * 3;
   } else if (maxRecentTemperature >= 10) {
-    return 3600 * 24 * 4; // 4 days
+    return 3600 * 24 * 4;
   } else {
-    return 3600 * 24 * 5; // 5 days
+    return 3600 * 24 * 5;
   }
 }
 
@@ -211,7 +236,6 @@ void powerPump() {
   for (int i = 0; i < WATERING_DURATION_S; i++) {
     delay(1000);
     debug(".");
-    flashOffDiagnosticLed();
   }
 
   digitalWrite(PUMP_PIN, LOW);
@@ -227,45 +251,36 @@ void finishWatering() {
 void deepSleep()
 {
   adc_power_off();
-  // WiFi.disconnect(true);  // Disconnect from the network
-  // WiFi.mode(WIFI_OFF);    // Switch WiFi off
 
-  // btStop();
-  // esp_bluedroid_disable();
-  // esp_bt_controller_disable();
-  // esp_wifi_stop();
   unsigned long secondsWorked = (millis() - startTime) / 1000;
   debugln((String)"secondsWorked: " + secondsWorked);
   uint64_t microSecondsToSleep = (SECONDS_TO_SLEEP - secondsWorked + 1) * 1000000ull;
   esp_sleep_enable_timer_wakeup(microSecondsToSleep);
   debugln("Sleeping for " + String(microSecondsToSleep / 1000000) + " seconds");
-  debugFlush(); 
+  debugFlush();
   esp_deep_sleep_start();
 }
- 
+
 void setup()
 {
-  // setup
   setCpuFrequencyMhz(80);
   debug_begin(9600);
-  //set the resolution to 12 bits (0-4096)
   analogReadResolution(12);
-  turnOnDiagnosticLed();
   startTime = millis();
 
-  // read sensors
   readBattery();
   readMoisture();
   readTemperature();
+  readWaterLevel();
 
   connectWiFi();
   saveCurrentTime();
 
-  if (shouldWater()) {
-      disconnectWiFi(); // to save energy
-      powerPump();  
-      finishWatering();
-      connectWiFi();
+  if (shouldWater() && water_available) {
+    disconnectWiFi();
+    powerPump();
+    finishWatering();
+    connectWiFi();
   }
 
   connectAWS();
@@ -274,7 +289,7 @@ void setup()
 
   deepSleep();
 }
- 
+
 void loop()
 {
   // empty on purpose
