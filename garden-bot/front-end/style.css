@@ -234,15 +234,23 @@ body {
 
 .gauges {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: space-between;
   margin-bottom: 16px;
 }
 
+.gauge {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
 .gauge-ring {
   position: relative;
-  width: 114px;
-  height: 114px;
+  width: 100%;
+  max-width: 114px;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: conic-gradient(rgba(168, 198, 134, .12) 0deg, rgba(168, 198, 134, .12) 360deg);
   display: flex;
@@ -420,4 +428,98 @@ body {
   color: #5d8a72;
   margin-top: 16px;
   text-align: center;
+}
+
+@media (min-width: 700px) {
+  .card-wrap {
+    max-width: 760px;
+  }
+
+  .card {
+    padding: 32px;
+  }
+
+  .header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .header-title {
+    font-size: 22px;
+  }
+
+  .header-sub {
+    font-size: 12px;
+  }
+
+  .live-badge {
+    font-size: 12px;
+    padding: 5px 11px;
+  }
+
+  .pill {
+    font-size: 13px;
+    padding: 8px 0;
+  }
+
+  .device-toggle {
+    font-size: 13px;
+  }
+
+  .device-option {
+    font-size: 13px;
+  }
+
+  .gauges {
+    gap: 18px;
+  }
+
+  .gauge-ring {
+    max-width: 168px;
+  }
+
+  .gauge-value {
+    font-size: 38px;
+  }
+
+  .gauge-unit {
+    font-size: 17px;
+  }
+
+  .gauge-label {
+    font-size: 12px;
+  }
+
+  .info-label {
+    font-size: 10px;
+  }
+
+  .info-value {
+    font-size: 16px;
+  }
+
+  .chart-title {
+    font-size: 11px;
+  }
+
+  .chart-max-temp {
+    font-size: 11px;
+  }
+
+  #chart {
+    height: 360px;
+  }
+
+  #strip {
+    height: 90px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+  }
+
+  .footnote {
+    font-size: 11px;
+  }
 }
