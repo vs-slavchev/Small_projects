@@ -126,6 +126,27 @@ body {
   animation: gpulse 2s infinite;
 }
 
+.live-badge.status-delayed {
+  background: rgba(236, 216, 122, .16);
+  color: #ecd87a;
+}
+
+.live-dot.status-delayed {
+  background: #ecd87a;
+  box-shadow: 0 0 8px #ecd87a;
+}
+
+.live-badge.status-offline {
+  background: rgba(158, 170, 158, .14);
+  color: #9fb0a2;
+}
+
+.live-dot.status-offline {
+  background: #8a9a90;
+  box-shadow: none;
+  animation: none;
+}
+
 .filters {
   display: flex;
   gap: 8px;

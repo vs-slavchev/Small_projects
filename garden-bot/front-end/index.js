@@ -78,6 +78,16 @@ function toPoints(dataObj) {
   return points;
 }
 
+const DELAYED_AFTER_MS = 2 * 60 * 60 * 1000;
+const OFFLINE_AFTER_MS = 6 * 60 * 60 * 1000;
+
+function getLiveStatus(lastUpdateMs) {
+  const age = Date.now() - lastUpdateMs;
+  if (age > OFFLINE_AFTER_MS) return { status: 'offline', label: 'offline' };
+  if (age > DELAYED_AFTER_MS) return { status: 'delayed', label: 'delayed' };
+  return { status: 'live', label: 'live' };
+}
+
 function computeStats(points) {
   const last = points[points.length - 1];
   const wateredEvents = points.filter(p => p.watered);
@@ -89,6 +99,7 @@ function computeStats(points) {
     tempPct: Math.round(Math.max(0, Math.min(40, last.temp)) / 40 * 100),
     waterLabel: last.water ? 'available' : 'empty',
     waterColor: last.water ? '#7fd49b' : '#e08a5e',
+    lastUpdateMs: last.t,
     lastUpdate: fmt(last.t),
     lastWatered: lastWatered ? fmt(lastWatered) : '—',
     maxTemp: Math.max(...points.map(p => p.temp))
@@ -115,6 +126,17 @@ function renderStats(points) {
   document.getElementById('tank-label').textContent = s.waterLabel;
   document.getElementById('tank-dot').style.background = s.waterColor;
   document.getElementById('max-temperature').textContent = 'max ' + s.maxTemp + '°C';
+
+  const live = getLiveStatus(s.lastUpdateMs);
+  const liveBadge = document.getElementById('live-badge');
+  const liveDot = document.getElementById('live-dot');
+  liveBadge.classList.remove('status-delayed', 'status-offline');
+  liveDot.classList.remove('status-delayed', 'status-offline');
+  if (live.status !== 'live') {
+    liveBadge.classList.add('status-' + live.status);
+    liveDot.classList.add('status-' + live.status);
+  }
+  document.getElementById('live-label').textContent = live.label;
 }
 
 function buildMainOption(points) {
