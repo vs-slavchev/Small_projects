@@ -9,7 +9,6 @@
 #include "WiFi.h"
 #include <esp_wifi.h>
 #include <esp_bt.h>
-#include "driver/adc.h"
 #include "time.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -34,6 +33,7 @@ RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
 
 void connectWiFi()
 {
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -146,21 +146,45 @@ void readMoisture() {
 }
 
 void readTemperature() {
+  pinMode(SENSOR_POWER_PIN, OUTPUT);
+  digitalWrite(SENSOR_POWER_PIN, HIGH);
   pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
   digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
-  delay(50);
+  delay(500);
 
   OneWire oneWire(ONE_WIRE_BUS);
   DallasTemperature sensors(&oneWire);
   sensors.begin();
+  debug("Devices found: ");
+  debugln(sensors.getDeviceCount());
+
+  Serial.print("Device count: ");
+  Serial.println(sensors.getDeviceCount());
+
+  DeviceAddress addr;
+  if (sensors.getAddress(addr, 0)) {
+    Serial.print("Address: ");
+    for (int i = 0; i < 8; i++) {
+      Serial.printf("%02X ", addr[i]);
+    }
+    Serial.println();
+  } else {
+    Serial.println("No address found");
+  }
+
+  sensors.setWaitForConversion(false);
   sensors.requestTemperatures();
-  tempC = round(sensors.getTempCByIndex(0));
+  delay(1000);
+  float rawTempC = sensors.getTempCByIndex(0);
+  debugf("Temperature raw: %.2f°C\n", rawTempC);
+  tempC = round(rawTempC);
   if (tempC == -127 || tempC > 50) {
     debugln("Temperature reading was corrupted");
     tempC = 0;
   }
 
   digitalWrite(TEMPERATURE_POWER_PIN, LOW);
+  digitalWrite(SENSOR_POWER_PIN, LOW);
   debugf("Temperature: %d°C\n", tempC);
 
   maxRecentTemperature = max(maxRecentTemperature, tempC);
@@ -250,7 +274,7 @@ void finishWatering() {
 
 void deepSleep()
 {
-  adc_power_off();
+  debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
   debugln((String)"secondsWorked: " + secondsWorked);
@@ -264,9 +288,12 @@ void deepSleep()
 void setup()
 {
   setCpuFrequencyMhz(80);
-  debug_begin(9600);
+  debug_begin(115200);
   analogReadResolution(12);
   startTime = millis();
+
+  esp_reset_reason_t reason = esp_reset_reason();
+  debugf("Reset reason: %d\n", reason);
 
   readBattery();
   readMoisture();

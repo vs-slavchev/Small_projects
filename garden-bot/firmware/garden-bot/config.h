@@ -1,6 +1,6 @@
-// #define debug_print // comment out to disable debug
+#define debug_print // comment out to disable debug
 
-#define BOT_NAME "cherry-2-pot" // CHANGE NAME
+#define BOT_NAME "cherry-3-pot" // CHANGE NAME
 
 // Pins
 #define PUMP_PIN 32
@@ -21,7 +21,7 @@
 #define AIR_MOISTURE 2900
 #define WATER_MOISTURE 1000
 
-#define WATERING_DURATION_S 100
+#define WATERING_DURATION_S 150
 #define SECONDS_TO_SLEEP 1800 // 60s * 30m = 1800
 
 // AWS IoT settings

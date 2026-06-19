@@ -1,0 +1,87 @@
+DS18B20 Temperature Sensor Debug Postmortem
+============================================
+
+SYMPTOM
+-------
+"Temperature reading was corrupted" on every boot. tempC returned as 0.
+Sensor used to work when VCC was connected to always-on 3.3V.
+
+CHANGES THAT PRECEDED THE FAILURE
+----------------------------------
+Two things changed at once:
+1. VCC moved from always-on 3.3V to GPIO pin 13 (driven HIGH in firmware).
+2. GND moved from permanent GND to the sensor header GND (switched by pin 16 MOSFET).
+
+INVESTIGATION STEPS AND FINDINGS
+----------------------------------
+1. Suspected GND not active during readTemperature().
+   - Confirmed: pin 16 was LOW during readTemperature() because readMoisture()
+     had already turned it off. DS18B20 had VCC but no GND path.
+   - Fix: also enable pin 16 inside readTemperature().
+   - Result: "Devices found: 0" went away but problem remained (-127.00°C).
+
+   Wait — actually after this fix, device count became 1. So GND was the first
+   real bug. But it wasn't the only one.
+
+2. Suspected bus initialized before sensor had power.
+   - Ruled out by code review: power-on happens before OneWire object is
+     constructed and before sensors.begin(). Delay of 500ms added to be safe.
+
+3. Added raw float print before rounding.
+   - Confirmed: raw was -127.00, which is DEVICE_DISCONNECTED_C in the
+     DallasTemperature library — meaning the scratchpad CRC check failed.
+
+4. Added sensors.getDeviceCount() and address print.
+   - Device count: 1. Address: 28 9C 31 34 00 00 00 DD.
+   - 0x28 prefix = genuine DS18B20. Address CRC valid.
+   - Conclusion: the sensor IS on the bus and responds to reset/presence
+     detection. The failure is only during scratchpad data read.
+
+5. Suspected missing 4.7k pull-up resistor.
+   - "Device found but CRC fails" is the classic symptom of a missing pull-up:
+     reset works on bus capacitance alone, but data read slots fail because the
+     line doesn't rise fast enough within the 15us read window.
+   - User confirmed pull-up was installed. Dead end.
+
+6. Tried setWaitForConversion(false) + delay(1000).
+   - FIXED IT. Temperature reads correctly.
+
+ACTUAL PROBLEM
+--------------
+The DallasTemperature library's internal waitForConversion polling mechanism
+was interfering with the subsequent scratchpad read. When waitForConversion is
+true, the library repeatedly issues read time slots on the bus to check whether
+conversion is complete, then immediately calls into getTempCByIndex(). On this
+ESP32 hardware, the transition from polling to scratchpad read leaves the bus
+in a state or timing window that causes the scratchpad CRC to consistently
+fail. Setting waitForConversion to false and using an explicit delay(1000)
+gives the bus a clean idle period before the read, which resolves it.
+
+This is likely an ESP32-specific timing issue with the OneWire library — the
+internal polling loop exits and falls through to the read without sufficient
+recovery time, or FreeRTOS scheduling causes a bit-timing glitch at that
+transition.
+
+HOW WE COULD HAVE DEBUGGED FASTER
+------------------------------------
+1. The "device found, address valid, but CRC fails" combination directly
+   points to bus communication timing, not hardware presence. We should have
+   jumped straight to testing setWaitForConversion(false) at that point rather
+   than investigating the pull-up resistor.
+
+2. Two things changed at the same time (VCC source and GND source). We should
+   have isolated them: fix GND first, confirm device count > 0, then
+   separately investigate the data read failure. Instead we chased both at
+   once and it blurred the diagnosis.
+
+3. Adding the raw float print and device count/address earlier would have
+   saved time — the first "temperature reading was corrupted" message gave no
+   information about whether the sensor was found at all.
+
+FINAL WORKING STATE
+-------------------
+- sensors.setWaitForConversion(false) before requestTemperatures()
+- delay(1000) after requestTemperatures() (well above 750ms max for 12-bit)
+- Pin 13 HIGH for DS18B20 VCC
+- Pin 16 HIGH for sensor header GND (shared with moisture sensor)
+- 4.7k pull-up between pin 14 (data) and pin 13 (VCC)
