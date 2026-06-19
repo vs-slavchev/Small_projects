@@ -1,187 +1,260 @@
-var timeLabels = [0, 0];
-var batteryValues = [0, 0];
-var moistureValues = [0, 0];
-var waterAvailableValues = [0, 0];
-var wateredValues = [0, 0];
-var tempValues = [0, 0];
+const API_URL = "https://foj972s0id.execute-api.eu-central-1.amazonaws.com/prod/stats4";
 
-async function fetchDataJSON() {
-  const daysAgo = document.getElementById("days-select").value;
-  const deviceName = document.getElementById("device-select").value;
-  console.log("Fetching: daysAgo=" + daysAgo + ", device=" + deviceName);
-  const responseBody = await fetch("https://foj972s0id.execute-api.eu-central-1.amazonaws.com/prod/stats4?daysago=" + daysAgo + "&device=" + deviceName, {
-      method: "GET",
-      origin: "*",
-  })
-    .then(response => {
-      if (!response.ok) {
-        const message = `An error has occured: ${response.status}`;
-        throw new Error(message);
-      }
-      return response.text();
-    });
-  return responseBody;
+const THEME = {
+  font: "'Hanken Grotesk',sans-serif",
+  moisture: '#5fd2e6',
+  temp: '#f4a45e',
+  battery: '#ecd87a',
+  water: '#7fd4ff',
+  sub: 'rgba(196,219,160,.5)',
+  grid: 'rgba(168,198,134,.12)',
+  areaTop: 'rgba(95,210,230,.34)',
+  areaBot: 'rgba(95,210,230,.01)',
+  avail: 'rgba(120,200,150,.12)',
+  empty: 'rgba(224,138,94,.18)',
+  tip: 'rgba(20,36,26,.94)',
+  tipText: '#eaf3df'
+};
+
+const state = {
+  days: 3,
+  device: 'cherry-3-pot',
+  deviceOpen: false
+};
+
+let mainChart = null;
+let stripChart = null;
+
+function pad(n) {
+  return ('' + n).padStart(2, '0');
 }
 
-function updateChart(responseData) {
-  var dataObj = JSON.parse(responseData);
-
-  timeLabels = dataObj.data.battery.map((item) => timestampMillisToCurrentTime(item.time));
-
-  batteryValues = dataObj.data.battery.map((item) => mapNumRange(item.value, 3300, 4200, 0, 100));
-  moistureValues = dataObj.data.moisture.map((item) => item.value);
-  waterAvailableValues = dataObj.data.water_available.map((item) => item.value ? 100 : 0);
-  wateredValues = dataObj.data.watered.map((item) => item.value ? 100 : 0);
-  tempValues = dataObj.data.temp.map((item) => item.value);
-  tempValues = tempValues.map((item) => item == -127 ? 0 : item);
-
-  if (batteryValues.length === 0 && moistureValues.length === 0 && wateredValues.length === 0 && tempValues.length === 0) {
-    document.getElementById("chart").innerHTML = "No data";
-    return;
-  }
-
-  renderLastUpdatesTime();
-  getLastMoistureData();
-  getLastBatteryData();
-  getLastTemperature();
-
-  const graphData = {
-    labels: timeLabels,
-    datasets: [
-      {
-        name: "battery",
-        chartType: "line",
-        values: batteryValues
-      },
-      {
-        name: "moisture",
-        chartType: "line",
-        values: moistureValues
-      },
-      {
-        name: "watered",
-        chartType: "bar",
-        values: wateredValues
-      },
-      {
-        name: "temp",
-        chartType: "line",
-        values: tempValues
-      },
-      {
-        name: "water available",
-        chartType: "bar",
-        values: waterAvailableValues
-      }
-    ],
-    yMarkers: [{ label: "30°C", value: 30, options: { labelPos: "left" } }],
-  }
-
-  const chart = new frappe.Chart("#chart", {
-    title: "Humidity and Battery Level",
-    data: graphData,
-    type: 'axis-mixed',
-    height: 600,
-    truncateLegends: true,
-    colors: ["#30b455", "#97E7E1", "#0000FF", "#FF7700", "#6AD4DD"],
-    axisOptions: {
-      xAxisMode: "tick",
-      xIsSeries: true,
-      yAxisMode: "span",
-      yAxis: {
-        min: -20,
-        max: 100
-      }
-    },
-    lineOptions: {
-      hideDots: 0,
-      dotSize: 2,
-      spline: 1,
-    },
-    barOptions: {
-      spaceRatio: 0.95
-    },
-    tooltipOptions: {
-      formatTooltipX: (d) => (d + "").toUpperCase(),
-      formatTooltipY: (d) => d + "%"
-    }
-  })
-
-  function getLastMoistureData() {
-    var lastMoisture = moistureValues[moistureValues.length - 1];
-    document.getElementById("moisture").innerHTML = lastMoisture + "%";
-    document.getElementById("moisture_emoji").innerHTML = getMoistureEmoji(lastMoisture);
-  }
-
-  function renderLastUpdatesTime() {
-    if (dataObj.data.battery.length === 0) {
-      document.getElementById("last-updated-time").innerHTML = "no data";
-      return;
-    }
-    var lastBatteryTime = dataObj.data.battery[dataObj.data.battery.length - 1].time;
-    document.getElementById("last-updated-time").innerHTML = timestampMillisToCurrentTime(lastBatteryTime);
-
-    const lastWateredIndex = wateredValues.lastIndexOf(100);
-    if (lastWateredIndex !== -1) {
-      const lastWateredTime = timeLabels[lastWateredIndex];
-      document.getElementById("last-watered-time").innerHTML = lastWateredTime;
-    } else {
-      document.getElementById("last-watered-time").innerHTML = "no data";
-    }
-
-    const maxTemperature = Math.max(...tempValues);
-    document.getElementById("max-temperature").innerHTML = `${maxTemperature}°C`;
-  }
-
-  function getLastBatteryData() {
-    var currentBatteryPercent = batteryValues[batteryValues.length - 1];
-    document.getElementById("battery-percent").innerHTML = currentBatteryPercent + "%";
-  }
-
-  function getLastTemperature() {
-    var currentTemperature = tempValues[tempValues.length - 1];
-    document.getElementById("temperature").innerHTML = `${currentTemperature}°C`;
-  }
+function fmt(ts) {
+  const x = new Date(ts);
+  return pad(x.getHours()) + ':' + pad(x.getMinutes()) + ' ' + pad(x.getDate()) + '.' + pad(x.getMonth() + 1);
 }
-
-function fetchAndUpdateChart() {
-  fetchDataJSON()
-  .then(responseData => updateChart(responseData))
-  .catch(error => {
-    console.error('There was a problem with the fetch operation:', error);
-  });
-}
-
-fetchAndUpdateChart();
-document.getElementById("days-select").addEventListener("change", fetchAndUpdateChart);
-document.getElementById("device-select").addEventListener("change", fetchAndUpdateChart);
-
-
-
-// Helper functions
 
 function mapNumRange(num, inMin, inMax, outMin, outMax) {
-  if (num < inMin) {
-    return outMin;
-  }
-  if (num > inMax) {
-    return outMax;
-  }
+  if (num < inMin) return outMin;
+  if (num > inMax) return outMax;
   return Math.round(((num - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin);
 }
 
-function timestampMillisToCurrentTime(dateTime) {
-  var localeDateTime = new Date(dateTime);
-  var hours = localeDateTime.getHours().toString().padStart(2, '0');
-  var minutes = localeDateTime.getMinutes().toString().padStart(2, '0');
-  var day = localeDateTime.getDate().toString().padStart(2, '0');
-  var month = (localeDateTime.getMonth() + 1).toString().padStart(2, '0');
-  return `${hours}:${minutes} ${day}.${month}`;
+async function fetchDataJSON(daysAgo, deviceName) {
+  console.log("Fetching: daysAgo=" + daysAgo + ", device=" + deviceName);
+  const response = await fetch(API_URL + "?daysago=" + daysAgo + "&device=" + deviceName, {
+    method: "GET",
+    origin: "*",
+  });
+  if (!response.ok) {
+    throw new Error("An error has occured: " + response.status);
+  }
+  return response.json();
 }
 
-function getMoistureEmoji(value) {
-  if (value < 25) return "🏜️";
-  if (value < 70) return "💧";
-  if (value < 90) return "💦";
-  return "🌊";
+// Combine the per-metric arrays returned by the API (index-aligned, one
+// entry per poll cycle) into one array of points usable by the charts.
+function toPoints(dataObj) {
+  const battery = dataObj.data.battery || [];
+  const moisture = dataObj.data.moisture || [];
+  const waterAvailable = dataObj.data.water_available || [];
+  const watered = dataObj.data.watered || [];
+  const temp = dataObj.data.temp || [];
+
+  const n = battery.length;
+  const points = [];
+  for (let i = 0; i < n; i++) {
+    let tempVal = temp[i] ? temp[i].value : 0;
+    if (tempVal === -127) tempVal = 0;
+    points.push({
+      t: battery[i].time,
+      battery: mapNumRange(battery[i].value, 3300, 4200, 0, 100),
+      moisture: moisture[i] ? moisture[i].value : 0,
+      temp: tempVal,
+      watered: !!(watered[i] && watered[i].value),
+      water: !!(waterAvailable[i] && waterAvailable[i].value)
+    });
+  }
+  return points;
 }
+
+function computeStats(points) {
+  const last = points[points.length - 1];
+  const wateredEvents = points.filter(p => p.watered);
+  const lastWatered = wateredEvents.length ? wateredEvents[wateredEvents.length - 1].t : null;
+  return {
+    curMoisture: last.moisture,
+    curBattery: last.battery,
+    curTemp: last.temp,
+    tempPct: Math.round(Math.max(0, Math.min(40, last.temp)) / 40 * 100),
+    waterLabel: last.water ? 'available' : 'empty',
+    waterColor: last.water ? '#7fd49b' : '#e08a5e',
+    lastUpdate: fmt(last.t),
+    lastWatered: lastWatered ? fmt(lastWatered) : '—',
+    maxTemp: Math.max(...points.map(p => p.temp))
+  };
+}
+
+function setGaugeRing(ringEl, pct, color) {
+  ringEl.style.background = 'conic-gradient(' + color + ' ' + (pct * 3.6) + 'deg,rgba(168,198,134,.12) 0)';
+}
+
+function renderStats(points) {
+  const s = computeStats(points);
+
+  document.getElementById('moisture').innerHTML = s.curMoisture + '<span class="gauge-unit">%</span>';
+  document.getElementById('battery-percent').innerHTML = s.curBattery + '<span class="gauge-unit">%</span>';
+  document.getElementById('temperature').innerHTML = s.curTemp + '<span class="gauge-unit">°</span>';
+
+  setGaugeRing(document.getElementById('gauge-moisture-ring'), s.curMoisture, '#5fd2e6');
+  setGaugeRing(document.getElementById('gauge-battery-ring'), s.curBattery, '#ecd87a');
+  setGaugeRing(document.getElementById('gauge-temp-ring'), s.tempPct, '#f4a45e');
+
+  document.getElementById('last-updated-time').textContent = s.lastUpdate;
+  document.getElementById('last-watered-time').textContent = s.lastWatered;
+  document.getElementById('tank-label').textContent = s.waterLabel;
+  document.getElementById('tank-dot').style.background = s.waterColor;
+  document.getElementById('max-temperature').textContent = 'max ' + s.maxTemp + '°C';
+}
+
+function buildMainOption(points) {
+  const t = THEME;
+  const moist = points.map(p => [p.t, p.moisture]);
+  const temp = points.map(p => [p.t, p.temp]);
+  const batt = points.map(p => [p.t, p.battery]);
+  return {
+    animationDuration: 600,
+    textStyle: { fontFamily: t.font, color: t.sub },
+    grid: { left: 34, right: 36, top: 14, bottom: 24 },
+    tooltip: {
+      trigger: 'axis', backgroundColor: t.tip, borderWidth: 0, padding: [7, 10],
+      textStyle: { color: t.tipText, fontFamily: t.font, fontSize: 11 },
+      axisPointer: {
+        type: 'line', lineStyle: { color: t.sub, width: 1, type: 'dashed' },
+        label: { show: true, backgroundColor: '#0f1f15', color: '#eaf3df', fontFamily: t.font, fontSize: 10, formatter: p => fmt(p.value) }
+      },
+      formatter: ps => {
+        if (!ps || !ps.length) return '';
+        let s = '<div style="font-weight:700;margin-bottom:3px">' + fmt(ps[0].value[0]) + '</div>';
+        ps.forEach(p => {
+          const u = p.seriesName === 'temp' ? '°C' : '%';
+          s += '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + p.color + '"></span>' + p.seriesName + '<b style="margin-left:auto">' + p.value[1] + u + '</b></div>';
+        });
+        return s;
+      }
+    },
+    xAxis: { type: 'time', min: points[0].t, max: points[points.length - 1].t, axisLabel: { color: t.sub, fontSize: 9, hideOverlap: true }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false } },
+    yAxis: [
+      { type: 'value', min: 0, max: 100, position: 'left', axisLabel: { color: t.sub, fontSize: 9 }, splitLine: { show: true, lineStyle: { color: t.grid } }, axisLine: { show: false }, axisTick: { show: false } },
+      { type: 'value', min: 0, max: 40, position: 'right', axisLabel: { color: t.temp, fontSize: 9, formatter: '{value}°' }, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } }
+    ],
+    series: [
+      { name: 'moisture', type: 'line', smooth: 0.35, showSymbol: false, data: moist, yAxisIndex: 0, z: 3, lineStyle: { width: 2.4, color: t.moisture, shadowBlur: 12, shadowColor: t.moisture }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: t.areaTop }, { offset: 1, color: t.areaBot }]) } },
+      { name: 'battery', type: 'line', smooth: 0.35, showSymbol: false, data: batt, yAxisIndex: 0, z: 2, lineStyle: { width: 2.4, color: t.battery, shadowBlur: 8, shadowColor: t.battery } },
+      { name: 'temp', type: 'line', smooth: 0.35, showSymbol: false, data: temp, yAxisIndex: 1, z: 2, lineStyle: { width: 2.4, color: t.temp, shadowBlur: 8, shadowColor: t.temp }, markLine: { symbol: 'none', silent: true, data: [{ yAxis: 30 }], lineStyle: { color: t.temp, type: 'dashed', width: 1, opacity: 0.5 }, label: { formatter: '30°', color: t.temp, fontSize: 9, position: 'insideEndTop' } } }
+    ]
+  };
+}
+
+function buildStripOption(points) {
+  const t = THEME;
+  const wp = points.filter(p => p.watered).map(p => [p.t, 0.5]);
+  const segs = [];
+  let cur = null;
+  points.forEach(p => {
+    if (!cur || cur.water !== p.water) { cur = { s: p.t, e: p.t, water: p.water }; segs.push(cur); }
+    else cur.e = p.t;
+  });
+  const ma = segs.map(s => [{ xAxis: s.s, itemStyle: { color: s.water ? t.avail : t.empty } }, { xAxis: s.e }]);
+  const drop = 'path://M16 1 C16 1 29 15 29 22 A13 13 0 1 1 3 22 C3 15 16 1 16 1 Z';
+  return {
+    animationDuration: 600,
+    textStyle: { fontFamily: t.font, color: t.sub },
+    grid: { left: 34, right: 36, top: 8, bottom: 20 },
+    tooltip: {
+      trigger: 'item', backgroundColor: t.tip, borderWidth: 0, padding: [6, 9],
+      textStyle: { color: t.tipText, fontFamily: t.font, fontSize: 11 },
+      formatter: p => 'watered · ' + fmt(p.value[0])
+    },
+    xAxis: { type: 'time', min: points[0].t, max: points[points.length - 1].t, axisLabel: { color: t.sub, fontSize: 9, hideOverlap: true }, axisLine: { lineStyle: { color: t.grid } }, axisTick: { show: false }, splitLine: { show: false } },
+    yAxis: { type: 'value', min: 0, max: 1, show: false },
+    series: [
+      { type: 'line', data: [], markArea: { silent: true, data: ma } },
+      { name: 'watered', type: 'scatter', data: wp, symbol: drop, symbolSize: 16, itemStyle: { color: t.water, shadowBlur: 10, shadowColor: t.water, opacity: 0.95 }, z: 5 }
+    ]
+  };
+}
+
+function renderCharts(points) {
+  if (!mainChart) mainChart = echarts.init(document.getElementById('chart'));
+  if (!stripChart) stripChart = echarts.init(document.getElementById('strip'));
+  mainChart.setOption(buildMainOption(points), true);
+  stripChart.setOption(buildStripOption(points), true);
+}
+
+function renderFilterUI() {
+  document.querySelectorAll('#range-pills .pill').forEach(el => {
+    el.classList.toggle('active', Number(el.dataset.days) === state.days);
+  });
+  document.querySelectorAll('#device-menu .device-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.device === state.device);
+  });
+  document.getElementById('device-label').textContent = state.device;
+  document.getElementById('device-menu').hidden = !state.deviceOpen;
+  document.getElementById('footnote').textContent = state.device + ' · reports ~every 30 min · gaps tolerated';
+}
+
+function fetchAndRender() {
+  fetchDataJSON(state.days, state.device)
+    .then(dataObj => {
+      const points = toPoints(dataObj);
+      if (!points.length) {
+        document.getElementById('chart').innerHTML = 'No data';
+        return;
+      }
+      renderStats(points);
+      renderCharts(points);
+    })
+    .catch(error => {
+      console.error('There was a problem with the fetch operation:', error);
+    });
+}
+
+document.getElementById('range-pills').addEventListener('click', e => {
+  const pill = e.target.closest('.pill');
+  if (!pill) return;
+  state.days = Number(pill.dataset.days);
+  renderFilterUI();
+  fetchAndRender();
+});
+
+document.getElementById('device-toggle').addEventListener('click', e => {
+  e.stopPropagation();
+  state.deviceOpen = !state.deviceOpen;
+  renderFilterUI();
+});
+
+document.getElementById('device-menu').addEventListener('click', e => {
+  const opt = e.target.closest('.device-option');
+  if (!opt) return;
+  e.stopPropagation();
+  state.device = opt.dataset.device;
+  state.deviceOpen = false;
+  renderFilterUI();
+  fetchAndRender();
+});
+
+document.addEventListener('click', () => {
+  if (state.deviceOpen) {
+    state.deviceOpen = false;
+    renderFilterUI();
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (mainChart) mainChart.resize();
+  if (stripChart) stripChart.resize();
+});
+
+renderFilterUI();
+fetchAndRender();
