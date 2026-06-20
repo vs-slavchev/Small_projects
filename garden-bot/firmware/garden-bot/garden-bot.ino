@@ -23,6 +23,7 @@ unsigned long startTime;
 int battery_mV = 0;
 int moisturePercent = 0;
 bool water_available = false;
+int water_level_raw = 0;
 bool watered = false;
 int tempC = -100;
 RTC_DATA_ATTR int seconds_since_last_watering = 3600*24*10;
@@ -89,6 +90,7 @@ void publishMessage()
   doc["watered"] = watered;
   doc["temp"] = tempC;
   doc["water_available"] = water_available;
+  doc["water_level_raw"] = water_level_raw;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
 
@@ -197,11 +199,11 @@ void readWaterLevel() {
   digitalWrite(WATER_LEVEL_PIN_B, LOW);
   delay(10);
 
-  // Measurement 1: A=HIGH, B=input → read B
+  // Measurement 1: A=HIGH, B=analog input
   digitalWrite(WATER_LEVEL_PIN_A, HIGH);
   pinMode(WATER_LEVEL_PIN_B, INPUT_PULLDOWN);
   delay(10);
-  bool reading1 = digitalRead(WATER_LEVEL_PIN_B);
+  int reading1 = analogRead(WATER_LEVEL_PIN_B);
 
   // Both LOW between measurements
   pinMode(WATER_LEVEL_PIN_B, OUTPUT);
@@ -209,25 +211,26 @@ void readWaterLevel() {
   digitalWrite(WATER_LEVEL_PIN_B, LOW);
   delay(10);
 
-  // Measurement 2: B=HIGH, A=input → read A
+  // Measurement 2: B=HIGH, A=analog input
   digitalWrite(WATER_LEVEL_PIN_B, HIGH);
   pinMode(WATER_LEVEL_PIN_A, INPUT_PULLDOWN);
   delay(10);
-  bool reading2 = digitalRead(WATER_LEVEL_PIN_A);
+  int reading2 = analogRead(WATER_LEVEL_PIN_A);
 
   // Both LOW after measurements
   pinMode(WATER_LEVEL_PIN_A, OUTPUT);
   digitalWrite(WATER_LEVEL_PIN_A, LOW);
   digitalWrite(WATER_LEVEL_PIN_B, LOW);
 
-  water_available = reading1 && reading2;
-  debugf("Water level: r1=%d, r2=%d, available=%d\n", reading1, reading2, water_available);
+  water_level_raw = (reading1 + reading2) / 2;
+  water_available = water_level_raw >= WATER_LEVEL_THRESHOLD;
+  debugf("Water level: r1=%d, r2=%d, avg=%d, threshold=%d, available=%d\n", reading1, reading2, water_level_raw, WATER_LEVEL_THRESHOLD, water_available);
 }
 
 bool shouldWater() {
   bool enoughTimePassedSinceWateringForRecentMaxTemps = seconds_since_last_watering >= calculateSecondsBetweenWateringFromMaxRecentTemperature();
   bool isMorning = timeinfo.tm_hour == 8;
-  bool isHotAfternoon = timeinfo.tm_hour == 15 && maxRecentTemperature >= 31;
+  bool isHotAfternoon = timeinfo.tm_hour == 15 && maxRecentTemperature >= 29;
   bool shouldWater = enoughTimePassedSinceWateringForRecentMaxTemps && (isMorning || isHotAfternoon);
   if (!shouldWater) {
     seconds_since_last_watering += SECONDS_TO_SLEEP;
@@ -237,7 +240,7 @@ bool shouldWater() {
 }
 
 int calculateSecondsBetweenWateringFromMaxRecentTemperature() {
-  if (maxRecentTemperature >= 31) {
+  if (maxRecentTemperature >= 29) {
     return 3600 * 6;
   } else if (maxRecentTemperature >= 25) {
     return 3600 * 15;

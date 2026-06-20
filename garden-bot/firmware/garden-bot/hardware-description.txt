@@ -5,11 +5,14 @@ a converter is soldered on) and there is a flywheel diode, so preferable for
 inductive loads.
 2. Pins 33, 25 and 26 each control a n-channel mosfet on the 3.7 or 5v load.
 Grouped together in one 4-pin header and easy to use for RGB LED.
+Pins 33 and 25 are repurposed as bidirectional GPIO for the water level
+probes, wired directly to the bare ESP32 module pads (bypassing the
+onboard MOSFETs) — only pin 26 remains available on this header.
 3. Pin 16 controls an n-mosfet that enables power to 3 headers, each with 4
 pins (useful for powering on the sensors just to read them and then cutting the power
 to conserve battery):
  - pin 34, 35, 3.3v and gnd
- - pin 17, 18, 3.3v and gnd
- - pin 36, 39, 3.3v and gnd
+ - pin 17, 18 (unused), 3.3v and gnd
+ - pin 36, 39 (unused), 3.3v and gnd
 4. One header with TX, RX, 3.3v and gnd - used for reprogramming
 5. Pins 13 and 14 are left as just open holes and can be soldered to easily.

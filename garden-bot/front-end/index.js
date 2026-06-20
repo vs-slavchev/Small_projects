@@ -4,7 +4,7 @@ const THEME = {
   font: "'Hanken Grotesk',sans-serif",
   moisture: '#5fd2e6',
   temp: '#f4a45e',
-  battery: '#ecd87a',
+  battery: '#8fd16f',
   water: '#7fd4ff',
   sub: 'rgba(196,219,160,.5)',
   grid: 'rgba(168,198,134,.12)',
@@ -81,6 +81,25 @@ function toPoints(dataObj) {
 const DELAYED_AFTER_MS = 2 * 60 * 60 * 1000;
 const OFFLINE_AFTER_MS = 6 * 60 * 60 * 1000;
 
+// Device publishes roughly every PUBLISH_INTERVAL_MS (matches firmware's
+// SECONDS_TO_SLEEP). Schedule the next fetch for just after the next
+// publish is expected, with a margin for lateness. If the last update is
+// already older than one full interval, give up auto-refreshing.
+const PUBLISH_INTERVAL_MS = 30 * 60 * 1000;
+const REFRESH_MARGIN_MS = 60 * 1000;
+let refreshTimer = null;
+
+function scheduleNextFetch(lastUpdateMs) {
+  clearTimeout(refreshTimer);
+  const age = Date.now() - lastUpdateMs;
+  if (age > PUBLISH_INTERVAL_MS) {
+    console.log('Last update is more than 30 minutes old; pausing auto-refresh.');
+    return;
+  }
+  const delay = Math.max(0, PUBLISH_INTERVAL_MS - age) + REFRESH_MARGIN_MS;
+  refreshTimer = setTimeout(fetchAndRender, delay);
+}
+
 function getLiveStatus(lastUpdateMs) {
   const age = Date.now() - lastUpdateMs;
   if (age > OFFLINE_AFTER_MS) return { status: 'offline', label: 'offline' };
@@ -117,9 +136,9 @@ function renderStats(points) {
   document.getElementById('battery-percent').innerHTML = s.curBattery + '<span class="gauge-unit">%</span>';
   document.getElementById('temperature').innerHTML = s.curTemp + '<span class="gauge-unit">°</span>';
 
-  setGaugeRing(document.getElementById('gauge-moisture-ring'), s.curMoisture, '#5fd2e6');
-  setGaugeRing(document.getElementById('gauge-battery-ring'), s.curBattery, '#ecd87a');
-  setGaugeRing(document.getElementById('gauge-temp-ring'), s.tempPct, '#f4a45e');
+  setGaugeRing(document.getElementById('gauge-moisture-ring'), s.curMoisture, THEME.moisture);
+  setGaugeRing(document.getElementById('gauge-battery-ring'), s.curBattery, THEME.battery);
+  setGaugeRing(document.getElementById('gauge-temp-ring'), s.tempPct, THEME.temp);
 
   document.getElementById('last-updated-time').textContent = s.lastUpdate;
   document.getElementById('last-watered-time').textContent = s.lastWatered;
@@ -235,6 +254,7 @@ function fetchAndRender() {
       }
       renderStats(points);
       renderCharts(points);
+      scheduleNextFetch(points[points.length - 1].t);
     })
     .catch(error => {
       console.error('There was a problem with the fetch operation:', error);
