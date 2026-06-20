@@ -32,7 +32,7 @@ RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
 
 
 
-void connectWiFi()
+bool connectWiFi()
 {
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
   WiFi.mode(WIFI_STA);
@@ -40,12 +40,20 @@ void connectWiFi()
 
   debug("Connecting to Wi-Fi");
 
-  while (WiFi.status() != WL_CONNECTED)
+  unsigned long wifiStartTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < WIFI_CONNECT_TIMEOUT_MS)
   {
     delay(500);
     debug(".");
   }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    debugln(" Wi-Fi connection failed");
+    return false;
+  }
+
   debugln(" Wi-Fi connected");
+  return true;
 }
 
 void disconnectWiFi() {
@@ -54,7 +62,7 @@ void disconnectWiFi() {
     debugln("Disconnected from Wi-Fi");
 }
 
-void connectAWS()
+bool connectAWS()
 {
   net.setCACert(AWS_CERT_CA);
   net.setCertificate(AWS_CERT_CRT);
@@ -65,7 +73,8 @@ void connectAWS()
 
   debugln("Connecting to AWS IOT");
 
-  while (!client.connect(AWS_THINGNAME))
+  unsigned long awsStartTime = millis();
+  while (!client.connect(AWS_THINGNAME) && millis() - awsStartTime < AWS_CONNECT_TIMEOUT_MS)
   {
     debug(".");
     delay(100);
@@ -74,11 +83,12 @@ void connectAWS()
   if (!client.connected())
   {
     debugln("AWS IoT Timeout!");
-    return;
+    return false;
   }
 
   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
   debugln("AWS IoT Connected!");
+  return true;
 }
 
 void publishMessage()
@@ -303,19 +313,24 @@ void setup()
   readTemperature();
   readWaterLevel();
 
-  connectWiFi();
+  bool wifiConnected = connectWiFi();
   saveCurrentTime();
 
   if (shouldWater() && water_available) {
-    disconnectWiFi();
+    if (wifiConnected) {
+      disconnectWiFi();
+    }
     powerPump();
     finishWatering();
-    connectWiFi();
+    wifiConnected = connectWiFi();
   }
 
-  connectAWS();
-  publishMessage();
-  client.loop();
+  if (wifiConnected && connectAWS()) {
+    publishMessage();
+    client.loop();
+  } else {
+    debugln("Skipping AWS publish - no connectivity");
+  }
 
   deepSleep();
 }
