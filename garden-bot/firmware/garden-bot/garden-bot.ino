@@ -1,6 +1,7 @@
 #include "secrets.h"
 #include "config.h"
 #include "debug.h"
+#include "ble_service.h"
 
 // dependencies
 #include <WiFiClientSecure.h>
@@ -285,8 +286,25 @@ void finishWatering() {
   debugln((String)"\nrestarted seconds_since_last_watering and reset maxRecentTemperature");
 }
 
+void waitForOtaToFinish() {
+  if (!otaInProgress()) {
+    return;
+  }
+  debugln("OTA in progress, delaying sleep until it finishes");
+  unsigned long otaWaitStart = millis();
+  while (otaInProgress()) {
+    if (millis() - otaWaitStart > OTA_MAX_WAIT_MS) {
+      debugln("OTA stalled past max wait, aborting");
+      abortOta();
+      break;
+    }
+    delay(200);
+  }
+}
+
 void deepSleep()
 {
+  waitForOtaToFinish();
   debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
@@ -307,6 +325,8 @@ void setup()
 
   esp_reset_reason_t reason = esp_reset_reason();
   debugf("Reset reason: %d\n", reason);
+
+  startBLE(); // advertise for the whole run so logs/OTA can be picked up
 
   readBattery();
   readMoisture();

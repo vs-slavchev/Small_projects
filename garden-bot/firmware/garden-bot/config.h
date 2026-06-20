@@ -31,3 +31,10 @@
 // AWS IoT settings
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
+
+// BLE: current-run log dump + OTA. Logs are read during the normal wake's
+// short advertising window; OTA extends the wake until done or timed out.
+#define LOG_BUFFER_MAX_CHARS 1500
+#define LOG_SERVICE_UUID "a4560001-0001-4a4a-8a4a-0a0a0a0a0a0a"
+#define LOG_CHAR_UUID    "a4560001-0002-4a4a-8a4a-0a0a0a0a0a0a"
+#define OTA_MAX_WAIT_MS (5UL * 60 * 1000) // abort a stalled OTA after 5 minutes

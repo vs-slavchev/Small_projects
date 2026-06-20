@@ -1,0 +1,53 @@
+Garden Bot - BLE Logs & OTA
+============================
+
+Every wake cycle, the device advertises over BLE for the duration of the
+run (sensor reads + WiFi/AWS attempts, roughly the same window deepSleep()
+would otherwise be waiting through). Two things are exposed:
+
+  - a read characteristic with this wake's log lines (current run only,
+    not retained across sleep cycles — if you miss the window, wait for
+    the next one, ~30 min later)
+  - the firmware OTA service (NimBLEOta)
+
+Starting an OTA write extends the wake past the normal window until the
+transfer finishes or stalls for more than 5 minutes (OTA_MAX_WAIT_MS in
+config.h), at which point it's aborted and the device sleeps normally.
+
+
+REQUIRED LIBRARIES (Arduino IDE Library Manager unless noted)
+---------------------------------------------------------------
+  - NimBLE-Arduino (h2zero)            — install via Library Manager
+  - NimBLEOta (h2zero)                 — NOT in Library Manager; download
+      from https://github.com/h2zero/NimBLEOta and place the repo
+      (NimBLEOta.h/.cpp, NimBLEDis.h/.cpp) in your Arduino libraries
+      folder.
+
+PARTITION SCHEME
+-----------------
+This board has 16MB flash. In Arduino IDE, Tools > Partition Scheme,
+pick a scheme with two OTA app slots (e.g. any "...with OTA" option, or
+a custom CSV with ota_0/ota_1/otadata). Without this, esp_ota_* calls
+inside NimBLEOta will fail — there's nowhere to write the new image.
+
+
+READING LOGS
+--------------
+Use any BLE central (e.g. a Python script with `bleak`, or nRF Connect
+on a phone) that:
+  1. Scans continuously for the device (advertised name = BOT_NAME).
+  2. On connect, reads LOG_CHAR_UUID (config.h) under LOG_SERVICE_UUID.
+
+Since the log is only the current run, start scanning before/while the
+device is expected to wake — there's no way to "wake it early" over BLE,
+the radio is off during deep sleep.
+
+
+FLASHING OTA
+--------------
+Use the Python script bundled with NimBLEOta (see its examples/) to push
+a compiled .bin. Same scan-and-wait approach as logs: leave the script
+scanning, it connects and starts the transfer as soon as the device
+advertises. Once writing begins, the device stays awake until the
+transfer completes (or 5 minutes pass with no progress), then reboots
+into the new firmware automatically.
