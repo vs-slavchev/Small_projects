@@ -7,8 +7,13 @@ GND side of their load, not the positive side.
 PCB HEADERS REFERENCE
 ---------------------
 Header 1 (sensor): pin 34 | pin 35 | 3.3V | GND (switched)
-Header 2 (sensor): pin 17 | pin 18 | 3.3V | GND (switched)
-Header 3 (sensor): pin 36 | pin 39 | 3.3V | GND (switched)
+Header 2 (sensor): pin 17 (unused) | pin 18 (unused) | 3.3V | GND (switched)
+Header 3 (sensor): pin 36 (unused) | pin 39 (unused) | 3.3V | GND (switched)
+RGB header: pin 33 | pin 25 | pin 26 (unused) — MOSFET-switched LED outputs.
+  Pins 33 and 25 are repurposed for the water level probes below, wired
+  directly to the bare ESP32 module pads, bypassing the onboard MOSFETs.
+  This leaves only pin 26 available if a single-color LED is still wanted;
+  full RGB is no longer possible on this header.
   (Pin 16 MOSFET switches the GND rail of all three headers together.
    3.3V on all headers is always on.)
 
@@ -38,14 +43,35 @@ during sleep.
 
 3. WATER LEVEL SENSOR (two bare wire probes)
 ---------------------------------------------
-Two wires submerged near the bottom of the water tank.
-Uses header 2. No VCC or GND from the header are used —
-the GPIO pins drive each other directly.
+Two wires submerged near the bottom of the water tank. Probes alternate
+roles each measurement: one drives HIGH while the other reads analog via
+its internal pulldown, then they swap. Alternating which probe drives
+avoids electrolysis/corrosion from sustained one-directional DC bias.
 
-  Probe wire A  →  Header 2, pin 17
-  Probe wire B  →  Header 2, pin 18
+This requires both probe pins to support digital output AND analogRead.
+GPIO 33 and 25 satisfy this, but on this PCB they are normally wired to
+onboard MOSFET gates (RGB LED header) rather than exposed as raw GPIO —
+the header itself only exposes the MOSFET-switched load side. To use
+them as direct bidirectional probe pins, wire to the bare ESP32 module
+pads for GPIO33/GPIO25 instead of the RGB header.
 
-  Header 2, 3.3V and GND pins are unused for this sensor.
+  Probe wire A  →  ESP32 module pad, GPIO 33 (bypass RGB header)
+  Probe wire B  →  ESP32 module pad, GPIO 25 (bypass RGB header)
+
+  Note: GPIO 25 is an ADC2 pin, which can't be read while WiFi is active.
+  This is fine here because readWaterLevel() runs in setup() before
+  connectWiFi(). If the water level read is ever moved to run while
+  WiFi is connected, this will break.
+
+  Threshold: WATER_LEVEL_THRESHOLD in config.h is ~10% of the 12-bit ADC
+  range (4095), tolerant of probe resistance up to several hundred kΩ —
+  much more forgiving than the previous digital INPUT_PULLDOWN threshold,
+  which needed resistance below the internal pulldown's value (~45kΩ,
+  itself imprecise) to register as wet. The two directional readings are
+  averaged (water_level_raw) and compared against the threshold; this
+  trades away detection of one-sided probe corrosion (oxide layers can
+  conduct asymmetrically) for a simpler single value, which is also
+  published over MQTT each cycle to track drift over time.
 
 
 4. TEMPERATURE SENSOR (DS18B20)

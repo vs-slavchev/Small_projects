@@ -1,14 +1,15 @@
-#define debug_print // comment out to disable debug
+//#define debug_print // comment out to disable debug
 
-#define BOT_NAME "cherry-3-pot" // CHANGE NAME
+#define BOT_NAME "cherry-2-pot" // CHANGE NAME
 
 // Pins
 #define PUMP_PIN 32
 #define SENSOR_POWER_PIN 16
 #define MOISTURE_PIN 34
 #define BATTERY_GAUGE_PIN 35
-#define WATER_LEVEL_PIN_A 17
-#define WATER_LEVEL_PIN_B 18
+#define WATER_LEVEL_PIN_A 33 // bare GPIO pad, bypasses onboard RGB MOSFET header
+#define WATER_LEVEL_PIN_B 25 // bare GPIO pad, bypasses onboard RGB MOSFET header
+#define WATER_LEVEL_THRESHOLD 410 // ~10% of 12-bit ADC range (4095)
 #define TEMPERATURE_POWER_PIN 13
 #define ONE_WIRE_BUS 14
 
@@ -21,7 +22,7 @@
 #define AIR_MOISTURE 2900
 #define WATER_MOISTURE 1000
 
-#define WATERING_DURATION_S 150
+#define WATERING_DURATION_S 120
 #define SECONDS_TO_SLEEP 1800 // 60s * 30m = 1800
 
 // AWS IoT settings
