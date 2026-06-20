@@ -209,7 +209,7 @@ body {
 
 .device-caret {
   color: #7fb39a;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .device-menu {
@@ -238,19 +238,6 @@ body {
 .device-option.active {
   color: #eff6e4;
   background: rgba(168, 198, 134, .12);
-}
-
-.device-option-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  margin-right: 8px;
-  background: rgba(168, 198, 134, .4);
-}
-
-.device-option.active .device-option-dot {
-  background: #e8d87a;
 }
 
 .gauges {
@@ -339,13 +326,6 @@ body {
   background: rgba(0, 0, 0, .18);
 }
 
-.info-box--tank {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 .info-label {
   font: 400 9px 'Space Mono', monospace;
   letter-spacing: .08em;
@@ -357,20 +337,6 @@ body {
   font: 600 14px 'Hanken Grotesk', sans-serif;
   color: #e6f0d9;
   margin-top: 3px;
-}
-
-.info-tank {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 3px;
-}
-
-.tank-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e6f0d9;
 }
 
 .chart-header {
@@ -392,9 +358,17 @@ body {
   margin: 18px 0 2px;
 }
 
+.water-status-word {
+  font-weight: 700;
+}
+
 .chart-max-temp {
   font: 400 10px 'Space Mono', monospace;
   color: #f4a45e;
+}
+
+.chart-max-temp-label {
+  letter-spacing: .1em;
 }
 
 #chart {

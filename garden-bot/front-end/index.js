@@ -16,6 +16,53 @@ const THEME = {
   tipText: '#eaf3df'
 };
 
+// Temperature brackets, coldest to hottest, mirroring the watering-frequency
+// brackets in the firmware (calculateSecondsBetweenWateringFromMaxRecentTemperature).
+const TEMP_BRACKETS = [
+  { min: -Infinity, color: '#5fb0e6' }, // < 10, cold blue
+  { min: 10, color: '#5fd2c0' },
+  { min: 15, color: '#a8c686' },
+  { min: 19, color: '#e6c65f' },
+  { min: 25, color: '#f4a45e' },
+  { min: 29, color: '#e0524a' } // hot red
+];
+
+function tempColor(tempC) {
+  let color = TEMP_BRACKETS[0].color;
+  for (const bracket of TEMP_BRACKETS) {
+    if (tempC >= bracket.min) color = bracket.color;
+  }
+  return color;
+}
+
+// Mirrors firmware's calculateSecondsBetweenWateringFromMaxRecentTemperature().
+function secondsBetweenWateringFromMaxRecentTemperature(maxRecentTemperature) {
+  if (maxRecentTemperature >= 29) return 3600 * 6;
+  if (maxRecentTemperature >= 25) return 3600 * 15;
+  if (maxRecentTemperature >= 19) return 3600 * 24 * 2;
+  if (maxRecentTemperature >= 15) return 3600 * 24 * 3;
+  if (maxRecentTemperature >= 10) return 3600 * 24 * 4;
+  return 3600 * 24 * 5;
+}
+
+// Next local occurrence of `hour:00` at or after `fromMs`.
+function nextOccurrenceOfHour(fromMs, hour) {
+  const d = new Date(fromMs);
+  d.setHours(hour, 0, 0, 0);
+  if (d.getTime() < fromMs) d.setDate(d.getDate() + 1);
+  return d.getTime();
+}
+
+// Mirrors firmware's shouldWater(): watering happens at 8:00, or at 15:00 if
+// the max recent temperature was hot enough, once enough time has passed
+// since the last watering for the current max recent temperature bracket.
+function computeNextWatering(lastWateredMs, maxRecentTemperature) {
+  const earliestMs = lastWateredMs + secondsBetweenWateringFromMaxRecentTemperature(maxRecentTemperature) * 1000;
+  const candidates = [nextOccurrenceOfHour(earliestMs, 8)];
+  if (maxRecentTemperature >= 29) candidates.push(nextOccurrenceOfHour(earliestMs, 15));
+  return Math.min(...candidates);
+}
+
 const state = {
   days: 3,
   device: 'cherry-3-pot',
@@ -78,7 +125,7 @@ function toPoints(dataObj) {
   return points;
 }
 
-const DELAYED_AFTER_MS = 2 * 60 * 60 * 1000;
+const DELAYED_AFTER_MS = 35 * 60 * 1000;
 const OFFLINE_AFTER_MS = 6 * 60 * 60 * 1000;
 
 // Device publishes roughly every PUBLISH_INTERVAL_MS (matches firmware's
@@ -110,7 +157,10 @@ function getLiveStatus(lastUpdateMs) {
 function computeStats(points) {
   const last = points[points.length - 1];
   const wateredEvents = points.filter(p => p.watered);
-  const lastWatered = wateredEvents.length ? wateredEvents[wateredEvents.length - 1].t : null;
+  const lastWateredMs = wateredEvents.length ? wateredEvents[wateredEvents.length - 1].t : null;
+  const recentPoints = lastWateredMs ? points.filter(p => p.t > lastWateredMs) : points;
+  const maxRecentTemp = recentPoints.length ? Math.max(...recentPoints.map(p => p.temp)) : last.temp;
+  const maxTemp = Math.max(...points.map(p => p.temp));
   return {
     curMoisture: last.moisture,
     curBattery: last.battery,
@@ -120,8 +170,10 @@ function computeStats(points) {
     waterColor: last.water ? '#7fd49b' : '#e08a5e',
     lastUpdateMs: last.t,
     lastUpdate: fmt(last.t),
-    lastWatered: lastWatered ? fmt(lastWatered) : '—',
-    maxTemp: Math.max(...points.map(p => p.temp))
+    lastWatered: lastWateredMs ? fmt(lastWateredMs) : '—',
+    nextWatering: lastWateredMs ? fmt(computeNextWatering(lastWateredMs, maxRecentTemp)) : '—',
+    maxTemp,
+    maxTempColor: tempColor(maxTemp)
   };
 }
 
@@ -142,9 +194,15 @@ function renderStats(points) {
 
   document.getElementById('last-updated-time').textContent = s.lastUpdate;
   document.getElementById('last-watered-time').textContent = s.lastWatered;
-  document.getElementById('tank-label').textContent = s.waterLabel;
-  document.getElementById('tank-dot').style.background = s.waterColor;
-  document.getElementById('max-temperature').textContent = 'max ' + s.maxTemp + '°C';
+  document.getElementById('next-watering-time').textContent = s.nextWatering;
+
+  const waterStatusWord = document.getElementById('water-status-word');
+  waterStatusWord.textContent = s.waterLabel;
+  waterStatusWord.style.color = s.waterColor;
+
+  const maxTemperatureEl = document.getElementById('max-temperature');
+  maxTemperatureEl.textContent = s.maxTemp + '°C';
+  maxTemperatureEl.style.color = s.maxTempColor;
 
   const live = getLiveStatus(s.lastUpdateMs);
   const liveBadge = document.getElementById('live-badge');
