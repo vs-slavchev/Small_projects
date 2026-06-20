@@ -25,7 +25,7 @@ body {
 }
 
 .bg-leaf {
-  position: absolute;
+  position: fixed;
   opacity: .05;
 }
 
@@ -284,7 +284,7 @@ body {
 }
 
 #gauge-battery-ring {
-  box-shadow: 0 0 22px rgba(236, 216, 122, .18);
+  box-shadow: 0 0 22px rgba(143, 209, 111, .18);
 }
 
 #gauge-temp-ring {
@@ -313,7 +313,7 @@ body {
 }
 
 #gauge-moisture .gauge-unit { color: #8bc0d0; }
-#gauge-battery .gauge-unit { color: #d8c878; }
+#gauge-battery .gauge-unit { color: #a7d98f; }
 #gauge-temp .gauge-unit { color: #f0a877; }
 
 .gauge-label {
@@ -323,7 +323,7 @@ body {
 }
 
 #gauge-moisture .gauge-label { color: #6fb0c2; }
-#gauge-battery .gauge-label { color: #cdb96a; }
+#gauge-battery .gauge-label { color: #7fbf6a; }
 #gauge-temp .gauge-label { color: #e8a06e; }
 
 .info-row {
@@ -429,7 +429,7 @@ body {
 }
 
 .legend-swatch--moisture { background: #5fd2e6; }
-.legend-swatch--battery { background: #ecd87a; }
+.legend-swatch--battery { background: #8fd16f; }
 .legend-swatch--temp { background: #f4a45e; }
 
 .legend-swatch--avail {
