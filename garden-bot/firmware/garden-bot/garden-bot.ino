@@ -2,6 +2,7 @@
 #include "config.h"
 #include "debug.h"
 #include "ble_service.h"
+#include "message_queue.h"
 
 // dependencies
 #include <WiFiClientSecure.h>
@@ -92,21 +93,43 @@ bool connectAWS()
   return true;
 }
 
-void publishMessage()
+QueuedMessage buildCurrentMessage() {
+  QueuedMessage msg;
+  msg.timestamp = mktime(&timeinfo);
+  msg.battery_mV = battery_mV;
+  msg.moisturePercent = moisturePercent;
+  msg.tempC = tempC;
+  msg.watered = watered;
+  msg.water_available = water_available;
+  msg.water_level_raw = water_level_raw;
+  return msg;
+}
+
+void publishMessage(const QueuedMessage& msg)
 {
   StaticJsonDocument<200> doc;
   doc["device"] = BOT_NAME;
-  doc["battery"] = battery_mV;
-  doc["moisture"] = moisturePercent;
-  doc["watered"] = watered;
-  doc["temp"] = tempC;
-  doc["water_available"] = water_available;
-  doc["water_level_raw"] = water_level_raw;
+  doc["device_time"] = (long)msg.timestamp;
+  doc["battery"] = msg.battery_mV;
+  doc["moisture"] = msg.moisturePercent;
+  doc["watered"] = msg.watered;
+  doc["temp"] = msg.tempC;
+  doc["water_available"] = msg.water_available;
+  doc["water_level_raw"] = msg.water_level_raw;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
 
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
   debugln((String)"Published message: " + jsonBuffer);
+}
+
+void flushQueuedMessages() {
+  int sent = 0;
+  while (sent < queuedMessageCount() && client.connected()) {
+    publishMessage(queuedMessageAt(sent));
+    sent++;
+  }
+  removeSentMessages(sent);
 }
 
 void messageHandler(char* topic, byte* payload, unsigned int length)
@@ -345,11 +368,19 @@ void setup()
     wifiConnected = connectWiFi();
   }
 
+  QueuedMessage current = buildCurrentMessage();
+
   if (wifiConnected && connectAWS()) {
-    publishMessage();
-    client.loop();
+    flushQueuedMessages();
+    if (client.connected()) {
+      publishMessage(current);
+      client.loop();
+    } else {
+      queueMessage(current);
+    }
   } else {
-    debugln("Skipping AWS publish - no connectivity");
+    debugln("Skipping AWS publish - no connectivity, queueing message");
+    queueMessage(current);
   }
 
   deepSleep();

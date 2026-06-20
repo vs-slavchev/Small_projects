@@ -32,6 +32,11 @@
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
 
+// Backlog of readings queued in RTC memory while AWS is unreachable.
+// 48 entries * ~32 bytes = ~1.5KB, well within the ~8KB RTC slow memory
+// budget; covers a 24h outage at the 30-min cycle before oldest drops.
+#define MESSAGE_QUEUE_SIZE 48
+
 // BLE: current-run log dump + OTA. Logs are read during the normal wake's
 // short advertising window; OTA extends the wake until done or timed out.
 #define LOG_BUFFER_MAX_CHARS 1500
