@@ -1,5 +1,6 @@
 #include "ble_service.h"
 #include "config.h"
+#include "secrets.h"
 #include "debug.h"
 
 #include <NimBLEDevice.h>
@@ -11,7 +12,10 @@ class LogCharCallbacks : public NimBLECharacteristicCallbacks {
   void onRead(NimBLECharacteristic* pChar, NimBLEConnInfo& connInfo) override {
     // Served lazily so a read always reflects the log as of right now,
     // not whatever was logged at the time the characteristic was created.
-    pChar->setValue(runLog);
+    // setValue(const String&) silently truncates to NimBLE's default 20-byte
+    // attribute length; go through the raw pointer/length overload instead,
+    // which respects the larger max length set on the characteristic below.
+    pChar->setValue((uint8_t*)runLog.c_str(), runLog.length());
   }
 } logCharCallbacks;
 
@@ -57,14 +61,24 @@ void startBLE() {
   NimBLEDevice::init(BOT_NAME);
   NimBLEDevice::setMTU(247);
 
+  // The ESP32 has no display/keyboard to show or enter a passkey, so pin
+  // it to a fixed value known in advance by the laptop running the OTA
+  // script. Bonding (true) lets a reconnect skip re-pairing mid-update.
+  NimBLEDevice::setSecurityAuth(true, true, true);
+  NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
+  NimBLEDevice::setSecurityPasskey(OTA_BLE_PASSKEY);
+
   NimBLEServer* pServer = NimBLEDevice::createServer();
 
   NimBLEService* logService = pServer->createService(LOG_SERVICE_UUID);
-  NimBLECharacteristic* logChar = logService->createCharacteristic(LOG_CHAR_UUID, NIMBLE_PROPERTY::READ);
+  // READ_ENC requires the same encrypted/paired link as OTA, so logs can't
+  // be read by an unauthenticated nearby device either.
+  NimBLECharacteristic* logChar = logService->createCharacteristic(
+    LOG_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::READ_ENC, LOG_BUFFER_MAX_CHARS);
   logChar->setCallbacks(&logCharCallbacks);
   logService->start();
 
-  NimBLEService* otaService = bleOta.start(&otaCallbacks);
+  NimBLEService* otaService = bleOta.start(&otaCallbacks, true);
 
   NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(logService->getUUID());

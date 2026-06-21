@@ -25,8 +25,8 @@
 #define WATERING_DURATION_S 120
 #define SECONDS_TO_SLEEP 1800 // 60s * 30m = 1800
 
-#define WIFI_CONNECT_TIMEOUT_MS 15000
-#define AWS_CONNECT_TIMEOUT_MS 10000
+#define WIFI_CONNECT_TIMEOUT_MS 30000
+#define AWS_CONNECT_TIMEOUT_MS 15000
 
 // AWS IoT settings
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
@@ -39,7 +39,9 @@
 
 // BLE: current-run log dump + OTA. Logs are read during the normal wake's
 // short advertising window; OTA extends the wake until done or timed out.
+// 16-bit UUIDs (vs. 128-bit) keep the advertising payload under the legacy
+// 31-byte PDU limit when combined with the OTA service UUID.
 #define LOG_BUFFER_MAX_CHARS 1500
-#define LOG_SERVICE_UUID "a4560001-0001-4a4a-8a4a-0a0a0a0a0a0a"
-#define LOG_CHAR_UUID    "a4560001-0002-4a4a-8a4a-0a0a0a0a0a0a"
+#define LOG_SERVICE_UUID "FFA0"
+#define LOG_CHAR_UUID    "FFA1"
 #define OTA_MAX_WAIT_MS (5UL * 60 * 1000) // abort a stalled OTA after 5 minutes

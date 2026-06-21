@@ -105,7 +105,7 @@ QueuedMessage buildCurrentMessage() {
   return msg;
 }
 
-void publishMessage(const QueuedMessage& msg)
+bool publishMessage(const QueuedMessage& msg)
 {
   StaticJsonDocument<200> doc;
   doc["device"] = BOT_NAME;
@@ -119,14 +119,21 @@ void publishMessage(const QueuedMessage& msg)
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
 
-  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
-  debugln((String)"Published message: " + jsonBuffer);
+  bool ok = client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+  if (ok) {
+    debugln((String)"Published message: " + jsonBuffer);
+  } else {
+    debugln((String)"Publish failed: " + jsonBuffer);
+  }
+  return ok;
 }
 
 void flushQueuedMessages() {
   int sent = 0;
   while (sent < queuedMessageCount() && client.connected()) {
-    publishMessage(queuedMessageAt(sent));
+    if (!publishMessage(queuedMessageAt(sent))) {
+      break;
+    }
     sent++;
   }
   removeSentMessages(sent);
@@ -327,12 +334,22 @@ void waitForOtaToFinish() {
 
 void deepSleep()
 {
+  // Drop the radio link before a potentially long OTA wait so the
+  // unused Wi-Fi connection doesn't keep contending with BLE for airtime
+  // and battery.
+  disconnectWiFi();
   waitForOtaToFinish();
   debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
   debugln((String)"secondsWorked: " + secondsWorked);
-  uint64_t microSecondsToSleep = (SECONDS_TO_SLEEP - secondsWorked + 1) * 1000000ull;
+  // secondsWorked can exceed SECONDS_TO_SLEEP (e.g. a long OTA wait), so
+  // clamp instead of letting the subtraction underflow into a huge sleep.
+  long secondsToSleep = (long)SECONDS_TO_SLEEP - (long)secondsWorked;
+  if (secondsToSleep < 1) {
+    secondsToSleep = 1;
+  }
+  uint64_t microSecondsToSleep = (uint64_t)secondsToSleep * 1000000ull;
   esp_sleep_enable_timer_wakeup(microSecondsToSleep);
   debugln("Sleeping for " + String(microSecondsToSleep / 1000000) + " seconds");
   debugFlush();
@@ -372,8 +389,7 @@ void setup()
 
   if (wifiConnected && connectAWS()) {
     flushQueuedMessages();
-    if (client.connected()) {
-      publishMessage(current);
+    if (client.connected() && publishMessage(current)) {
       client.loop();
     } else {
       queueMessage(current);

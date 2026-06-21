@@ -1,5 +1,6 @@
 #include "message_queue.h"
 #include "config.h"
+#include <string.h>
 
 RTC_DATA_ATTR QueuedMessage messageQueue[MESSAGE_QUEUE_SIZE];
 RTC_DATA_ATTR int queuedCount = 0;
