@@ -3,6 +3,10 @@
 #define SECRET
 #define AWS_THINGNAME "***************"                         //change this
 
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 7200; //GMT+2
+const int   daylightOffset_sec = 3600; // usually 1h
+
 const char WIFI_SSID[] = "***************";               //change this
 const char WIFI_PASSWORD[] = "***************";           //change this
 const char AWS_IOT_ENDPOINT[] = "***************";       //change this
