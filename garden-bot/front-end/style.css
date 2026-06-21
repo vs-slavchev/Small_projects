@@ -199,17 +199,9 @@ body {
   color: #cfe3b6;
 }
 
-.device-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: #e8d87a;
-  flex-shrink: 0;
-}
-
 .device-caret {
   color: #7fb39a;
-  font-size: 15px;
+  font-size: 18px;
 }
 
 .device-menu {
