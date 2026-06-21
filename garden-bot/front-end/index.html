@@ -44,13 +44,12 @@
           </div>
           <div class="device-picker" id="device-picker">
             <div class="device-toggle" id="device-toggle">
-              <span class="device-dot"></span>
               <span id="device-label">cherry-3-pot</span>
               <span class="device-caret">&#9662;</span>
             </div>
             <div class="device-menu" id="device-menu" hidden>
-              <div class="device-option" data-device="cherry-3-pot"><span class="device-option-dot"></span>cherry-3-pot</div>
-              <div class="device-option" data-device="cherry-2-pot"><span class="device-option-dot"></span>cherry-2-pot</div>
+              <div class="device-option" data-device="cherry-3-pot">cherry-3-pot</div>
+              <div class="device-option" data-device="cherry-2-pot">cherry-2-pot</div>
             </div>
           </div>
         </div>
@@ -91,18 +90,15 @@
             <div class="info-label">last watered</div>
             <div class="info-value" id="last-watered-time">&ndash;</div>
           </div>
-          <div class="info-box info-box--tank">
-            <div class="info-label">tank</div>
-            <div class="info-tank">
-              <span class="tank-dot" id="tank-dot"></span>
-              <span class="info-value" id="tank-label">&ndash;</span>
-            </div>
+          <div class="info-box">
+            <div class="info-label">next watering</div>
+            <div class="info-value" id="next-watering-time">&ndash;</div>
           </div>
         </div>
 
         <div class="chart-header">
-          <span class="chart-title">moisture &middot; temp &middot; battery</span>
-          <span class="chart-max-temp" id="max-temperature">max &ndash;&deg;C</span>
+          <span class="chart-title">water: <span class="water-status-word" id="water-status-word">&ndash;</span></span>
+          <span class="chart-max-temp"><span class="chart-max-temp-label">MAX</span> <span id="max-temperature">&ndash;&deg;C</span></span>
         </div>
         <div id="chart"></div>
         <div class="legend">
