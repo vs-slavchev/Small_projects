@@ -1,6 +1,5 @@
 #include "ble_service.h"
 #include "config.h"
-#include "secrets.h"
 #include "debug.h"
 
 #include <NimBLEDevice.h>
@@ -57,7 +56,7 @@ class OtaCallbacks : public NimBLEOtaCallbacks {
   }
 } otaCallbacks;
 
-void startBLE() {
+void startBLE(uint32_t otaPasskey) {
   NimBLEDevice::init(BOT_NAME);
   NimBLEDevice::setMTU(247);
 
@@ -66,7 +65,7 @@ void startBLE() {
   // script. Bonding (true) lets a reconnect skip re-pairing mid-update.
   NimBLEDevice::setSecurityAuth(true, true, true);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
-  NimBLEDevice::setSecurityPasskey(OTA_BLE_PASSKEY);
+  NimBLEDevice::setSecurityPasskey(otaPasskey);
 
   NimBLEServer* pServer = NimBLEDevice::createServer();
 

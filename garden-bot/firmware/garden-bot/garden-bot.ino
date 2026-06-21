@@ -366,7 +366,7 @@ void setup()
   esp_reset_reason_t reason = esp_reset_reason();
   debugf("Reset reason: %d\n", reason);
 
-  startBLE(); // advertise for the whole run so logs/OTA can be picked up
+  startBLE(OTA_BLE_PASSKEY); // advertise for the whole run so logs/OTA can be picked up
 
   readBattery();
   readMoisture();
