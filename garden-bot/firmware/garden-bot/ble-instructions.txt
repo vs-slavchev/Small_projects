@@ -33,14 +33,16 @@ inside NimBLEOta will fail — there's nowhere to write the new image.
 
 READING LOGS
 --------------
-Use any BLE central (e.g. a Python script with `bleak`, or nRF Connect
-on a phone) that:
-  1. Scans continuously for the device (advertised name = BOT_NAME).
-  2. On connect, reads LOG_CHAR_UUID (config.h) under LOG_SERVICE_UUID.
+Run read_logs.py (requires `pip install bleak`):
+    python read_logs.py [device-name]
+device-name defaults to BOT_NAME ("cherry-2-pot"). It scans continuously
+and reads the log as soon as the device is seen advertising. Pairing is
+passkey-protected (OTA_BLE_PASSKEY in secrets.h) — see the comment at
+the top of read_logs.py for how to pair ahead of time on Linux.
 
-Since the log is only the current run, start scanning before/while the
-device is expected to wake — there's no way to "wake it early" over BLE,
-the radio is off during deep sleep.
+Since the log is only the current run, start the script before/while
+the device is expected to wake — there's no way to "wake it early" over
+BLE, the radio is off during deep sleep.
 
 
 FLASHING OTA
