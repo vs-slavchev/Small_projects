@@ -82,6 +82,13 @@ void startBLE(uint32_t otaPasskey) {
   NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(logService->getUUID());
   pAdvertising->addServiceUUID(otaService->getUUID());
+  // NimBLEDevice::init(name) only sets the GATT device name (visible after
+  // connecting) - it does NOT put the name into the advertisement, so a
+  // scanner filtering by name would never see this device. The two service
+  // UUIDs already fill most of the 31-byte legacy advertising packet, so
+  // route the name through the separate scan response packet instead.
+  pAdvertising->enableScanResponse(true);
+  pAdvertising->setName(BOT_NAME);
   pAdvertising->start();
 
   debugln("BLE advertising started (log + OTA)");
