@@ -319,14 +319,18 @@ void finishWatering() {
 void waitForBleToFinish() {
   // Also wait out a connected-but-idle client (e.g. mid pairing/log-read),
   // not just an active OTA - otherwise deepSleep() yanks the radio out
-  // from under it and the central just sees a connection abort.
+  // from under it and the central just sees a connection abort. The loop
+  // exits as soon as the client disconnects on its own (right after a
+  // successful read), so there's no extra delay once the work is done -
+  // the cap is just a ceiling for a client that hangs or never disconnects.
   if (!otaInProgress() && !bleClientConnected()) {
     return;
   }
   debugln("BLE client connected or OTA in progress, delaying sleep");
   unsigned long waitStart = millis();
   while (otaInProgress() || bleClientConnected()) {
-    if (millis() - waitStart > OTA_MAX_WAIT_MS) {
+    unsigned long maxWait = otaInProgress() ? OTA_MAX_WAIT_MS : BLE_CLIENT_MAX_WAIT_MS;
+    if (millis() - waitStart > maxWait) {
       if (otaInProgress()) {
         debugln("OTA stalled past max wait, aborting");
         abortOta();

@@ -45,3 +45,7 @@
 #define LOG_SERVICE_UUID "FFA0"
 #define LOG_CHAR_UUID    "FFA1"
 #define OTA_MAX_WAIT_MS (5UL * 60 * 1000) // abort a stalled OTA after 5 minutes
+// A plain log-read connection (no OTA) only needs long enough to pair and
+// do one read - cap it short so a client that connects but never finishes
+// (or never disconnects) can't keep the device awake burning battery.
+#define BLE_CLIENT_MAX_WAIT_MS (30UL * 1000)
