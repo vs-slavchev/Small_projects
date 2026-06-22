@@ -16,6 +16,12 @@ void startBLE(uint32_t otaPasskey);
 // setup() checks this before deepSleep() to avoid sleeping mid-transfer.
 bool otaInProgress();
 
+// True while any BLE central is connected (e.g. mid log-read or about to
+// start an OTA). setup() checks this before deepSleep() too, so a client
+// that's still doing service discovery/pairing doesn't get the connection
+// yanked out from under it by deep sleep.
+bool bleClientConnected();
+
 // Aborts an in-progress OTA (used when it stalls past OTA_MAX_WAIT_MS).
 void abortOta();
 

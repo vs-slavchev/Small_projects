@@ -6,6 +6,7 @@
 #include <NimBLEOta.h>
 
 static NimBLEOta bleOta;
+static NimBLEServer* pServer = nullptr;
 
 class LogCharCallbacks : public NimBLECharacteristicCallbacks {
   void onRead(NimBLECharacteristic* pChar, NimBLEConnInfo& connInfo) override {
@@ -67,7 +68,7 @@ void startBLE(uint32_t otaPasskey) {
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
   NimBLEDevice::setSecurityPasskey(otaPasskey);
 
-  NimBLEServer* pServer = NimBLEDevice::createServer();
+  pServer = NimBLEDevice::createServer();
 
   NimBLEService* logService = pServer->createService(LOG_SERVICE_UUID);
   // READ_ENC requires the same encrypted/paired link as OTA, so logs can't
@@ -96,6 +97,10 @@ void startBLE(uint32_t otaPasskey) {
 
 bool otaInProgress() {
   return bleOta.isInProgress();
+}
+
+bool bleClientConnected() {
+  return pServer != nullptr && pServer->getConnectedCount() > 0;
 }
 
 void abortOta() {

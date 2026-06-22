@@ -316,16 +316,23 @@ void finishWatering() {
   debugln((String)"\nrestarted seconds_since_last_watering and reset maxRecentTemperature");
 }
 
-void waitForOtaToFinish() {
-  if (!otaInProgress()) {
+void waitForBleToFinish() {
+  // Also wait out a connected-but-idle client (e.g. mid pairing/log-read),
+  // not just an active OTA - otherwise deepSleep() yanks the radio out
+  // from under it and the central just sees a connection abort.
+  if (!otaInProgress() && !bleClientConnected()) {
     return;
   }
-  debugln("OTA in progress, delaying sleep until it finishes");
-  unsigned long otaWaitStart = millis();
-  while (otaInProgress()) {
-    if (millis() - otaWaitStart > OTA_MAX_WAIT_MS) {
-      debugln("OTA stalled past max wait, aborting");
-      abortOta();
+  debugln("BLE client connected or OTA in progress, delaying sleep");
+  unsigned long waitStart = millis();
+  while (otaInProgress() || bleClientConnected()) {
+    if (millis() - waitStart > OTA_MAX_WAIT_MS) {
+      if (otaInProgress()) {
+        debugln("OTA stalled past max wait, aborting");
+        abortOta();
+      } else {
+        debugln("BLE client still connected past max wait, sleeping anyway");
+      }
       break;
     }
     delay(200);
@@ -338,7 +345,7 @@ void deepSleep()
   // unused Wi-Fi connection doesn't keep contending with BLE for airtime
   // and battery.
   disconnectWiFi();
-  waitForOtaToFinish();
+  waitForBleToFinish();
   debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
