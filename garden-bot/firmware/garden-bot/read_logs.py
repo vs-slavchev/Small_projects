@@ -47,6 +47,11 @@ DEFAULT_DEVICE_NAME = "cherry-2-pot"  # BOT_NAME in config.h
 LOG_CHAR_UUID = "0000ffa1-0000-1000-8000-00805f9b34fb"
 SCAN_TIMEOUT_S = 10
 AGENT_PATH = "/garden_bot/agent"
+POLL_INTERVAL_S = 2
+STABLE_READS_TO_FINISH = 2  # consecutive unchanged reads before assuming the cycle is done
+# Stay comfortably under the firmware's BLE_CLIENT_MAX_WAIT_MS (30s) so we
+# disconnect on our own instead of making the device wait out its full cap.
+MAX_POLL_S = 25
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -153,18 +158,49 @@ async def read_logs(name: str, passkey: int):
                 log.exception("Pairing failed")
                 raise
 
-            log.debug("Reading characteristic %s...", LOG_CHAR_UUID)
-            try:
-                value = await client.read_gatt_char(LOG_CHAR_UUID)
-            except Exception:
-                log.exception("Read failed")
-                raise
+            # A single read only captures a snapshot - the device keeps
+            # running (WiFi, AWS publish, etc.) and appending to the log
+            # after we connect, so poll until it stops growing instead of
+            # reading once and disconnecting mid-cycle.
+            value = await _poll_until_stable(client)
 
-            log.info("Read %d bytes", len(value))
+            log.info("Final log size: %d bytes", len(value))
             text = value.decode("utf-8", errors="replace")
             print(text)
     finally:
         await unregister_agent(bus, agent_manager)
+
+
+async def _poll_until_stable(client: BleakClient) -> bytes:
+    last_value = b""
+    stable_count = 0
+    elapsed = 0.0
+
+    while True:
+        log.debug("Reading characteristic %s...", LOG_CHAR_UUID)
+        try:
+            value = await client.read_gatt_char(LOG_CHAR_UUID)
+        except Exception:
+            log.exception("Read failed")
+            raise
+
+        if value != last_value:
+            log.debug("Log grew to %d bytes, still running - waiting for it to settle", len(value))
+            last_value = value
+            stable_count = 0
+        else:
+            stable_count += 1
+            log.debug("Log unchanged (%d/%d stable reads)", stable_count, STABLE_READS_TO_FINISH)
+            if stable_count >= STABLE_READS_TO_FINISH:
+                log.info("Log stable, assuming wake cycle finished")
+                return last_value
+
+        if elapsed >= MAX_POLL_S:
+            log.warning("Max poll time (%ds) reached, returning possibly incomplete log", MAX_POLL_S)
+            return last_value
+
+        await asyncio.sleep(POLL_INTERVAL_S)
+        elapsed += POLL_INTERVAL_S
 
 
 if __name__ == "__main__":
