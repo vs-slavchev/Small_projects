@@ -5,8 +5,19 @@
 
 // Rolling buffer of this wake cycle's log lines, served over BLE.
 // Not RTC-retained: it only ever holds the current run, reset to empty on every boot.
+// Guarded by a mutex since the NimBLE host task can read it (LogCharCallbacks::onRead)
+// concurrently with the main task appending to it.
 extern String runLog;
 void logAppend(const String& s);
+
+// Call once at the very start of setup(), before startBLE() spins up the
+// NimBLE host task, so the mutex exists before anything can contend on it.
+void debug_init();
+
+// Held by BLE callbacks (ble_service.cpp) around any direct access to runLog,
+// so a read never races a concurrent append/truncate from the main task.
+void lockRunLog();
+void unlockRunLog();
 
 #if defined debug_print
    #define debug_begin(x)        Serial.begin(x)

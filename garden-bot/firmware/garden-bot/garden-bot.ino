@@ -371,6 +371,7 @@ void setup()
 {
   setCpuFrequencyMhz(80);
   debug_begin(115200);
+  debug_init();
   analogReadResolution(12);
   startTime = millis();
 

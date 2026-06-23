@@ -41,7 +41,10 @@
 // short advertising window; OTA extends the wake until done or timed out.
 // 16-bit UUIDs (vs. 128-bit) keep the advertising payload under the legacy
 // 31-byte PDU limit when combined with the OTA service UUID.
-#define LOG_BUFFER_MAX_CHARS 1500
+// 512 is a hard BLE ATT protocol ceiling on a single attribute's value
+// length (independent of MTU) - going higher just gets silently clamped
+// by the stack, so there's no point configuring more than this.
+#define LOG_BUFFER_MAX_CHARS 512
 #define LOG_SERVICE_UUID "FFA0"
 #define LOG_CHAR_UUID    "FFA1"
 #define OTA_MAX_WAIT_MS (5UL * 60 * 1000) // abort a stalled OTA after 5 minutes

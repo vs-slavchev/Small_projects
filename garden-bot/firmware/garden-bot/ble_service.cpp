@@ -15,7 +15,9 @@ class LogCharCallbacks : public NimBLECharacteristicCallbacks {
     // setValue(const String&) silently truncates to NimBLE's default 20-byte
     // attribute length; go through the raw pointer/length overload instead,
     // which respects the larger max length set on the characteristic below.
+    lockRunLog();
     pChar->setValue((uint8_t*)runLog.c_str(), runLog.length());
+    unlockRunLog();
   }
 } logCharCallbacks;
 
