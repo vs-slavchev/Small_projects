@@ -63,9 +63,30 @@ function computeNextWatering(lastWateredMs, maxRecentTemperature) {
   return Math.min(...candidates);
 }
 
+const STORAGE_KEY = 'garden-bot-filters';
+
+function loadStoredFilters() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveStoredFilters() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ days: state.days, device: state.device }));
+  } catch (e) {
+    // ignore (e.g. storage disabled)
+  }
+}
+
+const stored = loadStoredFilters();
 const state = {
-  days: 3,
-  device: 'cherry-3-pot',
+  days: (stored && stored.days) || 3,
+  device: (stored && stored.device) || 'cherry-3-pot',
   deviceOpen: false
 };
 
@@ -79,6 +100,17 @@ function pad(n) {
 function fmt(ts) {
   const x = new Date(ts);
   return pad(x.getHours()) + ':' + pad(x.getMinutes()) + ' ' + pad(x.getDate()) + '.' + pad(x.getMonth() + 1);
+}
+
+function relativeTime(ts) {
+  const diffSec = Math.floor((Date.now() - ts) / 1000);
+  if (diffSec < 5) return 'just now';
+  if (diffSec < 60) return diffSec + 's ago';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin + 'm ago';
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return diffHour + 'h ago';
+  return Math.floor(diffHour / 24) + 'd ago';
 }
 
 function mapNumRange(num, inMin, inMax, outMin, outMax) {
@@ -170,6 +202,7 @@ function computeStats(points) {
     waterColor: last.water ? '#7fd49b' : '#e08a5e',
     lastUpdateMs: last.t,
     lastUpdate: fmt(last.t),
+    lastWateredMs,
     lastWatered: lastWateredMs ? fmt(lastWateredMs) : '—',
     nextWatering: lastWateredMs ? fmt(computeNextWatering(lastWateredMs, maxRecentTemp)) : '—',
     maxTemp,
@@ -181,12 +214,32 @@ function setGaugeRing(ringEl, pct, color) {
   ringEl.style.background = 'conic-gradient(' + color + ' ' + (pct * 3.6) + 'deg,rgba(168,198,134,.12) 0)';
 }
 
+function unskeleton(...elements) {
+  elements.forEach(el => el.classList.remove('skeleton'));
+}
+
+const relativeTimes = { lastUpdateMs: null, lastWateredMs: null };
+
+function renderRelativeTimes() {
+  document.getElementById('last-updated-relative').textContent =
+    relativeTimes.lastUpdateMs ? relativeTime(relativeTimes.lastUpdateMs) : '';
+  document.getElementById('last-watered-relative').textContent =
+    relativeTimes.lastWateredMs ? relativeTime(relativeTimes.lastWateredMs) : '';
+}
+
+setInterval(renderRelativeTimes, 15 * 1000);
+
 function renderStats(points) {
   const s = computeStats(points);
 
   document.getElementById('moisture').innerHTML = s.curMoisture + '<span class="gauge-unit">%</span>';
   document.getElementById('battery-percent').innerHTML = s.curBattery + '<span class="gauge-unit">%</span>';
   document.getElementById('temperature').innerHTML = s.curTemp + '<span class="gauge-unit">°</span>';
+  unskeleton(
+    document.getElementById('moisture'),
+    document.getElementById('battery-percent'),
+    document.getElementById('temperature')
+  );
 
   setGaugeRing(document.getElementById('gauge-moisture-ring'), s.curMoisture, THEME.moisture);
   setGaugeRing(document.getElementById('gauge-battery-ring'), s.curBattery, THEME.battery);
@@ -195,6 +248,15 @@ function renderStats(points) {
   document.getElementById('last-updated-time').textContent = s.lastUpdate;
   document.getElementById('last-watered-time').textContent = s.lastWatered;
   document.getElementById('next-watering-time').textContent = s.nextWatering;
+  unskeleton(
+    document.getElementById('last-updated-time'),
+    document.getElementById('last-watered-time'),
+    document.getElementById('next-watering-time')
+  );
+
+  relativeTimes.lastUpdateMs = s.lastUpdateMs;
+  relativeTimes.lastWateredMs = s.lastWateredMs;
+  renderRelativeTimes();
 
   const waterStatusWord = document.getElementById('water-status-word');
   waterStatusWord.textContent = s.waterLabel;
@@ -285,8 +347,11 @@ function buildStripOption(points) {
 }
 
 function renderCharts(points) {
-  if (!mainChart) mainChart = echarts.init(document.getElementById('chart'));
-  if (!stripChart) stripChart = echarts.init(document.getElementById('strip'));
+  const chartEl = document.getElementById('chart');
+  const stripEl = document.getElementById('strip');
+  unskeleton(chartEl, stripEl);
+  if (!mainChart) mainChart = echarts.init(chartEl);
+  if (!stripChart) stripChart = echarts.init(stripEl);
   mainChart.setOption(buildMainOption(points), true);
   stripChart.setOption(buildStripOption(points), true);
 }
@@ -302,20 +367,49 @@ function renderFilterUI() {
   document.getElementById('device-menu').hidden = !state.deviceOpen;
 }
 
+let fetchInFlight = false;
+let hasLoadedOnce = false;
+
+function showError(message) {
+  document.getElementById('error-message').textContent = message;
+  document.getElementById('error-banner').hidden = false;
+}
+
+function hideError() {
+  document.getElementById('error-banner').hidden = true;
+}
+
+function setEmptyState(isEmpty) {
+  document.getElementById('chart-section').hidden = isEmpty;
+  document.getElementById('empty-state').hidden = !isEmpty;
+}
+
 function fetchAndRender() {
+  if (fetchInFlight) return;
+  fetchInFlight = true;
+  document.getElementById('live-badge').classList.add('status-refreshing');
   fetchDataJSON(state.days, state.device)
     .then(dataObj => {
       const points = toPoints(dataObj);
+      hideError();
       if (!points.length) {
-        document.getElementById('chart').innerHTML = 'No data';
+        setEmptyState(true);
+        hasLoadedOnce = true;
         return;
       }
+      setEmptyState(false);
       renderStats(points);
       renderCharts(points);
       scheduleNextFetch(points[points.length - 1].t);
+      hasLoadedOnce = true;
     })
     .catch(error => {
       console.error('There was a problem with the fetch operation:', error);
+      showError(hasLoadedOnce ? "Couldn't refresh — showing last known data." : "Couldn't reach the garden bot.");
+    })
+    .finally(() => {
+      fetchInFlight = false;
+      document.getElementById('live-badge').classList.remove('status-refreshing');
     });
 }
 
@@ -323,6 +417,7 @@ document.getElementById('range-pills').addEventListener('click', e => {
   const pill = e.target.closest('.pill');
   if (!pill) return;
   state.days = Number(pill.dataset.days);
+  saveStoredFilters();
   renderFilterUI();
   fetchAndRender();
 });
@@ -339,7 +434,16 @@ document.getElementById('device-menu').addEventListener('click', e => {
   e.stopPropagation();
   state.device = opt.dataset.device;
   state.deviceOpen = false;
+  saveStoredFilters();
   renderFilterUI();
+  fetchAndRender();
+});
+
+document.getElementById('live-badge').addEventListener('click', () => {
+  fetchAndRender();
+});
+
+document.getElementById('error-retry').addEventListener('click', () => {
   fetchAndRender();
 });
 
