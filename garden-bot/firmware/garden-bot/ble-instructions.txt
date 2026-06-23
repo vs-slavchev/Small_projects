@@ -38,8 +38,10 @@ instead of `dbus-next` — either works):
     python read_logs.py [device-name] --passkey 123456
     # or: OTA_BLE_PASSKEY=123456 python read_logs.py [device-name]
 device-name defaults to BOT_NAME ("cherry-2-pot"). The passkey must
-match OTA_BLE_PASSKEY in secrets.h. It scans continuously and reads the
-log as soon as the device is seen advertising.
+match OTA_BLE_PASSKEY in secrets.h. It runs forever: scans, connects and
+reads as soon as the device is seen advertising, then goes back to
+scanning for the next wake - leave it running for hours/days to capture
+a log per cycle, ctrl-c to stop.
 
 The log characteristic is passkey-protected the same way OTA is. The
 script registers its own throwaway BlueZ pairing agent for the run that

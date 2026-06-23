@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Read the current wake cycle's log buffer from a garden-bot over BLE.
+"""Continuously capture log buffers from a garden-bot over BLE, one per wake cycle.
 
 The device only advertises while awake (a few seconds every
-SECONDS_TO_SLEEP, ~30 min) and the log is reset on every boot, so this
-scans continuously and reads as soon as it sees the device.
+SECONDS_TO_SLEEP, ~30 min) and each wake's log is reset on boot, so this
+runs forever: scan, connect, read that cycle's log, disconnect, then go
+back to scanning for the next wake. Leave it running for hours/days to
+build up a history of cycles - ctrl-c to stop.
 
 Usage:
     python read_logs.py [device-name] --passkey 123456
@@ -138,37 +140,50 @@ async def find_device(name: str):
         log.debug("Not seen yet, still scanning...")
 
 
-async def read_logs(name: str, passkey: int):
+async def read_logs_forever(name: str, passkey: int):
     bus, agent_manager = await register_agent(passkey)
+    cycle = 0
     try:
-        device = await find_device(name)
-        log.info("Connecting to %s...", device.address)
-
-        async with BleakClient(device, disconnected_callback=on_disconnect) as client:
-            log.info("Connected: %s", client.is_connected)
-
-            log.debug("Attempting to pair...")
+        while True:
+            cycle += 1
             try:
-                paired = await client.pair()
-                log.info("Pairing result: %s", paired)
-            except NotImplementedError:
-                # macOS pairs at the OS level automatically; nothing to do here.
-                log.debug("client.pair() not implemented on this platform, skipping (macOS pairs at OS level)")
+                await read_one_cycle(name, cycle)
             except Exception:
-                log.exception("Pairing failed")
-                raise
-
-            # A single read only captures a snapshot - the device keeps
-            # running (WiFi, AWS publish, etc.) and appending to the log
-            # after we connect, so poll until it stops growing instead of
-            # reading once and disconnecting mid-cycle.
-            value = await _poll_until_stable(client)
-
-            log.info("Final log size: %d bytes", len(value))
-            text = value.decode("utf-8", errors="replace")
-            print(text)
+                # One bad cycle (pairing hiccup, mid-read disconnect, etc.)
+                # shouldn't kill a run meant to sit unattended for hours -
+                # log it and pick the next wake back up.
+                log.exception("Cycle #%d failed, will retry on the next wake", cycle)
+            await asyncio.sleep(1)
     finally:
         await unregister_agent(bus, agent_manager)
+
+
+async def read_one_cycle(name: str, cycle: int):
+    log.info("=== Waiting for wake cycle #%d ===", cycle)
+    device = await find_device(name)
+    log.info("Connecting to %s...", device.address)
+
+    async with BleakClient(device, disconnected_callback=on_disconnect) as client:
+        log.info("Connected: %s", client.is_connected)
+
+        log.debug("Attempting to pair...")
+        try:
+            paired = await client.pair()
+            log.info("Pairing result: %s", paired)
+        except NotImplementedError:
+            # macOS pairs at the OS level automatically; nothing to do here.
+            log.debug("client.pair() not implemented on this platform, skipping (macOS pairs at OS level)")
+
+        # A single read only captures a snapshot - the device keeps
+        # running (WiFi, AWS publish, etc.) and appending to the log
+        # after we connect, so poll until it stops growing instead of
+        # reading once and disconnecting mid-cycle.
+        value = await _poll_until_stable(client)
+
+        log.info("Final log size: %d bytes", len(value))
+        text = value.decode("utf-8", errors="replace")
+        print(f"\n----- wake cycle #{cycle} ({device.address}) -----")
+        print(text)
 
 
 async def _poll_until_stable(client: BleakClient) -> bytes:
@@ -218,6 +233,6 @@ if __name__ == "__main__":
         parser.error("--passkey is required (or set the OTA_BLE_PASSKEY env var)")
 
     try:
-        asyncio.run(read_logs(args.device_name, args.passkey))
+        asyncio.run(read_logs_forever(args.device_name, args.passkey))
     except KeyboardInterrupt:
         log.info("Stopped by user")
