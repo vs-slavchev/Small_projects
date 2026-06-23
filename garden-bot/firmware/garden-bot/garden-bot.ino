@@ -60,6 +60,12 @@ bool connectWiFi()
 
 void disconnectWiFi() {
     WiFi.disconnect(true);
+    // Give the WiFi stack a moment to actually finish the disconnect
+    // handshake before tearing it down - flipping straight to WIFI_OFF
+    // races the stack's own deinit (worse with BLE active, since both
+    // share the same 2.4GHz radio), producing a benign but noisy
+    // "timeout when wifi un-init" error.
+    delay(100);
     WiFi.mode(WIFI_OFF);
     debugln("Disconnected from Wi-Fi");
 }
