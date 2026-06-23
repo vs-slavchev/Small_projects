@@ -77,16 +77,28 @@ read_logs.py's own pairing agent, then push the firmware:
    deep sleep cycles and reboots, so you only need to do this once per
    laptop/device pair (or after either side's bonding info gets reset).
 
-3. Run the OTA script:
-       python nimbleota.py garden-bot.ino.bin
-   (or pass the MAC address as a second argument to skip the
-   scan/select prompt: `python nimbleota.py garden-bot.ino.bin
-   AA:BB:CC:DD:EE:FF`). Leave it scanning — it connects and starts the
-   transfer as soon as the device advertises on its next wake.
+3. Run the OTA script. nimbleota.py only scans for 5 seconds and gives
+   up if the device isn't already advertising - it has no retry of its
+   own, and the device only advertises for a brief window every ~30
+   min, so timing a single invocation by hand is unreliable. Use the
+   included retry_ota.sh wrapper instead, which just re-launches it
+   every couple seconds until one attempt lands inside an advertising
+   window (get the MAC from a prior read_logs.py "Connecting to ..."
+   log line, or from bluetoothctl, to skip the scan/select prompt
+   entirely):
+       ./retry_ota.sh /path/to/nimbleota.py garden-bot.ino.bin AA:BB:CC:DD:EE:FF
+   Stop it (ctrl-c) once you see the transfer complete and the device
+   reboot.
 
 4. Once writing begins, the device stays awake until the transfer
    completes (or 5 minutes pass with no progress, OTA_MAX_WAIT_MS in
-   config.h), then reboots into the new firmware automatically.
+   config.h), then reboots into the new firmware automatically. Getting
+   a connected client through the full pre-write handshake (connect,
+   pairing/encryption, subscribe, START command + ack, second
+   subscribe) before that point is exactly what BLE_CLIENT_MAX_WAIT_MS
+   covers (90s) - too short here and the device can fall asleep mid-
+   negotiation, dropping the link out from under the script before the
+   transfer ever starts.
 
 Don't run read_logs.py and nimbleota.py at the same time — both try to
 register a BlueZ agent and they'll conflict over who answers pairing
