@@ -115,6 +115,22 @@ body {
   background: rgba(127, 212, 154, .13);
   font: 400 11px 'Space Mono', monospace;
   color: #9fe0b8;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity .15s ease;
+}
+
+.live-badge:hover {
+  opacity: .8;
+}
+
+.live-badge.status-refreshing {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.live-badge.status-refreshing .live-dot {
+  animation: gpulse .6s infinite;
 }
 
 .live-dot {

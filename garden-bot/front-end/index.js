@@ -63,9 +63,30 @@ function computeNextWatering(lastWateredMs, maxRecentTemperature) {
   return Math.min(...candidates);
 }
 
+const STORAGE_KEY = 'garden-bot-filters';
+
+function loadStoredFilters() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveStoredFilters() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ days: state.days, device: state.device }));
+  } catch (e) {
+    // ignore (e.g. storage disabled)
+  }
+}
+
+const stored = loadStoredFilters();
 const state = {
-  days: 3,
-  device: 'cherry-3-pot',
+  days: (stored && stored.days) || 3,
+  device: (stored && stored.device) || 'cherry-3-pot',
   deviceOpen: false
 };
 
@@ -302,7 +323,12 @@ function renderFilterUI() {
   document.getElementById('device-menu').hidden = !state.deviceOpen;
 }
 
+let fetchInFlight = false;
+
 function fetchAndRender() {
+  if (fetchInFlight) return;
+  fetchInFlight = true;
+  document.getElementById('live-badge').classList.add('status-refreshing');
   fetchDataJSON(state.days, state.device)
     .then(dataObj => {
       const points = toPoints(dataObj);
@@ -316,6 +342,10 @@ function fetchAndRender() {
     })
     .catch(error => {
       console.error('There was a problem with the fetch operation:', error);
+    })
+    .finally(() => {
+      fetchInFlight = false;
+      document.getElementById('live-badge').classList.remove('status-refreshing');
     });
 }
 
@@ -323,6 +353,7 @@ document.getElementById('range-pills').addEventListener('click', e => {
   const pill = e.target.closest('.pill');
   if (!pill) return;
   state.days = Number(pill.dataset.days);
+  saveStoredFilters();
   renderFilterUI();
   fetchAndRender();
 });
@@ -339,7 +370,12 @@ document.getElementById('device-menu').addEventListener('click', e => {
   e.stopPropagation();
   state.device = opt.dataset.device;
   state.deviceOpen = false;
+  saveStoredFilters();
   renderFilterUI();
+  fetchAndRender();
+});
+
+document.getElementById('live-badge').addEventListener('click', () => {
   fetchAndRender();
 });
 
