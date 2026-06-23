@@ -53,12 +53,42 @@ Since the log is only the current run, start the script before/while
 the device is expected to wake — there's no way to "wake it early" over
 BLE, the radio is off during deep sleep.
 
+Each cycle's log is saved to its own file under --log-dir (default
+"logs/" next to the script), named after the cycle's start time, e.g.
+logs/cherry-2-pot_20260623_133957.log.
+
 
 FLASHING OTA
 --------------
-Use the Python script bundled with NimBLEOta (see its examples/) to push
-a compiled .bin. Same scan-and-wait approach as logs: leave the script
-scanning, it connects and starts the transfer as soon as the device
-advertises. Once writing begins, the device stays awake until the
-transfer completes (or 5 minutes pass with no progress), then reboots
-into the new firmware automatically.
+The NimBLEOta repo's bundled script (scripts/nimbleota.py, requires
+`pip install bleak`) pushes a compiled .bin but does NOT pair itself —
+it assumes the device is already bonded. Pair once first using
+read_logs.py's own pairing agent, then push the firmware:
+
+1. Export a compiled binary: in Arduino IDE, Sketch > Export Compiled
+   Binary (Ctrl+Alt+S). This produces garden-bot.ino.bin next to the
+   sketch (board/partition settings must match what's currently
+   flashed, or the new image may not boot correctly).
+
+2. Establish a bond if you haven't already: run read_logs.py once
+   while the device is awake and let it complete a cycle. This pairs
+   and bonds via its own BlueZ agent (auto-answering OTA_BLE_PASSKEY),
+   and the bond persists in both BlueZ and the ESP32's NVS flash across
+   deep sleep cycles and reboots, so you only need to do this once per
+   laptop/device pair (or after either side's bonding info gets reset).
+
+3. Run the OTA script:
+       python nimbleota.py garden-bot.ino.bin
+   (or pass the MAC address as a second argument to skip the
+   scan/select prompt: `python nimbleota.py garden-bot.ino.bin
+   AA:BB:CC:DD:EE:FF`). Leave it scanning — it connects and starts the
+   transfer as soon as the device advertises on its next wake.
+
+4. Once writing begins, the device stays awake until the transfer
+   completes (or 5 minutes pass with no progress, OTA_MAX_WAIT_MS in
+   config.h), then reboots into the new firmware automatically.
+
+Don't run read_logs.py and nimbleota.py at the same time — both try to
+register a BlueZ agent and they'll conflict over who answers pairing
+requests. If the bond is already established, only the OTA script needs
+to be running for the flash.

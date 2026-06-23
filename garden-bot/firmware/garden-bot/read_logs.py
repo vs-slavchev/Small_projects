@@ -14,6 +14,9 @@ Usage:
 device-name defaults to BOT_NAME from config.h ("cherry-2-pot"). The
 passkey must match OTA_BLE_PASSKEY in secrets.h.
 
+Each cycle's log is saved to its own file in --log-dir (default "logs/"),
+named after the cycle's start time, e.g. logs/cherry-2-pot_20260623_133957.log.
+
 Requires: pip install bleak dbus-next   (or dbus-fast, either works)
 
 Pairing: the log characteristic requires the same passkey-protected
@@ -31,6 +34,8 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import datetime
+from pathlib import Path
 
 from bleak import BleakClient, BleakScanner
 
@@ -140,14 +145,15 @@ async def find_device(name: str):
         log.debug("Not seen yet, still scanning...")
 
 
-async def read_logs_forever(name: str, passkey: int):
+async def read_logs_forever(name: str, passkey: int, log_dir: Path):
+    log_dir.mkdir(parents=True, exist_ok=True)
     bus, agent_manager = await register_agent(passkey)
     cycle = 0
     try:
         while True:
             cycle += 1
             try:
-                await read_one_cycle(name, cycle)
+                await read_one_cycle(name, cycle, log_dir)
             except Exception:
                 # One bad cycle (pairing hiccup, mid-read disconnect, etc.)
                 # shouldn't kill a run meant to sit unattended for hours -
@@ -158,9 +164,13 @@ async def read_logs_forever(name: str, passkey: int):
         await unregister_agent(bus, agent_manager)
 
 
-async def read_one_cycle(name: str, cycle: int):
+async def read_one_cycle(name: str, cycle: int, log_dir: Path):
     log.info("=== Waiting for wake cycle #%d ===", cycle)
     device = await find_device(name)
+    # The device starts advertising as soon as it wakes (see startBLE() in
+    # setup()), so the moment we see it is the closest proxy we have to the
+    # cycle's actual start time.
+    cycle_start = datetime.now()
     log.info("Connecting to %s...", device.address)
 
     async with BleakClient(device, disconnected_callback=on_disconnect) as client:
@@ -184,6 +194,10 @@ async def read_one_cycle(name: str, cycle: int):
         text = value.decode("utf-8", errors="replace")
         print(f"\n----- wake cycle #{cycle} ({device.address}) -----")
         print(text)
+
+        log_file = log_dir / f"{name}_{cycle_start:%Y%m%d_%H%M%S}.log"
+        log_file.write_text(text)
+        log.info("Saved cycle #%d log to %s", cycle, log_file)
 
 
 async def _poll_until_stable(client: BleakClient) -> bytes:
@@ -227,12 +241,18 @@ if __name__ == "__main__":
         default=os.environ.get("OTA_BLE_PASSKEY"),
         help="Must match OTA_BLE_PASSKEY in secrets.h (or set the OTA_BLE_PASSKEY env var)",
     )
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=Path("logs"),
+        help="Directory to save one file per wake cycle into (default: ./logs)",
+    )
     args = parser.parse_args()
 
     if args.passkey is None:
         parser.error("--passkey is required (or set the OTA_BLE_PASSKEY env var)")
 
     try:
-        asyncio.run(read_logs_forever(args.device_name, args.passkey))
+        asyncio.run(read_logs_forever(args.device_name, args.passkey, args.log_dir))
     except KeyboardInterrupt:
         log.info("Stopped by user")
