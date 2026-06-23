@@ -34,6 +34,11 @@
           </div>
         </div>
 
+        <div class="error-banner" id="error-banner" hidden>
+          <span id="error-message"></span>
+          <button class="error-retry" id="error-retry" type="button">retry</button>
+        </div>
+
         <div class="filters">
           <div id="range-pills" class="pills">
             <span class="pill" data-days="1">1d</span>
@@ -58,7 +63,7 @@
           <div class="gauge" id="gauge-moisture">
             <div class="gauge-ring" id="gauge-moisture-ring">
               <div class="gauge-inner">
-                <span class="gauge-value" id="moisture">&ndash;<span class="gauge-unit">%</span></span>
+                <span class="gauge-value skeleton" id="moisture">&ndash;<span class="gauge-unit">%</span></span>
                 <span class="gauge-label">moisture</span>
               </div>
             </div>
@@ -66,7 +71,7 @@
           <div class="gauge" id="gauge-battery">
             <div class="gauge-ring" id="gauge-battery-ring">
               <div class="gauge-inner">
-                <span class="gauge-value" id="battery-percent">&ndash;<span class="gauge-unit">%</span></span>
+                <span class="gauge-value skeleton" id="battery-percent">&ndash;<span class="gauge-unit">%</span></span>
                 <span class="gauge-label">battery</span>
               </div>
             </div>
@@ -74,7 +79,7 @@
           <div class="gauge" id="gauge-temp">
             <div class="gauge-ring" id="gauge-temp-ring">
               <div class="gauge-inner">
-                <span class="gauge-value" id="temperature">&ndash;<span class="gauge-unit">&deg;</span></span>
+                <span class="gauge-value skeleton" id="temperature">&ndash;<span class="gauge-unit">&deg;</span></span>
                 <span class="gauge-label">temp</span>
               </div>
             </div>
@@ -84,35 +89,44 @@
         <div class="info-row">
           <div class="info-box">
             <div class="info-label">last update</div>
-            <div class="info-value" id="last-updated-time">&ndash;</div>
+            <div class="info-value skeleton" id="last-updated-time">&ndash;</div>
+            <div class="info-relative" id="last-updated-relative"></div>
           </div>
           <div class="info-box">
             <div class="info-label">last watered</div>
-            <div class="info-value" id="last-watered-time">&ndash;</div>
+            <div class="info-value skeleton" id="last-watered-time">&ndash;</div>
+            <div class="info-relative" id="last-watered-relative"></div>
           </div>
           <div class="info-box">
             <div class="info-label">next watering</div>
-            <div class="info-value" id="next-watering-time">&ndash;</div>
+            <div class="info-value skeleton" id="next-watering-time">&ndash;</div>
           </div>
         </div>
 
-        <div class="chart-header">
-          <span class="chart-title">water: <span class="water-status-word" id="water-status-word">&ndash;</span></span>
-          <span class="chart-max-temp"><span class="chart-max-temp-label">MAX</span> <span id="max-temperature">&ndash;&deg;C</span></span>
-        </div>
-        <div id="chart"></div>
-        <div class="legend">
-          <span class="legend-item"><span class="legend-swatch legend-swatch--moisture"></span>moisture %</span>
-          <span class="legend-item"><span class="legend-swatch legend-swatch--battery"></span>battery %</span>
-          <span class="legend-item"><span class="legend-swatch legend-swatch--temp"></span>temp &deg;C</span>
+        <div class="chart-section" id="chart-section">
+          <div class="chart-header">
+            <span class="chart-title">water: <span class="water-status-word" id="water-status-word">&ndash;</span></span>
+            <span class="chart-max-temp"><span class="chart-max-temp-label">MAX</span> <span id="max-temperature">&ndash;&deg;C</span></span>
+          </div>
+          <div id="chart" class="skeleton"></div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-swatch legend-swatch--moisture"></span>moisture %</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--battery"></span>battery %</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--temp"></span>temp &deg;C</span>
+          </div>
+
+          <div class="chart-title chart-title--strip">watering &middot; water tank</div>
+          <div id="strip" class="skeleton"></div>
+          <div class="legend">
+            <span class="legend-item"><svg width="9" height="11" viewBox="0 0 32 36"><path d="M16 1 C16 1 29 15 29 22 A13 13 0 1 1 3 22 C3 15 16 1 16 1 Z" fill="#7fd4ff"></path></svg>watered</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--avail"></span>water available</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--empty"></span>tank empty</span>
+          </div>
         </div>
 
-        <div class="chart-title chart-title--strip">watering &middot; water tank</div>
-        <div id="strip"></div>
-        <div class="legend">
-          <span class="legend-item"><svg width="9" height="11" viewBox="0 0 32 36"><path d="M16 1 C16 1 29 15 29 22 A13 13 0 1 1 3 22 C3 15 16 1 16 1 Z" fill="#7fd4ff"></path></svg>watered</span>
-          <span class="legend-item"><span class="legend-swatch legend-swatch--avail"></span>water available</span>
-          <span class="legend-item"><span class="legend-swatch legend-swatch--empty"></span>tank empty</span>
+        <div class="empty-state" id="empty-state" hidden>
+          <svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 2 C4 8 4 18 12 22 C20 18 20 8 12 2 Z" fill="#46603e"></path></svg>
+          <span>No data for this range yet.</span>
         </div>
 
       </div>
