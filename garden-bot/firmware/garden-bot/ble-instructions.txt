@@ -33,12 +33,19 @@ inside NimBLEOta will fail — there's nowhere to write the new image.
 
 READING LOGS
 --------------
-Run read_logs.py (requires `pip install bleak`):
-    python read_logs.py [device-name]
-device-name defaults to BOT_NAME ("cherry-2-pot"). It scans continuously
-and reads the log as soon as the device is seen advertising. Pairing is
-passkey-protected (OTA_BLE_PASSKEY in secrets.h) — see the comment at
-the top of read_logs.py for how to pair ahead of time on Linux.
+Run read_logs.py (requires `pip install bleak dbus-next`, or `dbus-fast`
+instead of `dbus-next` — either works):
+    python read_logs.py [device-name] --passkey 123456
+    # or: OTA_BLE_PASSKEY=123456 python read_logs.py [device-name]
+device-name defaults to BOT_NAME ("cherry-2-pot"). The passkey must
+match OTA_BLE_PASSKEY in secrets.h. It scans continuously and reads the
+log as soon as the device is seen advertising.
+
+The log characteristic is passkey-protected the same way OTA is. The
+script registers its own throwaway BlueZ pairing agent for the run that
+auto-answers the passkey prompt — no bluetoothctl or manual pairing step
+needed (and none should be running at the same time, or the two agents
+will conflict over who answers BlueZ).
 
 Since the log is only the current run, start the script before/while
 the device is expected to wake — there's no way to "wake it early" over
