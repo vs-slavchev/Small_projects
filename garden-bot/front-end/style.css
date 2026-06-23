@@ -517,6 +517,10 @@ body {
   text-align: center;
 }
 
+.empty-state[hidden] {
+  display: none;
+}
+
 .footnote {
   font: 400 10px 'Space Mono', monospace;
   color: #5d8a72;
