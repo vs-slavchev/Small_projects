@@ -1,0 +1,106 @@
+Garden Bot - BLE Logs & OTA
+============================
+
+Every wake cycle, the device advertises over BLE for the duration of the
+run (sensor reads + WiFi/AWS attempts, roughly the same window deepSleep()
+would otherwise be waiting through). Two things are exposed:
+
+  - a read characteristic with this wake's log lines (current run only,
+    not retained across sleep cycles — if you miss the window, wait for
+    the next one, ~30 min later)
+  - the firmware OTA service (NimBLEOta)
+
+Starting an OTA write extends the wake past the normal window until the
+transfer finishes or stalls for more than 5 minutes (OTA_MAX_WAIT_MS in
+config.h), at which point it's aborted and the device sleeps normally.
+
+
+REQUIRED LIBRARIES (Arduino IDE Library Manager unless noted)
+---------------------------------------------------------------
+  - NimBLE-Arduino (h2zero)            — install via Library Manager
+  - NimBLEOta (h2zero)                 — NOT in Library Manager; download
+      from https://github.com/h2zero/NimBLEOta and place the repo
+      (NimBLEOta.h/.cpp, NimBLEDis.h/.cpp) in your Arduino libraries
+      folder.
+
+PARTITION SCHEME
+-----------------
+This board has 16MB flash. In Arduino IDE, Tools > Partition Scheme,
+pick a scheme with two OTA app slots (e.g. any "...with OTA" option, or
+a custom CSV with ota_0/ota_1/otadata). Without this, esp_ota_* calls
+inside NimBLEOta will fail — there's nowhere to write the new image.
+
+
+READING LOGS
+--------------
+Run read_logs.py (requires `pip install bleak dbus-next`, or `dbus-fast`
+instead of `dbus-next` — either works):
+    python read_logs.py [device-name] --passkey 123456
+    # or: OTA_BLE_PASSKEY=123456 python read_logs.py [device-name]
+device-name defaults to BOT_NAME ("cherry-2-pot"). The passkey must
+match OTA_BLE_PASSKEY in secrets.h. It runs forever: scans, connects and
+reads as soon as the device is seen advertising, then goes back to
+scanning for the next wake - leave it running for hours/days to capture
+a log per cycle, ctrl-c to stop.
+
+The log characteristic is passkey-protected the same way OTA is. The
+script registers its own throwaway BlueZ pairing agent for the run that
+auto-answers the passkey prompt — no bluetoothctl or manual pairing step
+needed (and none should be running at the same time, or the two agents
+will conflict over who answers BlueZ).
+
+Since the log is only the current run, start the script before/while
+the device is expected to wake — there's no way to "wake it early" over
+BLE, the radio is off during deep sleep.
+
+Each cycle's log is saved to its own file under --log-dir (default
+"logs/" next to the script), named after the cycle's start time, e.g.
+logs/cherry-2-pot_20260623_133957.log.
+
+
+FLASHING OTA
+--------------
+The NimBLEOta repo's bundled script (scripts/nimbleota.py, requires
+`pip install bleak`) pushes a compiled .bin but does NOT pair itself —
+it assumes the device is already bonded. Pair once first using
+read_logs.py's own pairing agent, then push the firmware:
+
+1. Export a compiled binary: in Arduino IDE, Sketch > Export Compiled
+   Binary (Ctrl+Alt+S). This produces garden-bot.ino.bin next to the
+   sketch (board/partition settings must match what's currently
+   flashed, or the new image may not boot correctly).
+
+2. Establish a bond if you haven't already: run read_logs.py once
+   while the device is awake and let it complete a cycle. This pairs
+   and bonds via its own BlueZ agent (auto-answering OTA_BLE_PASSKEY),
+   and the bond persists in both BlueZ and the ESP32's NVS flash across
+   deep sleep cycles and reboots, so you only need to do this once per
+   laptop/device pair (or after either side's bonding info gets reset).
+
+3. Run the OTA script. nimbleota.py only scans for 5 seconds and gives
+   up if the device isn't already advertising - it has no retry of its
+   own, and the device only advertises for a brief window every ~30
+   min, so timing a single invocation by hand is unreliable. Use the
+   included retry_ota.sh wrapper instead, which just re-launches it
+   every couple seconds until one attempt lands inside an advertising
+   window (get the MAC from a prior read_logs.py "Connecting to ..."
+   log line, or from bluetoothctl, to skip the scan/select prompt
+   entirely):
+       ./retry_ota.sh /path/to/nimbleota.py garden-bot.ino.bin AA:BB:CC:DD:EE:FF
+   Stop it (ctrl-c) once you see the transfer complete and the device
+   reboot.
+
+4. Once writing begins, the device stays awake until the transfer
+   completes (or 5 minutes pass with no progress, OTA_MAX_WAIT_MS in
+   config.h), then reboots into the new firmware automatically. Getting
+   a connected client through the full pre-write handshake (connect,
+   pairing/encryption, subscribe, START command + ack, second
+   subscribe) before that point is exactly what BLE_CLIENT_MAX_WAIT_MS
+   covers (90s) - too short here and the device can fall asleep mid-
+   negotiation, dropping the link out from under the script before the
+   transfer ever starts.
+
+Don't run read_logs.py and nimbleota.py at the same time — both try to
+register a BlueZ agent and they'll conflict over who answers pairing
+requests. If the bond is already established, only the OTA script needs
+to be running for the flash.

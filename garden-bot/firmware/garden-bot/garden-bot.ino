@@ -1,6 +1,8 @@
 #include "secrets.h"
 #include "config.h"
 #include "debug.h"
+#include "ble_service.h"
+#include "message_queue.h"
 
 // dependencies
 #include <WiFiClientSecure.h>
@@ -32,7 +34,7 @@ RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
 
 
 
-void connectWiFi()
+bool connectWiFi()
 {
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
   WiFi.mode(WIFI_STA);
@@ -40,21 +42,35 @@ void connectWiFi()
 
   debug("Connecting to Wi-Fi");
 
-  while (WiFi.status() != WL_CONNECTED)
+  unsigned long wifiStartTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < WIFI_CONNECT_TIMEOUT_MS)
   {
     delay(500);
     debug(".");
   }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    debugln(" Wi-Fi connection failed");
+    return false;
+  }
+
   debugln(" Wi-Fi connected");
+  return true;
 }
 
 void disconnectWiFi() {
     WiFi.disconnect(true);
+    // Give the WiFi stack a moment to actually finish the disconnect
+    // handshake before tearing it down - flipping straight to WIFI_OFF
+    // races the stack's own deinit (worse with BLE active, since both
+    // share the same 2.4GHz radio), producing a benign but noisy
+    // "timeout when wifi un-init" error.
+    delay(100);
     WiFi.mode(WIFI_OFF);
     debugln("Disconnected from Wi-Fi");
 }
 
-void connectAWS()
+bool connectAWS()
 {
   net.setCACert(AWS_CERT_CA);
   net.setCertificate(AWS_CERT_CRT);
@@ -65,7 +81,8 @@ void connectAWS()
 
   debugln("Connecting to AWS IOT");
 
-  while (!client.connect(AWS_THINGNAME))
+  unsigned long awsStartTime = millis();
+  while (!client.connect(AWS_THINGNAME) && millis() - awsStartTime < AWS_CONNECT_TIMEOUT_MS)
   {
     debug(".");
     delay(100);
@@ -74,28 +91,58 @@ void connectAWS()
   if (!client.connected())
   {
     debugln("AWS IoT Timeout!");
-    return;
+    return false;
   }
 
   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
   debugln("AWS IoT Connected!");
+  return true;
 }
 
-void publishMessage()
+QueuedMessage buildCurrentMessage() {
+  QueuedMessage msg;
+  msg.timestamp = mktime(&timeinfo);
+  msg.battery_mV = battery_mV;
+  msg.moisturePercent = moisturePercent;
+  msg.tempC = tempC;
+  msg.watered = watered;
+  msg.water_available = water_available;
+  msg.water_level_raw = water_level_raw;
+  return msg;
+}
+
+bool publishMessage(const QueuedMessage& msg)
 {
   StaticJsonDocument<200> doc;
   doc["device"] = BOT_NAME;
-  doc["battery"] = battery_mV;
-  doc["moisture"] = moisturePercent;
-  doc["watered"] = watered;
-  doc["temp"] = tempC;
-  doc["water_available"] = water_available;
-  doc["water_level_raw"] = water_level_raw;
+  doc["device_time"] = (long)msg.timestamp;
+  doc["battery"] = msg.battery_mV;
+  doc["moisture"] = msg.moisturePercent;
+  doc["watered"] = msg.watered;
+  doc["temp"] = msg.tempC;
+  doc["water_available"] = msg.water_available;
+  doc["water_level_raw"] = msg.water_level_raw;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
 
-  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
-  debugln((String)"Published message: " + jsonBuffer);
+  bool ok = client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+  if (ok) {
+    debugln((String)"Published message: " + jsonBuffer);
+  } else {
+    debugln((String)"Publish failed: " + jsonBuffer);
+  }
+  return ok;
+}
+
+void flushQueuedMessages() {
+  int sent = 0;
+  while (sent < queuedMessageCount() && client.connected()) {
+    if (!publishMessage(queuedMessageAt(sent))) {
+      break;
+    }
+    sent++;
+  }
+  removeSentMessages(sent);
 }
 
 void messageHandler(char* topic, byte* payload, unsigned int length)
@@ -275,13 +322,51 @@ void finishWatering() {
   debugln((String)"\nrestarted seconds_since_last_watering and reset maxRecentTemperature");
 }
 
+void waitForBleToFinish() {
+  // Also wait out a connected-but-idle client (e.g. mid pairing/log-read),
+  // not just an active OTA - otherwise deepSleep() yanks the radio out
+  // from under it and the central just sees a connection abort. The loop
+  // exits as soon as the client disconnects on its own (right after a
+  // successful read), so there's no extra delay once the work is done -
+  // the cap is just a ceiling for a client that hangs or never disconnects.
+  if (!otaInProgress() && !bleClientConnected()) {
+    return;
+  }
+  debugln("BLE client connected or OTA in progress, delaying sleep");
+  unsigned long waitStart = millis();
+  while (otaInProgress() || bleClientConnected()) {
+    unsigned long maxWait = otaInProgress() ? OTA_MAX_WAIT_MS : BLE_CLIENT_MAX_WAIT_MS;
+    if (millis() - waitStart > maxWait) {
+      if (otaInProgress()) {
+        debugln("OTA stalled past max wait, aborting");
+        abortOta();
+      } else {
+        debugln("BLE client still connected past max wait, sleeping anyway");
+      }
+      break;
+    }
+    delay(200);
+  }
+}
+
 void deepSleep()
 {
+  // Drop the radio link before a potentially long OTA wait so the
+  // unused Wi-Fi connection doesn't keep contending with BLE for airtime
+  // and battery.
+  disconnectWiFi();
+  waitForBleToFinish();
   debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
   debugln((String)"secondsWorked: " + secondsWorked);
-  uint64_t microSecondsToSleep = (SECONDS_TO_SLEEP - secondsWorked + 1) * 1000000ull;
+  // secondsWorked can exceed SECONDS_TO_SLEEP (e.g. a long OTA wait), so
+  // clamp instead of letting the subtraction underflow into a huge sleep.
+  long secondsToSleep = (long)SECONDS_TO_SLEEP - (long)secondsWorked;
+  if (secondsToSleep < 1) {
+    secondsToSleep = 1;
+  }
+  uint64_t microSecondsToSleep = (uint64_t)secondsToSleep * 1000000ull;
   esp_sleep_enable_timer_wakeup(microSecondsToSleep);
   debugln("Sleeping for " + String(microSecondsToSleep / 1000000) + " seconds");
   debugFlush();
@@ -292,30 +377,45 @@ void setup()
 {
   setCpuFrequencyMhz(80);
   debug_begin(115200);
+  debug_init();
   analogReadResolution(12);
   startTime = millis();
 
   esp_reset_reason_t reason = esp_reset_reason();
   debugf("Reset reason: %d\n", reason);
 
+  startBLE(OTA_BLE_PASSKEY); // advertise for the whole run so logs/OTA can be picked up
+
   readBattery();
   readMoisture();
   readTemperature();
   readWaterLevel();
 
-  connectWiFi();
+  bool wifiConnected = connectWiFi();
   saveCurrentTime();
 
   if (shouldWater() && water_available) {
-    disconnectWiFi();
+    if (wifiConnected) {
+      disconnectWiFi();
+    }
     powerPump();
     finishWatering();
-    connectWiFi();
+    wifiConnected = connectWiFi();
   }
 
-  connectAWS();
-  publishMessage();
-  client.loop();
+  QueuedMessage current = buildCurrentMessage();
+
+  if (wifiConnected && connectAWS()) {
+    flushQueuedMessages();
+    if (client.connected() && publishMessage(current)) {
+      client.loop();
+    } else {
+      queueMessage(current);
+    }
+  } else {
+    debugln("Skipping AWS publish - no connectivity, queueing message");
+    queueMessage(current);
+  }
 
   deepSleep();
 }

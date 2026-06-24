@@ -23,6 +23,7 @@
 
 # python
 */__pycache__/
+**/__pycache__/
 */pygamevenv/*
 */venv/*
 pygamevenv

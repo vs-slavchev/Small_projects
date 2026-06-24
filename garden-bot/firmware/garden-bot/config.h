@@ -25,6 +25,34 @@
 #define WATERING_DURATION_S 120
 #define SECONDS_TO_SLEEP 1800 // 60s * 30m = 1800
 
+#define WIFI_CONNECT_TIMEOUT_MS 30000
+#define AWS_CONNECT_TIMEOUT_MS 15000
+
 // AWS IoT settings
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
+
+// Backlog of readings queued in RTC memory while AWS is unreachable.
+// 48 entries * ~32 bytes = ~1.5KB, well within the ~8KB RTC slow memory
+// budget; covers a 24h outage at the 30-min cycle before oldest drops.
+#define MESSAGE_QUEUE_SIZE 48
+
+// BLE: current-run log dump + OTA. Logs are read during the normal wake's
+// short advertising window; OTA extends the wake until done or timed out.
+// 16-bit UUIDs (vs. 128-bit) keep the advertising payload under the legacy
+// 31-byte PDU limit when combined with the OTA service UUID.
+// 512 is a hard BLE ATT protocol ceiling on a single attribute's value
+// length (independent of MTU) - going higher just gets silently clamped
+// by the stack, so there's no point configuring more than this.
+#define LOG_BUFFER_MAX_CHARS 512
+#define LOG_SERVICE_UUID "FFA0"
+#define LOG_CHAR_UUID    "FFA1"
+#define OTA_MAX_WAIT_MS (5UL * 60 * 1000) // abort a stalled OTA after 5 minutes
+// otaInProgress() only flips true once NimBLEOta's internal handshake
+// (connect, pairing/encryption, subscribe, START command + ack, second
+// subscribe) completes and the firmware sees its first OTA data write -
+// until then a client setting up an OTA looks identical to a plain
+// log-read connection. So this cap has to cover that whole handshake,
+// not just a quick log read, or a real OTA attempt can get its
+// connection yanked by deep sleep before it ever starts.
+#define BLE_CLIENT_MAX_WAIT_MS (90UL * 1000)
