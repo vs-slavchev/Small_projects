@@ -40,7 +40,14 @@ RSP_CRC_ERROR       = 0xFFFF
 SECTOR_SIZE         = 4096  # firmware bytes per sector; 2 CRC bytes appended on wire
 SCAN_WINDOW_S       = 5     # scan duration per attempt when no MAC is given
 RETRY_DELAY_S       = 2     # pause between failed attempts
-NOTIFY_TIMEOUT_S    = 30    # max wait for any ACK notification before giving up
+# The device ACKs a START within milliseconds when it's actually processing
+# it, so a long wait here only wastes a whole wake window when the write got
+# lost (BLE starved by WiFi during connectWiFi/connectAWS, or the device
+# slept). Keep it short so a failed attempt recycles fast into the next one.
+START_ACK_TIMEOUT_S = 12
+# Once firmware is flowing the device is dedicated to OTA (WiFi is off by
+# then), so per-sector ACKs can afford a longer ceiling.
+NOTIFY_TIMEOUT_S    = 30
 
 DEFAULT_DEVICE_NAME = "cherry-2-pot"  # BOT_NAME in config.h
 
@@ -139,9 +146,13 @@ async def run_ota(client, file_size, sectors):
     await client.write_gatt_char(OTA_COMMAND_UUID, cmd)
 
     try:
-        ack = await asyncio.wait_for(cmd_q.get(), timeout=NOTIFY_TIMEOUT_S)
+        ack = await asyncio.wait_for(cmd_q.get(), timeout=START_ACK_TIMEOUT_S)
     except asyncio.TimeoutError:
-        print(f"[{ts()}] Timed out waiting for start ACK — device likely went to sleep, will retry")
+        if not client.is_connected:
+            print(f"[{ts()}] No start ACK — link dropped (device slept / lost connection), will retry")
+        else:
+            print(f"[{ts()}] No start ACK in {START_ACK_TIMEOUT_S}s but still connected — the START "
+                  f"likely got starved by WiFi/BLE contention (device busy in connectWiFi/AWS). Retrying")
         return False
 
     if ack != ACK_ACCEPTED:
@@ -222,8 +233,11 @@ async def main(firmware_path, mac, name):
             address = device.address
             print(f"[{ts()}] Found: {device.address}")
 
+        def on_disconnect(_c):
+            print(f"[{ts()}] Link dropped by device (deep sleep or supervision timeout)")
+
         try:
-            async with BleakClient(address) as client:
+            async with BleakClient(address, disconnected_callback=on_disconnect) as client:
                 print(f"[{ts()}] Connected")
 
                 # The OTA characteristics require an encrypted link (the
