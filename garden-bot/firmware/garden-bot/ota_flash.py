@@ -220,24 +220,33 @@ async def main(firmware_path, mac, name):
     while True:
         attempt += 1
 
+        # Always scan first, even when a MAC is given, and connect only to a
+        # device we actually just saw advertising. Connecting straight to a
+        # MAC produces a phantom: for a *bonded* device, BlueZ reports
+        # "connected" and accepts GATT writes against its cached handles even
+        # when the device is asleep with its radio off - so START/sector
+        # writes vanish into the cache, the firmware never registers a client,
+        # and there's no ACK. The device only advertises while awake, so a
+        # scan hit is the proof it can actually be talked to.
         if mac:
-            address = mac
-            print(f"[{ts()}] === Attempt #{attempt}: connecting to {address} ===")
+            print(f"[{ts()}] === Attempt #{attempt}: scanning for {mac} ===")
+            device = await BleakScanner.find_device_by_address(mac, timeout=SCAN_WINDOW_S)
         else:
             print(f"[{ts()}] === Attempt #{attempt}: scanning for {name!r} ===")
             device = await BleakScanner.find_device_by_name(name, timeout=SCAN_WINDOW_S)
-            if not device:
-                print(f"[{ts()}] Not found (device may be sleeping), retrying in {RETRY_DELAY_S}s...")
-                await asyncio.sleep(RETRY_DELAY_S)
-                continue
-            address = device.address
-            print(f"[{ts()}] Found: {device.address}")
+        if not device:
+            print(f"[{ts()}] Not advertising (device asleep), retrying in {RETRY_DELAY_S}s...")
+            await asyncio.sleep(RETRY_DELAY_S)
+            continue
+        print(f"[{ts()}] Found {device.address} advertising, connecting...")
 
         def on_disconnect(_c):
             print(f"[{ts()}] Link dropped by device (deep sleep or supervision timeout)")
 
         try:
-            async with BleakClient(address, disconnected_callback=on_disconnect) as client:
+            # Pass the BLEDevice object (not a bare address) so bleak binds to
+            # the just-seen advertisement rather than any cached device entry.
+            async with BleakClient(device, disconnected_callback=on_disconnect) as client:
                 print(f"[{ts()}] Connected")
 
                 # The OTA characteristics require an encrypted link (the
