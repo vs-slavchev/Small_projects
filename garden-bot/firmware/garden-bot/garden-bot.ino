@@ -402,7 +402,24 @@ void setup()
 
   QueuedMessage current = buildCurrentMessage();
 
-  if (wifiConnected && connectAWS()) {
+  // An OTA and an AWS/TLS handshake must not run at once. Both are heavy on
+  // internal RAM (mbedTLS needs tens of KB, the OTA holds its own buffers +
+  // flash driver), and with PSRAM unavailable on this board there isn't the
+  // headroom for both - the collision exhausts the heap, a failed alloc gets
+  // used as a semaphore handle, and FreeRTOS asserts (xQueueSemaphoreTake
+  // uxItemSize==0) and panics mid-update.
+  //
+  // Gate on a connected client, not just otaInProgress(): an OTA client is
+  // connected for several seconds (connect + pair) before its START flips
+  // otaInProgress() true, so checking only the latter leaves a window where
+  // START lands mid-TLS and still crashes. A connected client is here for
+  // either OTA or a log read - both are fine to defer one AWS cycle for, the
+  // reading just queues and ships next cycle while deepSleep() waits out the
+  // BLE work with the radio and RAM to itself.
+  if (otaInProgress() || bleClientConnected()) {
+    debugln("BLE client/OTA active - skipping AWS this cycle, queueing message");
+    queueMessage(current);
+  } else if (wifiConnected && connectAWS()) {
     flushQueuedMessages();
     if (client.connected() && publishMessage(current)) {
       client.loop();
