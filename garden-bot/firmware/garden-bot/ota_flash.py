@@ -89,6 +89,26 @@ def _parse_fw_notify(data):
     return int.from_bytes(data[2:4], "little"), int.from_bytes(data[4:6], "little")
 
 
+async def _ensure_mtu(client):
+    """Best-effort MTU negotiation on the BlueZ backend.
+
+    bleak's BlueZ backend doesn't request an MTU exchange on its own, so
+    client.mtu_size stays at the 23-byte ATT default and warns. The private
+    _acquire_mtu() triggers the exchange; it doesn't exist on other backends
+    (macOS/Windows negotiate automatically), so failure here is harmless.
+    """
+    if client.mtu_size > 23:
+        return
+    backend = getattr(client, "_backend", None)
+    acquire = getattr(backend, "_acquire_mtu", None)
+    if acquire is None:
+        return
+    try:
+        await acquire()
+    except Exception as e:
+        print(f"[{ts()}] MTU negotiation skipped ({e}); continuing at MTU={client.mtu_size}")
+
+
 async def _upload_sector(client, sector, wire_idx):
     """Send one sector's bytes in MTU-sized chunks."""
     max_data = min(512, client.mtu_size - 3) - 3  # -3 BLE overhead, -3 packet header
@@ -204,7 +224,25 @@ async def main(firmware_path, mac, name):
 
         try:
             async with BleakClient(address) as client:
-                print(f"[{ts()}] Connected (MTU={client.mtu_size})")
+                print(f"[{ts()}] Connected")
+
+                # The OTA characteristics require an encrypted link (the
+                # firmware sets setSecurityAuth + READ_ENC), so establish
+                # pairing before touching them - otherwise writes are
+                # silently ignored and the START ACK never arrives. The
+                # device is expected to be bonded already (via read_logs.py),
+                # so this just re-establishes encryption from the stored bond.
+                try:
+                    await client.pair()
+                except NotImplementedError:
+                    pass  # macOS pairs at the OS level automatically
+
+                # BlueZ leaves the MTU at the 23-byte default until it's
+                # explicitly negotiated; without this every firmware packet
+                # carries only ~17 data bytes and the transfer crawls.
+                await _ensure_mtu(client)
+                print(f"[{ts()}] Ready (MTU={client.mtu_size})")
+
                 if await run_ota(client, file_size, sectors):
                     return
         except Exception as e:
