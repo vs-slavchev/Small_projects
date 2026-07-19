@@ -59,6 +59,22 @@ class OtaCallbacks : public NimBLEOtaCallbacks {
   }
 } otaCallbacks;
 
+class ServerCallbacks : public NimBLEServerCallbacks {
+  void onConnect(NimBLEServer* server, NimBLEConnInfo& connInfo) override {
+    // OTA flash operations (esp_ota_begin erases the target partition,
+    // esp_ota_write commits each sector) block the NimBLE host task for
+    // seconds at a time with the CPU cache disabled. With the ~7.2s default
+    // supervision timeout, a blocking erase overruns it and the central
+    // drops the link mid-update (observed as a disconnect ~8s after START).
+    // Raise the supervision timeout to its 32s spec maximum so a stalled
+    // flash op can't tear the connection down.
+    // Units: min/max interval in 1.25ms steps, latency in skipped events,
+    // timeout in 10ms steps (3200 = 32000ms).
+    server->updateConnParams(connInfo.getConnHandle(), 6, 24, 0, 3200);
+    debugln("BLE client connected, raised supervision timeout for flash-safe OTA");
+  }
+} serverCallbacks;
+
 void startBLE(uint32_t otaPasskey) {
   NimBLEDevice::init(BOT_NAME);
   NimBLEDevice::setMTU(247);
@@ -71,6 +87,7 @@ void startBLE(uint32_t otaPasskey) {
   NimBLEDevice::setSecurityPasskey(otaPasskey);
 
   pServer = NimBLEDevice::createServer();
+  pServer->setCallbacks(&serverCallbacks);
 
   NimBLEService* logService = pServer->createService(LOG_SERVICE_UUID);
   // READ_ENC requires the same encrypted/paired link as OTA, so logs can't
