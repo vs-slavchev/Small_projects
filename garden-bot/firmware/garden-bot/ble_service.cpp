@@ -94,7 +94,7 @@ void startBLE(uint32_t otaPasskey) {
   pAdvertising->setName(BOT_NAME);
   pAdvertising->start();
 
-  debugln("BLE advertising started (log + OTA)");
+  debugln("BLE adv start");
 }
 
 bool otaInProgress() {

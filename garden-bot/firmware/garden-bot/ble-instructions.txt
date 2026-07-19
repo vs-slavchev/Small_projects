@@ -79,6 +79,7 @@ read_logs.py's own pairing agent, then push the firmware:
 
 3. Run the OTA script:
        python nimbleota.py garden-bot.ino.bin
+       python3 /home/vs/Arduino/libraries/NimBLEOta/scripts/nimbleota.py build/esp32.esp32.esp32wrover/garden-bot.ino.bin
    (or pass the MAC address as a second argument to skip the
    scan/select prompt: `python nimbleota.py garden-bot.ino.bin
    AA:BB:CC:DD:EE:FF`). Leave it scanning — it connects and starts the

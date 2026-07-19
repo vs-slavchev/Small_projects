@@ -67,7 +67,7 @@ void disconnectWiFi() {
     // "timeout when wifi un-init" error.
     delay(100);
     WiFi.mode(WIFI_OFF);
-    debugln("Disconnected from Wi-Fi");
+    debugln("DC'd from Wi-Fi");
 }
 
 bool connectAWS()
@@ -127,7 +127,8 @@ bool publishMessage(const QueuedMessage& msg)
 
   bool ok = client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
   if (ok) {
-    debugln((String)"Published message: " + jsonBuffer);
+    //debugln((String)"Published message: " + jsonBuffer);
+    debugln("Published msg");
   } else {
     debugln((String)"Publish failed: " + jsonBuffer);
   }
@@ -204,28 +205,12 @@ void readTemperature() {
   OneWire oneWire(ONE_WIRE_BUS);
   DallasTemperature sensors(&oneWire);
   sensors.begin();
-  debug("Devices found: ");
-  debugln(sensors.getDeviceCount());
-
-  Serial.print("Device count: ");
-  Serial.println(sensors.getDeviceCount());
-
-  DeviceAddress addr;
-  if (sensors.getAddress(addr, 0)) {
-    Serial.print("Address: ");
-    for (int i = 0; i < 8; i++) {
-      Serial.printf("%02X ", addr[i]);
-    }
-    Serial.println();
-  } else {
-    Serial.println("No address found");
-  }
 
   sensors.setWaitForConversion(false);
   sensors.requestTemperatures();
   delay(1000);
   float rawTempC = sensors.getTempCByIndex(0);
-  debugf("Temperature raw: %.2f°C\n", rawTempC);
+  //debugf("t raw: %.2f°C\n", rawTempC);
   tempC = round(rawTempC);
   if (tempC == -127 || tempC > 50) {
     debugln("Temperature reading was corrupted");
@@ -234,7 +219,7 @@ void readTemperature() {
 
   digitalWrite(TEMPERATURE_POWER_PIN, LOW);
   digitalWrite(SENSOR_POWER_PIN, LOW);
-  debugf("Temperature: %d°C\n", tempC);
+  debugf("t: %d°C\n", tempC);
 
   maxRecentTemperature = max(maxRecentTemperature, tempC);
 }
@@ -271,7 +256,7 @@ void readWaterLevel() {
 
   water_level_raw = (reading1 + reading2) / 2;
   water_available = water_level_raw >= WATER_LEVEL_THRESHOLD;
-  debugf("Water level: r1=%d, r2=%d, avg=%d, threshold=%d, available=%d\n", reading1, reading2, water_level_raw, WATER_LEVEL_THRESHOLD, water_available);
+  debugf("Water level: r1=%d, r2=%d\n", reading1, reading2);
 }
 
 bool shouldWater() {
