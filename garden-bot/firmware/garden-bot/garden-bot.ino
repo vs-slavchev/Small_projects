@@ -314,6 +314,18 @@ void waitForBleToFinish() {
   // exits as soon as the client disconnects on its own (right after a
   // successful read), so there's no extra delay once the work is done -
   // the cap is just a ceiling for a client that hangs or never disconnects.
+  // Grace window: linger briefly for a client to *connect* even if none is
+  // connected yet. A scan+connect+pair takes several seconds, so without
+  // this the device sleeps the instant its work finishes and a client that's
+  // mid-connection gets the link yanked right after it lands. Exits early the
+  // moment a client connects (or OTA starts), so it only costs the full
+  // window on wakes where nobody shows up.
+  unsigned long graceStart = millis();
+  while (!otaInProgress() && !bleClientConnected() &&
+         millis() - graceStart < BLE_CONNECT_GRACE_MS) {
+    delay(100);
+  }
+
   if (!otaInProgress() && !bleClientConnected()) {
     return;
   }

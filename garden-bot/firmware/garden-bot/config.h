@@ -56,3 +56,12 @@
 // not just a quick log read, or a real OTA attempt can get its
 // connection yanked by deep sleep before it ever starts.
 #define BLE_CLIENT_MAX_WAIT_MS (90UL * 1000)
+// Grace window at the end of a wake: linger this long for a client to
+// *connect* even when none is connected yet. A BLE scan+connect+pair takes
+// several seconds, so without this the device sleeps the instant its work
+// finishes and a client that's mid-connection gets the link yanked right
+// after it lands (observed as an immediate disconnect during OTA). Costs at
+// most this much extra awake time per wake when nobody connects; the loop
+// exits early the moment a client does connect. Kept above the ~7s a real
+// connect+pair was measured to take.
+#define BLE_CONNECT_GRACE_MS (10UL * 1000)
