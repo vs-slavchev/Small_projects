@@ -60,10 +60,10 @@ logs/cherry-2-pot_20260623_133957.log.
 
 FLASHING OTA
 --------------
-The NimBLEOta repo's bundled script (scripts/nimbleota.py, requires
-`pip install bleak`) pushes a compiled .bin but does NOT pair itself —
-it assumes the device is already bonded. Pair once first using
-read_logs.py's own pairing agent, then push the firmware:
+Use ota_flash.py (requires `pip install bleak`). It implements the
+NimBLEOta protocol directly with built-in retry and per-sector progress
+output. It does NOT pair itself — it assumes the device is already
+bonded (pair once with read_logs.py first).
 
 1. Export a compiled binary: in Arduino IDE, Sketch > Export Compiled
    Binary (Ctrl+Alt+S). This produces garden-bot.ino.bin next to the
@@ -77,15 +77,15 @@ read_logs.py's own pairing agent, then push the firmware:
    deep sleep cycles and reboots, so you only need to do this once per
    laptop/device pair (or after either side's bonding info gets reset).
 
-3. Run the OTA script. Use the
-   included retry_ota.sh wrapper which just re-launches the basic script
-   every couple seconds until one attempt lands inside an advertising
-   window (get the MAC from a prior read_logs.py "Connecting to ..."
-   log line, or from bluetoothctl, to skip the scan/select prompt
-   entirely):
-       ./retry_ota.sh /path/to/nimbleota.py garden-bot.ino.bin AA:BB:CC:DD:EE:FF
-   Stop it (ctrl-c) once you see the transfer complete and the device
-   reboot.
+3. Run ota_flash.py. It retries the scan and connection automatically,
+   so just leave it running until the transfer completes. Passing the
+   MAC (from a prior read_logs.py "Connecting to ..." log line, or
+   from bluetoothctl) skips the scan step entirely:
+       python ota_flash.py garden-bot.ino.bin AA:BB:CC:DD:EE:FF
+       # or let it scan by name (slower first connect, same retry loop):
+       python ota_flash.py garden-bot.ino.bin
+   Progress is printed per-sector (%, KB transferred, KB/s). The script
+   exits on success; ctrl-c to abort.
 
 4. Once writing begins, the device stays awake until the transfer
    completes (or 5 minutes pass with no progress, OTA_MAX_WAIT_MS in
@@ -97,7 +97,7 @@ read_logs.py's own pairing agent, then push the firmware:
    negotiation, dropping the link out from under the script before the
    transfer ever starts.
 
-Don't run read_logs.py and nimbleota.py at the same time — both try to
-register a BlueZ agent and they'll conflict over who answers pairing
-requests. If the bond is already established, only the OTA script needs
-to be running for the flash.
+Don't run read_logs.py and ota_flash.py at the same time — both try to
+use the BLE connection and only one client can be connected at a time.
+If the bond is already established, only ota_flash.py needs to be
+running for the flash.
