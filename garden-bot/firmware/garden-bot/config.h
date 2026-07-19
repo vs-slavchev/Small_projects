@@ -48,7 +48,11 @@
 #define LOG_SERVICE_UUID "FFA0"
 #define LOG_CHAR_UUID    "FFA1"
 #define OTA_MAX_WAIT_MS (5UL * 60 * 1000) // abort a stalled OTA after 5 minutes
-// A plain log-read connection (no OTA) only needs long enough to pair and
-// do one read - cap it short so a client that connects but never finishes
-// (or never disconnects) can't keep the device awake burning battery.
-#define BLE_CLIENT_MAX_WAIT_MS (30UL * 1000)
+// otaInProgress() only flips true once NimBLEOta's internal handshake
+// (connect, pairing/encryption, subscribe, START command + ack, second
+// subscribe) completes and the firmware sees its first OTA data write -
+// until then a client setting up an OTA looks identical to a plain
+// log-read connection. So this cap has to cover that whole handshake,
+// not just a quick log read, or a real OTA attempt can get its
+// connection yanked by deep sleep before it ever starts.
+#define BLE_CLIENT_MAX_WAIT_MS (90UL * 1000)
