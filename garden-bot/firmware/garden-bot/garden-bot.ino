@@ -308,38 +308,20 @@ void finishWatering() {
 }
 
 void waitForBleToFinish() {
-  // Also wait out a connected-but-idle client (e.g. mid pairing/log-read),
-  // not just an active OTA - otherwise deepSleep() yanks the radio out
-  // from under it and the central just sees a connection abort. The loop
-  // exits as soon as the client disconnects on its own (right after a
-  // successful read), so there's no extra delay once the work is done -
-  // the cap is just a ceiling for a client that hangs or never disconnects.
-  // Grace window: linger briefly for a client to *connect* even if none is
-  // connected yet. A scan+connect+pair takes several seconds, so without
-  // this the device sleeps the instant its work finishes and a client that's
-  // mid-connection gets the link yanked right after it lands. Exits early the
-  // moment a client connects (or OTA starts), so it only costs the full
-  // window on wakes where nobody shows up.
-  unsigned long graceStart = millis();
-  while (!otaInProgress() && !bleClientConnected() &&
-         millis() - graceStart < BLE_CONNECT_GRACE_MS) {
-    delay(100);
-  }
-
-  if (!otaInProgress() && !bleClientConnected()) {
+  // Wait out a connected client (e.g. read_logs.py mid pairing/log-read) so
+  // deepSleep() doesn't yank the radio out from under it - the central would
+  // otherwise just see the connection abort. The loop exits as soon as the
+  // client disconnects on its own (right after a successful read), so there's
+  // no extra delay once the work is done; the cap is just a ceiling for a
+  // client that hangs or never disconnects.
+  if (!bleClientConnected()) {
     return;
   }
-  debugln("BLE client connected or OTA in progress, delaying sleep");
+  debugln("BLE client connected, delaying sleep");
   unsigned long waitStart = millis();
-  while (otaInProgress() || bleClientConnected()) {
-    unsigned long maxWait = otaInProgress() ? OTA_MAX_WAIT_MS : BLE_CLIENT_MAX_WAIT_MS;
-    if (millis() - waitStart > maxWait) {
-      if (otaInProgress()) {
-        debugln("OTA stalled past max wait, aborting");
-        abortOta();
-      } else {
-        debugln("BLE client still connected past max wait, sleeping anyway");
-      }
+  while (bleClientConnected()) {
+    if (millis() - waitStart > BLE_CLIENT_MAX_WAIT_MS) {
+      debugln("BLE client still connected past max wait, sleeping anyway");
       break;
     }
     delay(200);
@@ -348,17 +330,16 @@ void waitForBleToFinish() {
 
 void deepSleep()
 {
-  // Drop the radio link before a potentially long OTA wait so the
-  // unused Wi-Fi connection doesn't keep contending with BLE for airtime
-  // and battery.
+  // Drop the radio link before waiting on any BLE log-read so the unused
+  // Wi-Fi connection doesn't keep contending with BLE for airtime and battery.
   disconnectWiFi();
   waitForBleToFinish();
   debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
   debugln((String)"secondsWorked: " + secondsWorked);
-  // secondsWorked can exceed SECONDS_TO_SLEEP (e.g. a long OTA wait), so
-  // clamp instead of letting the subtraction underflow into a huge sleep.
+  // secondsWorked can exceed SECONDS_TO_SLEEP (e.g. a long BLE log-read wait),
+  // so clamp instead of letting the subtraction underflow into a huge sleep.
   long secondsToSleep = (long)SECONDS_TO_SLEEP - (long)secondsWorked;
   if (secondsToSleep < 1) {
     secondsToSleep = 1;
@@ -381,7 +362,7 @@ void setup()
   esp_reset_reason_t reason = esp_reset_reason();
   debugf("Reset reason: %d\n", reason);
 
-  startBLE(OTA_BLE_PASSKEY); // advertise for the whole run so logs/OTA can be picked up
+  startBLE(BLE_PASSKEY); // advertise for the whole run so logs can be read over BLE
 
   readBattery();
   readMoisture();
@@ -402,24 +383,7 @@ void setup()
 
   QueuedMessage current = buildCurrentMessage();
 
-  // An OTA and an AWS/TLS handshake must not run at once. Both are heavy on
-  // internal RAM (mbedTLS needs tens of KB, the OTA holds its own buffers +
-  // flash driver), and with PSRAM unavailable on this board there isn't the
-  // headroom for both - the collision exhausts the heap, a failed alloc gets
-  // used as a semaphore handle, and FreeRTOS asserts (xQueueSemaphoreTake
-  // uxItemSize==0) and panics mid-update.
-  //
-  // Gate on a connected client, not just otaInProgress(): an OTA client is
-  // connected for several seconds (connect + pair) before its START flips
-  // otaInProgress() true, so checking only the latter leaves a window where
-  // START lands mid-TLS and still crashes. A connected client is here for
-  // either OTA or a log read - both are fine to defer one AWS cycle for, the
-  // reading just queues and ships next cycle while deepSleep() waits out the
-  // BLE work with the radio and RAM to itself.
-  if (otaInProgress() || bleClientConnected()) {
-    debugln("BLE client/OTA active - skipping AWS this cycle, queueing message");
-    queueMessage(current);
-  } else if (wifiConnected && connectAWS()) {
+  if (wifiConnected && connectAWS()) {
     flushQueuedMessages();
     if (client.connected() && publishMessage(current)) {
       client.loop();

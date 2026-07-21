@@ -3,26 +3,18 @@
 
 #include <stdint.h>
 
-// Starts BLE advertising with two services:
-//  - a log characteristic exposing this wake cycle's runLog (for field debugging)
-//  - the NimBLEOta service (for firmware updates while standing next to the device)
+// Starts BLE advertising with a single service: a log characteristic exposing
+// this wake cycle's runLog (for field debugging over BLE - see read_logs.py).
 // Call once, early in setup(), so the advertising window covers the whole run.
-// otaPasskey is passed in (rather than pulled from secrets.h here) so this
+// blePasskey is passed in (rather than pulled from secrets.h here) so this
 // file doesn't #include secrets.h into a second translation unit, which
 // would duplicate-define any non-const globals declared there (e.g. ntpServer).
-void startBLE(uint32_t otaPasskey);
+void startBLE(uint32_t blePasskey);
 
-// True while a client is actively pushing a firmware update.
-// setup() checks this before deepSleep() to avoid sleeping mid-transfer.
-bool otaInProgress();
-
-// True while any BLE central is connected (e.g. mid log-read or about to
-// start an OTA). setup() checks this before deepSleep() too, so a client
-// that's still doing service discovery/pairing doesn't get the connection
-// yanked out from under it by deep sleep.
+// True while any BLE central is connected (e.g. mid log-read). setup() checks
+// this before deepSleep() so a client that's still doing service
+// discovery/pairing/reading doesn't get the connection yanked out from under
+// it by deep sleep.
 bool bleClientConnected();
-
-// Aborts an in-progress OTA (used when it stalls past OTA_MAX_WAIT_MS).
-void abortOta();
 
 #endif

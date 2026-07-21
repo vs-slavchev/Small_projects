@@ -3,9 +3,7 @@
 #include "debug.h"
 
 #include <NimBLEDevice.h>
-#include <NimBLEOta.h>
 
-static NimBLEOta bleOta;
 static NimBLEServer* pServer = nullptr;
 
 class LogCharCallbacks : public NimBLECharacteristicCallbacks {
@@ -21,92 +19,33 @@ class LogCharCallbacks : public NimBLECharacteristicCallbacks {
   }
 } logCharCallbacks;
 
-class OtaCallbacks : public NimBLEOtaCallbacks {
-  void onStart(NimBLEOta* ota, uint32_t firmwareSize, NimBLEOta::Reason reason) override {
-    if (reason == NimBLEOta::Reconnected) {
-      debugln("OTA reconnected, resuming update");
-      ota->stopAbortTimer();
-      return;
-    }
-    debugf("OTA start, firmware size: %u\n", firmwareSize);
-  }
-
-  void onProgress(NimBLEOta* ota, uint32_t current, uint32_t total) override {
-    debugf("OTA progress: %u/%u\n", current, total);
-  }
-
-  void onStop(NimBLEOta* ota, NimBLEOta::Reason reason) override {
-    if (reason == NimBLEOta::Disconnected) {
-      debugln("OTA client disconnected, giving it 30s to resume before aborting");
-      ota->startAbortTimer(30);
-      return;
-    }
-    if (reason == NimBLEOta::StopCmd) {
-      debugln("OTA stopped by command, aborting");
-      ota->abortUpdate();
-    }
-  }
-
-  void onComplete(NimBLEOta* ota) override {
-    debugln("OTA update complete, restarting");
-    debugFlush();
-    delay(1000);
-    ESP.restart();
-  }
-
-  void onError(NimBLEOta* ota, esp_err_t err, NimBLEOta::Reason reason) override {
-    debugf("OTA error: %d\n", err);
-  }
-} otaCallbacks;
-
-class ServerCallbacks : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer* server, NimBLEConnInfo& connInfo) override {
-    // OTA flash operations (esp_ota_begin erases the target partition,
-    // esp_ota_write commits each sector) block the NimBLE host task for
-    // seconds at a time with the CPU cache disabled. With the ~7.2s default
-    // supervision timeout, a blocking erase overruns it and the central
-    // drops the link mid-update (observed as a disconnect ~8s after START).
-    // Raise the supervision timeout to its 32s spec maximum so a stalled
-    // flash op can't tear the connection down.
-    // Units: min/max interval in 1.25ms steps, latency in skipped events,
-    // timeout in 10ms steps (3200 = 32000ms).
-    server->updateConnParams(connInfo.getConnHandle(), 6, 24, 0, 3200);
-    debugln("BLE client connected, raised supervision timeout for flash-safe OTA");
-  }
-} serverCallbacks;
-
-void startBLE(uint32_t otaPasskey) {
+void startBLE(uint32_t blePasskey) {
   NimBLEDevice::init(BOT_NAME);
   NimBLEDevice::setMTU(247);
 
-  // The ESP32 has no display/keyboard to show or enter a passkey, so pin
-  // it to a fixed value known in advance by the laptop running the OTA
-  // script. Bonding (true) lets a reconnect skip re-pairing mid-update.
+  // The ESP32 has no display/keyboard to show or enter a passkey, so pin it
+  // to a fixed value known in advance by the laptop reading the logs (see
+  // read_logs.py). Bonding (true) lets a reconnect skip re-pairing.
   NimBLEDevice::setSecurityAuth(true, true, true);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
-  NimBLEDevice::setSecurityPasskey(otaPasskey);
+  NimBLEDevice::setSecurityPasskey(blePasskey);
 
   pServer = NimBLEDevice::createServer();
-  pServer->setCallbacks(&serverCallbacks);
 
   NimBLEService* logService = pServer->createService(LOG_SERVICE_UUID);
-  // READ_ENC requires the same encrypted/paired link as OTA, so logs can't
-  // be read by an unauthenticated nearby device either.
+  // READ_ENC requires an encrypted/paired link, so the log can't be read by
+  // an unauthenticated nearby device.
   NimBLECharacteristic* logChar = logService->createCharacteristic(
     LOG_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::READ_ENC, LOG_BUFFER_MAX_CHARS);
   logChar->setCallbacks(&logCharCallbacks);
   logService->start();
 
-  NimBLEService* otaService = bleOta.start(&otaCallbacks, true);
-
   NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(logService->getUUID());
-  pAdvertising->addServiceUUID(otaService->getUUID());
   // NimBLEDevice::init(name) only sets the GATT device name (visible after
   // connecting) - it does NOT put the name into the advertisement, so a
-  // scanner filtering by name would never see this device. The two service
-  // UUIDs already fill most of the 31-byte legacy advertising packet, so
-  // route the name through the separate scan response packet instead.
+  // scanner filtering by name would never see this device. Route the name
+  // through the separate scan response packet instead.
   pAdvertising->enableScanResponse(true);
   pAdvertising->setName(BOT_NAME);
   pAdvertising->start();
@@ -114,14 +53,6 @@ void startBLE(uint32_t otaPasskey) {
   debugln("BLE adv start");
 }
 
-bool otaInProgress() {
-  return bleOta.isInProgress();
-}
-
 bool bleClientConnected() {
   return pServer != nullptr && pServer->getConnectedCount() > 0;
-}
-
-void abortOta() {
-  bleOta.abortUpdate();
 }

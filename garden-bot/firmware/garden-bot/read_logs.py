@@ -9,18 +9,18 @@ build up a history of cycles - ctrl-c to stop.
 
 Usage:
     python read_logs.py [device-name] --passkey 123456
-    OTA_BLE_PASSKEY=123456 python read_logs.py [device-name]
+    BLE_PASSKEY=123456 python read_logs.py [device-name]
 
 device-name defaults to BOT_NAME from config.h ("cherry-2-pot"). The
-passkey must match OTA_BLE_PASSKEY in secrets.h.
+passkey must match BLE_PASSKEY in secrets.h.
 
 Each cycle's log is saved to its own file in --log-dir (default "logs/"),
 named after the cycle's start time, e.g. logs/cherry-2-pot_20260623_133957.log.
 
 Requires: pip install bleak dbus-next   (or dbus-fast, either works)
 
-Pairing: the log characteristic requires the same passkey-protected
-pairing as OTA (see ble_service.cpp). The ESP32's IO capability is
+Pairing: the log characteristic requires passkey-protected pairing
+(see ble_service.cpp). The ESP32's IO capability is
 DisplayOnly + MITM required, so BlueZ needs an agent on this end to
 supply the passkey when asked - without one (e.g. running this script
 with no bluetoothctl session open) the request has nobody to answer and
@@ -74,7 +74,7 @@ log = logging.getLogger("read_logs")
 class PasskeyAgent(ServiceInterface):
     """Auto-answers BlueZ's pairing requests with the device's fixed passkey.
 
-    Stands in for a human typing OTA_BLE_PASSKEY into a prompt - the ESP32
+    Stands in for a human typing BLE_PASSKEY into a prompt - the ESP32
     side has no input either, so both ends just need to agree on the same
     pre-shared value.
     """
@@ -238,8 +238,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--passkey",
         type=int,
-        default=os.environ.get("OTA_BLE_PASSKEY"),
-        help="Must match OTA_BLE_PASSKEY in secrets.h (or set the OTA_BLE_PASSKEY env var)",
+        default=os.environ.get("BLE_PASSKEY"),
+        help="Must match BLE_PASSKEY in secrets.h (or set the BLE_PASSKEY env var)",
     )
     parser.add_argument(
         "--log-dir",
@@ -250,7 +250,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.passkey is None:
-        parser.error("--passkey is required (or set the OTA_BLE_PASSKEY env var)")
+        parser.error("--passkey is required (or set the BLE_PASSKEY env var)")
 
     try:
         asyncio.run(read_logs_forever(args.device_name, args.passkey, args.log_dir))

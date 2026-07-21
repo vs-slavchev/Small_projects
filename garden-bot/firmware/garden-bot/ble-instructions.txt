@@ -1,34 +1,16 @@
-Garden Bot - BLE Logs & OTA
-============================
+Garden Bot - BLE Logs
+=====================
 
 Every wake cycle, the device advertises over BLE for the duration of the
 run (sensor reads + WiFi/AWS attempts, roughly the same window deepSleep()
-would otherwise be waiting through). Two things are exposed:
-
-  - a read characteristic with this wake's log lines (current run only,
-    not retained across sleep cycles — if you miss the window, wait for
-    the next one, ~30 min later)
-  - the firmware OTA service (NimBLEOta)
-
-Starting an OTA write extends the wake past the normal window until the
-transfer finishes or stalls for more than 5 minutes (OTA_MAX_WAIT_MS in
-config.h), at which point it's aborted and the device sleeps normally.
+would otherwise be waiting through). It exposes a read characteristic with
+this wake's log lines (current run only, not retained across sleep cycles —
+if you miss the window, wait for the next one, ~30 min later).
 
 
-REQUIRED LIBRARIES (Arduino IDE Library Manager unless noted)
----------------------------------------------------------------
+REQUIRED LIBRARIES (Arduino IDE Library Manager)
+-------------------------------------------------
   - NimBLE-Arduino (h2zero)            — install via Library Manager
-  - NimBLEOta (h2zero)                 — NOT in Library Manager; download
-      from https://github.com/h2zero/NimBLEOta and place the repo
-      (NimBLEOta.h/.cpp, NimBLEDis.h/.cpp) in your Arduino libraries
-      folder.
-
-PARTITION SCHEME
------------------
-This board has 16MB flash. In Arduino IDE, Tools > Partition Scheme,
-pick a scheme with two OTA app slots (e.g. any "...with OTA" option, or
-a custom CSV with ota_0/ota_1/otadata). Without this, esp_ota_* calls
-inside NimBLEOta will fail — there's nowhere to write the new image.
 
 
 READING LOGS
@@ -36,15 +18,15 @@ READING LOGS
 Run read_logs.py (requires `pip install bleak dbus-next`, or `dbus-fast`
 instead of `dbus-next` — either works):
     python read_logs.py [device-name] --passkey 123456
-    # or: OTA_BLE_PASSKEY=123456 python read_logs.py [device-name]
+    # or: BLE_PASSKEY=123456 python read_logs.py [device-name]
 device-name defaults to BOT_NAME ("cherry-2-pot"). The passkey must
-match OTA_BLE_PASSKEY in secrets.h. It runs forever: scans, connects and
+match BLE_PASSKEY in secrets.h. It runs forever: scans, connects and
 reads as soon as the device is seen advertising, then goes back to
 scanning for the next wake - leave it running for hours/days to capture
 a log per cycle, ctrl-c to stop.
 
-The log characteristic is passkey-protected the same way OTA is. The
-script registers its own throwaway BlueZ pairing agent for the run that
+The log characteristic is passkey-protected (encrypted read). The script
+registers its own throwaway BlueZ pairing agent for the run that
 auto-answers the passkey prompt — no bluetoothctl or manual pairing step
 needed (and none should be running at the same time, or the two agents
 will conflict over who answers BlueZ).
@@ -56,48 +38,3 @@ BLE, the radio is off during deep sleep.
 Each cycle's log is saved to its own file under --log-dir (default
 "logs/" next to the script), named after the cycle's start time, e.g.
 logs/cherry-2-pot_20260623_133957.log.
-
-
-FLASHING OTA
---------------
-Use ota_flash.py (requires `pip install bleak`). It implements the
-NimBLEOta protocol directly with built-in retry and per-sector progress
-output. It does NOT pair itself — it assumes the device is already
-bonded (pair once with read_logs.py first).
-
-1. Export a compiled binary: in Arduino IDE, Sketch > Export Compiled
-   Binary (Ctrl+Alt+S). This produces garden-bot.ino.bin next to the
-   sketch (board/partition settings must match what's currently
-   flashed, or the new image may not boot correctly).
-
-2. Establish a bond if you haven't already: run read_logs.py once
-   while the device is awake and let it complete a cycle. This pairs
-   and bonds via its own BlueZ agent (auto-answering OTA_BLE_PASSKEY),
-   and the bond persists in both BlueZ and the ESP32's NVS flash across
-   deep sleep cycles and reboots, so you only need to do this once per
-   laptop/device pair (or after either side's bonding info gets reset).
-
-3. Run ota_flash.py. It retries the scan and connection automatically,
-   so just leave it running until the transfer completes. Passing the
-   MAC (from a prior read_logs.py "Connecting to ..." log line, or
-   from bluetoothctl) skips the scan step entirely:
-       python ota_flash.py garden-bot.ino.bin AA:BB:CC:DD:EE:FF
-       # or let it scan by name (slower first connect, same retry loop):
-       python ota_flash.py garden-bot.ino.bin
-   Progress is printed per-sector (%, KB transferred, KB/s). The script
-   exits on success; ctrl-c to abort.
-
-4. Once writing begins, the device stays awake until the transfer
-   completes (or 5 minutes pass with no progress, OTA_MAX_WAIT_MS in
-   config.h), then reboots into the new firmware automatically. Getting
-   a connected client through the full pre-write handshake (connect,
-   pairing/encryption, subscribe, START command + ack, second
-   subscribe) before that point is exactly what BLE_CLIENT_MAX_WAIT_MS
-   covers (90s) - too short here and the device can fall asleep mid-
-   negotiation, dropping the link out from under the script before the
-   transfer ever starts.
-
-Don't run read_logs.py and ota_flash.py at the same time — both try to
-use the BLE connection and only one client can be connected at a time.
-If the bond is already established, only ota_flash.py needs to be
-running for the flash.
