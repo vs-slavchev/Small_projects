@@ -1,1 +1,4 @@
 secrets.h
+
+# Arduino IDE compiled output (Sketch build artifacts)
+firmware/garden-bot/build/

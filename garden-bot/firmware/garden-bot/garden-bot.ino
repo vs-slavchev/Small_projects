@@ -1,6 +1,8 @@
 #include "secrets.h"
 #include "config.h"
 #include "debug.h"
+#include "ble_service.h"
+#include "message_queue.h"
 
 // dependencies
 #include <WiFiClientSecure.h>
@@ -32,7 +34,7 @@ RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
 
 
 
-void connectWiFi()
+bool connectWiFi()
 {
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
   WiFi.mode(WIFI_STA);
@@ -40,21 +42,35 @@ void connectWiFi()
 
   debug("Connecting to Wi-Fi");
 
-  while (WiFi.status() != WL_CONNECTED)
+  unsigned long wifiStartTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < WIFI_CONNECT_TIMEOUT_MS)
   {
     delay(500);
     debug(".");
   }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    debugln(" Wi-Fi connection failed");
+    return false;
+  }
+
   debugln(" Wi-Fi connected");
+  return true;
 }
 
 void disconnectWiFi() {
     WiFi.disconnect(true);
+    // Give the WiFi stack a moment to actually finish the disconnect
+    // handshake before tearing it down - flipping straight to WIFI_OFF
+    // races the stack's own deinit (worse with BLE active, since both
+    // share the same 2.4GHz radio), producing a benign but noisy
+    // "timeout when wifi un-init" error.
+    delay(100);
     WiFi.mode(WIFI_OFF);
-    debugln("Disconnected from Wi-Fi");
+    debugln("DC'd from Wi-Fi");
 }
 
-void connectAWS()
+bool connectAWS()
 {
   net.setCACert(AWS_CERT_CA);
   net.setCertificate(AWS_CERT_CRT);
@@ -65,7 +81,8 @@ void connectAWS()
 
   debugln("Connecting to AWS IOT");
 
-  while (!client.connect(AWS_THINGNAME))
+  unsigned long awsStartTime = millis();
+  while (!client.connect(AWS_THINGNAME) && millis() - awsStartTime < AWS_CONNECT_TIMEOUT_MS)
   {
     debug(".");
     delay(100);
@@ -74,28 +91,59 @@ void connectAWS()
   if (!client.connected())
   {
     debugln("AWS IoT Timeout!");
-    return;
+    return false;
   }
 
   client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
   debugln("AWS IoT Connected!");
+  return true;
 }
 
-void publishMessage()
+QueuedMessage buildCurrentMessage() {
+  QueuedMessage msg;
+  msg.timestamp = mktime(&timeinfo);
+  msg.battery_mV = battery_mV;
+  msg.moisturePercent = moisturePercent;
+  msg.tempC = tempC;
+  msg.watered = watered;
+  msg.water_available = water_available;
+  msg.water_level_raw = water_level_raw;
+  return msg;
+}
+
+bool publishMessage(const QueuedMessage& msg)
 {
   StaticJsonDocument<200> doc;
   doc["device"] = BOT_NAME;
-  doc["battery"] = battery_mV;
-  doc["moisture"] = moisturePercent;
-  doc["watered"] = watered;
-  doc["temp"] = tempC;
-  doc["water_available"] = water_available;
-  doc["water_level_raw"] = water_level_raw;
+  doc["device_time"] = (long)msg.timestamp;
+  doc["battery"] = msg.battery_mV;
+  doc["moisture"] = msg.moisturePercent;
+  doc["watered"] = msg.watered;
+  doc["temp"] = msg.tempC;
+  doc["water_available"] = msg.water_available;
+  doc["water_level_raw"] = msg.water_level_raw;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
 
-  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
-  debugln((String)"Published message: " + jsonBuffer);
+  bool ok = client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+  if (ok) {
+    //debugln((String)"Published message: " + jsonBuffer);
+    debugln("Published msg");
+  } else {
+    debugln((String)"Publish failed: " + jsonBuffer);
+  }
+  return ok;
+}
+
+void flushQueuedMessages() {
+  int sent = 0;
+  while (sent < queuedMessageCount() && client.connected()) {
+    if (!publishMessage(queuedMessageAt(sent))) {
+      break;
+    }
+    sent++;
+  }
+  removeSentMessages(sent);
 }
 
 void messageHandler(char* topic, byte* payload, unsigned int length)
@@ -157,28 +205,12 @@ void readTemperature() {
   OneWire oneWire(ONE_WIRE_BUS);
   DallasTemperature sensors(&oneWire);
   sensors.begin();
-  debug("Devices found: ");
-  debugln(sensors.getDeviceCount());
-
-  Serial.print("Device count: ");
-  Serial.println(sensors.getDeviceCount());
-
-  DeviceAddress addr;
-  if (sensors.getAddress(addr, 0)) {
-    Serial.print("Address: ");
-    for (int i = 0; i < 8; i++) {
-      Serial.printf("%02X ", addr[i]);
-    }
-    Serial.println();
-  } else {
-    Serial.println("No address found");
-  }
 
   sensors.setWaitForConversion(false);
   sensors.requestTemperatures();
   delay(1000);
   float rawTempC = sensors.getTempCByIndex(0);
-  debugf("Temperature raw: %.2f°C\n", rawTempC);
+  //debugf("t raw: %.2f°C\n", rawTempC);
   tempC = round(rawTempC);
   if (tempC == -127 || tempC > 50) {
     debugln("Temperature reading was corrupted");
@@ -187,7 +219,7 @@ void readTemperature() {
 
   digitalWrite(TEMPERATURE_POWER_PIN, LOW);
   digitalWrite(SENSOR_POWER_PIN, LOW);
-  debugf("Temperature: %d°C\n", tempC);
+  debugf("t: %d°C\n", tempC);
 
   maxRecentTemperature = max(maxRecentTemperature, tempC);
 }
@@ -224,7 +256,7 @@ void readWaterLevel() {
 
   water_level_raw = (reading1 + reading2) / 2;
   water_available = water_level_raw >= WATER_LEVEL_THRESHOLD;
-  debugf("Water level: r1=%d, r2=%d, avg=%d, threshold=%d, available=%d\n", reading1, reading2, water_level_raw, WATER_LEVEL_THRESHOLD, water_available);
+  debugf("Water level: r1=%d, r2=%d\n", reading1, reading2);
 }
 
 bool shouldWater() {
@@ -275,13 +307,44 @@ void finishWatering() {
   debugln((String)"\nrestarted seconds_since_last_watering and reset maxRecentTemperature");
 }
 
+void waitForBleToFinish() {
+  // Wait out a connected client (e.g. read_logs.py mid pairing/log-read) so
+  // deepSleep() doesn't yank the radio out from under it - the central would
+  // otherwise just see the connection abort. The loop exits as soon as the
+  // client disconnects on its own (right after a successful read), so there's
+  // no extra delay once the work is done; the cap is just a ceiling for a
+  // client that hangs or never disconnects.
+  if (!bleClientConnected()) {
+    return;
+  }
+  debugln("BLE client connected, delaying sleep");
+  unsigned long waitStart = millis();
+  while (bleClientConnected()) {
+    if (millis() - waitStart > BLE_CLIENT_MAX_WAIT_MS) {
+      debugln("BLE client still connected past max wait, sleeping anyway");
+      break;
+    }
+    delay(200);
+  }
+}
+
 void deepSleep()
 {
+  // Drop the radio link before waiting on any BLE log-read so the unused
+  // Wi-Fi connection doesn't keep contending with BLE for airtime and battery.
+  disconnectWiFi();
+  waitForBleToFinish();
   debugFlush();
 
   unsigned long secondsWorked = (millis() - startTime) / 1000;
   debugln((String)"secondsWorked: " + secondsWorked);
-  uint64_t microSecondsToSleep = (SECONDS_TO_SLEEP - secondsWorked + 1) * 1000000ull;
+  // secondsWorked can exceed SECONDS_TO_SLEEP (e.g. a long BLE log-read wait),
+  // so clamp instead of letting the subtraction underflow into a huge sleep.
+  long secondsToSleep = (long)SECONDS_TO_SLEEP - (long)secondsWorked;
+  if (secondsToSleep < 1) {
+    secondsToSleep = 1;
+  }
+  uint64_t microSecondsToSleep = (uint64_t)secondsToSleep * 1000000ull;
   esp_sleep_enable_timer_wakeup(microSecondsToSleep);
   debugln("Sleeping for " + String(microSecondsToSleep / 1000000) + " seconds");
   debugFlush();
@@ -292,30 +355,45 @@ void setup()
 {
   setCpuFrequencyMhz(80);
   debug_begin(115200);
+  debug_init();
   analogReadResolution(12);
   startTime = millis();
 
   esp_reset_reason_t reason = esp_reset_reason();
   debugf("Reset reason: %d\n", reason);
 
+  startBLE(BLE_PASSKEY); // advertise for the whole run so logs can be read over BLE
+
   readBattery();
   readMoisture();
   readTemperature();
   readWaterLevel();
 
-  connectWiFi();
+  bool wifiConnected = connectWiFi();
   saveCurrentTime();
 
   if (shouldWater() && water_available) {
-    disconnectWiFi();
+    if (wifiConnected) {
+      disconnectWiFi();
+    }
     powerPump();
     finishWatering();
-    connectWiFi();
+    wifiConnected = connectWiFi();
   }
 
-  connectAWS();
-  publishMessage();
-  client.loop();
+  QueuedMessage current = buildCurrentMessage();
+
+  if (wifiConnected && connectAWS()) {
+    flushQueuedMessages();
+    if (client.connected() && publishMessage(current)) {
+      client.loop();
+    } else {
+      queueMessage(current);
+    }
+  } else {
+    debugln("Skipping AWS publish - no connectivity, queueing message");
+    queueMessage(current);
+  }
 
   deepSleep();
 }

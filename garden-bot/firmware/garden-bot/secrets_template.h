@@ -2,10 +2,20 @@
  
 #define SECRET
 #define AWS_THINGNAME "***************"                         //change this
- 
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 7200; //GMT+2
+const int   daylightOffset_sec = 3600; // usually 1h
+
 const char WIFI_SSID[] = "***************";               //change this
 const char WIFI_PASSWORD[] = "***************";           //change this
 const char AWS_IOT_ENDPOINT[] = "***************";       //change this
+
+// 6-digit passkey the BLE central (the laptop running read_logs.py) must
+// supply to pair before it can read the logs. The ESP32 has no
+// display/keyboard, so this fixed value stands in for the passkey it would
+// otherwise show on screen.
+#define BLE_PASSKEY 123456                                        //change this
  
 // Amazon Root CA 1
 static const char AWS_CERT_CA[] PROGMEM = R"EOF(

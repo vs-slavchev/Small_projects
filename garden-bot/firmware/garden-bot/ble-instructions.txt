@@ -1,0 +1,40 @@
+Garden Bot - BLE Logs
+=====================
+
+Every wake cycle, the device advertises over BLE for the duration of the
+run (sensor reads + WiFi/AWS attempts, roughly the same window deepSleep()
+would otherwise be waiting through). It exposes a read characteristic with
+this wake's log lines (current run only, not retained across sleep cycles —
+if you miss the window, wait for the next one, ~30 min later).
+
+
+REQUIRED LIBRARIES (Arduino IDE Library Manager)
+-------------------------------------------------
+  - NimBLE-Arduino (h2zero)            — install via Library Manager
+
+
+READING LOGS
+--------------
+Run read_logs.py (requires `pip install bleak dbus-next`, or `dbus-fast`
+instead of `dbus-next` — either works):
+    python read_logs.py [device-name] --passkey 123456
+    # or: BLE_PASSKEY=123456 python read_logs.py [device-name]
+device-name defaults to BOT_NAME ("cherry-2-pot"). The passkey must
+match BLE_PASSKEY in secrets.h. It runs forever: scans, connects and
+reads as soon as the device is seen advertising, then goes back to
+scanning for the next wake - leave it running for hours/days to capture
+a log per cycle, ctrl-c to stop.
+
+The log characteristic is passkey-protected (encrypted read). The script
+registers its own throwaway BlueZ pairing agent for the run that
+auto-answers the passkey prompt — no bluetoothctl or manual pairing step
+needed (and none should be running at the same time, or the two agents
+will conflict over who answers BlueZ).
+
+Since the log is only the current run, start the script before/while
+the device is expected to wake — there's no way to "wake it early" over
+BLE, the radio is off during deep sleep.
+
+Each cycle's log is saved to its own file under --log-dir (default
+"logs/" next to the script), named after the cycle's start time, e.g.
+logs/cherry-2-pot_20260623_133957.log.
