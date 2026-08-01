@@ -362,6 +362,17 @@ void waitForBleToFinish() {
 
 void deepSleep()
 {
+  // Say goodbye properly before the radio goes down. Without this the TCP
+  // connection just evaporates when Wi-Fi drops and the CPU powers off, which
+  // the broker cannot distinguish from a crash - it holds the session open
+  // until the keepalive expires, and any Last Will would fire on every single
+  // cycle. Sending DISCONNECT releases the session immediately and keeps an
+  // ungraceful disconnect meaningful as a signal that something actually broke.
+  if (client.connected()) {
+    client.disconnect();
+    debugln("Sent MQTT DISCONNECT");
+  }
+
   // Drop the radio link before waiting on any BLE log-read so the unused
   // Wi-Fi connection doesn't keep contending with BLE for airtime and battery.
   disconnectWiFi();

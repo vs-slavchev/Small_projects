@@ -32,8 +32,13 @@ Settled in discussion, recorded here so they don't get relitigated:
 | **Device ids are immutable**; the editable `nickname` absorbs renaming | §3 |
 | **One certificate per device and no others** — backend and console use IAM | §3 |
 | **Threat model: remote attackers only.** Physical access is out of scope | §4 |
-| **No compression**; `setBufferSize(4096)` and a 3 KB server-side cap | §2 |
+| **No compression.** Compact arrays + 8-char variable codes; `setBufferSize(4096)` | §2, §7 |
+| **Two topics, not three** — config status rides on the reading | §3 |
+| **Readings carry `max_temp_c`, `hours_since_watering` and `schema`** | §7 |
+| **The existing `cherry-3-pot` data is orphaned** — everything greenfield | §14 |
+| **Infrastructure in CDK (TypeScript)**, excluding the website | §13 |
 | **The wake interval is fixed at 30 min**, not user-configurable | — |
+| **MQTT DISCONNECT sent before deep sleep** | Implemented, §2 |
 
 ---
 
@@ -184,53 +189,61 @@ callback to fire.
 Subscribe at **QoS 1** so the SUBACK confirms the subscription took; retained delivery
 works at QoS 0 too, but QoS 1 costs nothing and PubSubClient supports it on subscribe.
 
-#### Practical notes
-
-#### Buffer sizing — 2048 is not enough
+#### Buffer sizing
 
 AWS IoT allows 128 KB per message, so the broker is never the constraint. **PubSubClient
 is.** Its buffer defaults to `MQTT_MAX_PACKET_SIZE` = 256 bytes and is a single allocation
 used for both inbound and outbound packets; anything larger is **silently dropped, with no
-error and no callback**. You must call `setBufferSize()` — and the number matters.
+error and no callback**.
 
-Worst case at the §7 bounds (8 rules × 6 comparisons, longest variable name,
-four-digit values, 20-character rule names), measured rather than estimated:
+Measured worst case at the §7 bounds (8 rules × 6 comparisons, four-digit values):
 
 | Encoding | Bytes |
 | --- | --- |
-| Verbose objects, with rule names | **3058** |
-| Verbose objects, names stripped on the wire | 2818 |
-| Compact arrays `["hours_since_watering","gte",2000]` | 1842 |
+| Verbose objects with rule names, full variable names | 3058 |
+| Verbose objects, names stripped | 2818 |
+| Compact arrays, full variable names | 1842 |
+| **Compact arrays + 8-char variable codes** (§7) | **1266** |
 
-So `setBufferSize(4096)`. 4 KB of heap is free money on an ESP32 even with mbedTLS
-resident, and it leaves headroom for the bounds to grow.
+Plus ~35 bytes of MQTT PUBLISH framing (fixed header, remaining-length varint, topic
+string), so ~1300 on the wire. The outbound reading is 279 bytes worst case, so the config
+sets the size.
 
-Two changes worth making regardless of the buffer:
+**So yes — 2048 now fits, with ~740 bytes of headroom.** It's a defensible choice. I'd
+still keep **4096**: the 2 KB saved is under 2% of free heap on an ESP32 with mbedTLS
+resident, while the failure mode if the bounds ever grow is a config that vanishes without
+an error anywhere. Buy the headroom; it costs nothing you can measure.
 
-- **Strip rule `name` before publishing to the device.** Names are UI-only; the device
-  never reads them. Beyond the 240 bytes, this removes the *only* unbounded user-controlled
-  string from the device's parse path — everything the firmware then sees is a known token
-  or an integer. The full version with names stays in DynamoDB for the UI.
-- **Enforce a serialized-byte cap server-side** (3 KB), not just a rule/comparison count.
-  Counts don't bound bytes, and the failure mode on the device is silence.
+The real payoff from the codes isn't the buffer, it's **recurring traffic**. The retained
+config is re-delivered on every subscribe, so going from 3058 to 1266 bytes saves ~86 KB
+of downstream per device per day, forever, plus proportionally less parse time on a
+battery budget. Two smaller wins: fixed-width codes make the worst case *deterministic*,
+so the server-side byte cap is a tight bound rather than a guess; and the firmware can
+match a code with a fixed 8-byte compare against a static table, with no `strlen`, no
+variable-length compare, and an immediate reject for anything that isn't exactly 8 bytes.
+
+Still strip rule `name` before publishing (it's UI-only, and it's the only unbounded
+user-controlled string that would otherwise reach the device's parser), and still enforce
+a serialized-byte cap server-side rather than trusting a rule count.
 
 #### Compression: no
 
-Gzip would take a 3 KB config to roughly 500 bytes. Don't do it:
+Gzip would take the config to a few hundred bytes. Don't do it:
 
-- **The saving is worth nothing.** 2.5 KB over a link that just spent 1–3 seconds on a TLS
-  handshake is ~20 ms of radio at any realistic rate. Handshake dominates everything (§2).
+- **The saving is worth nothing.** ~1 KB over a link that just spent 1–3 seconds on a TLS
+  handshake is single-digit milliseconds of radio. Handshake dominates everything (§2).
 - **It costs more RAM, not less.** You'd need the compressed buffer *and* a decompression
   output buffer, i.e. more than the 4 KB you were trying to avoid.
 - **It destroys your best debugging tool.** A retained message you can read in the AWS IoT
   MQTT test client is worth far more than 2.5 KB.
 
-If size ever genuinely becomes a problem, the compact array encoding above buys 40% for
-free and stays human-readable. Reach for that first; compression never.
+The compact encoding already took the win compression was reaching for, and stayed
+human-readable doing it. If size ever binds again, shorten the payload further; never
+compress it.
 
 Do note the recurring cost this implies: the retained config is re-delivered on **every**
-subscribe, so ~3 KB × 48 wakes/day of downstream traffic per device, forever. That's fine
-— it's the price of the delivery guarantee, and it's what makes lost acks self-heal.
+subscribe, so ~1.3 KB × 48 wakes/day of downstream traffic per device, forever. That's the
+price of the delivery guarantee, and it's what makes a lost status report self-heal.
 
 #### Last Will and Testament, and why this device disconnects ungracefully
 
@@ -342,8 +355,7 @@ authenticated TLS identity:
       "Resource": "arn:aws:iot:REGION:ACCT:client/${iot:Connection.Thing.ThingName}" },
     { "Effect": "Allow", "Action": "iot:Publish",
       "Resource": [
-        "arn:aws:iot:REGION:ACCT:topic/devices/${iot:Connection.Thing.ThingName}/readings",
-        "arn:aws:iot:REGION:ACCT:topic/devices/${iot:Connection.Thing.ThingName}/ack"
+        "arn:aws:iot:REGION:ACCT:topic/devices/${iot:Connection.Thing.ThingName}/readings"
       ] },
     { "Effect": "Allow", "Action": "iot:Subscribe",
       "Resource": "arn:aws:iot:REGION:ACCT:topicfilter/devices/${iot:Connection.Thing.ThingName}/config" },
@@ -374,47 +386,30 @@ Corollary for the rule: **take the device id from `topic(2)`, and drop `doc["dev
 from the payload** (or keep it and ignore it) so nothing downstream can be fooled by a
 forged body.
 
-### The topic set
+### The topic set — two topics
 
 | Topic | Direction | Retained | Purpose |
 | --- | --- | --- | --- |
-| `devices/{id}/readings` | device → cloud | no | sensor readings (replaces `esp32/pub`) |
+| `devices/{id}/readings` | device → cloud | no | sensor readings **+ config status** |
 | `devices/{id}/config` | cloud → device | **yes** | desired watering config |
-| `devices/{id}/ack` | device → cloud | no | `applied` / `rejected` / `unclaimed` |
 
-### Proposal: two topics, not three — fold the ack into the reading
-
-Worth deciding before any of this is built, because it simplifies several sections at once.
-
-The ack topic exists to carry one fact: *"I am currently running config version N"*
-(or *"I refused version N because…"*). But the device already publishes a reading on
-**every single wake**, in the same connection, moments later. Putting `config_version` and
-`config_status` in the reading payload costs ~30 bytes and deletes:
+The separate `ack` topic is **folded into the reading**. It existed to carry one fact —
+*"I am running config version N"* (or *"I refused N because…"*) — but the device already
+publishes a reading on every wake, in the same connection, moments later. Carrying that in
+the reading costs ~40 bytes and deletes:
 
 - one topic and its two policy statements,
 - one IoT rule and one Lambda,
-- the entire "what if the ack is lost" question — because **every reading re-states the
-  device's current config version**, so the backend's view is refreshed 48 times a day
-  instead of once per config change. The self-healing property of §2 stops being a clever
-  consequence of retention and becomes structural.
+- **the entire lost-ack problem.** Every reading re-states the device's current config
+  version, so the backend's view is refreshed 48 times a day rather than once per config
+  change. The self-healing property of §2 stops being a happy consequence of retention and
+  becomes structural — there is no one-shot message left to lose.
 
-Reading payload gains:
-
-```json
-{ "config_version": 7, "config_status": "applied", "reject_reason": null, ... }
-```
-
-The one thing the ack topic does that a reading can't is announce an **unclaimed** device,
-since the plan says unclaimed devices don't publish readings. That's easily resolved: let
-an unclaimed device publish readings anyway. Its own telemetry is not sensitive, storing it
-gives you history from first power-on (a small bonus), and the "device seen, ready to
-claim" signal the setup page needs comes free. The backend simply doesn't attribute
-readings to an owner until one exists.
-
-**Recommendation: two topics.** Three was the right instinct — acks *are* conceptually
-distinct from readings — but the device's wake cycle already gives you a heartbeat, and
-piggybacking state onto it is strictly more robust than a separate one-shot message. Your
-call; the rest of this document assumes three so it still reads correctly either way.
+The one thing an ack topic could do that a reading can't is announce an **unclaimed**
+device, since unclaimed devices were not going to publish readings. Resolved by letting
+them publish anyway: a device's own telemetry isn't sensitive, storing it gives you history
+from first power-on, and the *"device seen, ready to claim"* signal the setup page needs
+comes free. The backend simply doesn't attribute readings to an owner until one exists.
 
 ### Do we need a topic per device? Yes — and it's free.
 
@@ -629,9 +624,66 @@ bcrypt; at minimum HMAC-SHA256 with a pepper — plain SHA-256 of a 50-bit secre
 GPU-brute-forceable). You never need to recover the plaintext; if the sticker is lost, so
 is the device, which is the correct behaviour for a possession token.
 
-The provisioning script should emit: thing + certificate + policy attachment + the
-`DEVICE#<id>/META` row + **a printable sticker PNG** with QR and text. That script doesn't
-exist yet and is a prerequisite for everything else (§12).
+### Provisioning a device programmatically
+
+The script doesn't exist yet and is a prerequisite for everything else. It runs once per
+board, on your laptop, and is **not** infrastructure-as-code (§14) — creating a certificate
+is a per-device runtime operation, not part of the account's static topology.
+
+Three ways to get a certificate; the middle one is right here:
+
+| Approach | Who generates the private key | Notes |
+| --- | --- | --- |
+| `create-keys-and-certificate` | **AWS** | One call, simplest. The private key is generated by AWS and returned over the wire. |
+| **`create-certificate-from-csr`** | **You, locally** | One extra `openssl` step. Key never leaves your machine, **and you control the Subject CN**. |
+| Fleet provisioning / JITP | The device itself | The right answer for a factory shipping thousands. Wildly overkill here. |
+
+**Use the CSR flow.** It's barely harder, the key never travels, and setting `CN =
+deviceId` is what keeps the HTTPS-transport option (§2, option C) open — that transport
+can't use `${iot:Connection.Thing.ThingName}` and must authorize on the certificate
+subject instead. Ten extra lines now to avoid a re-provisioning of every board later.
+
+```bash
+DEVICE_ID=gb-7QXF-2M9K
+
+# 1. Keypair + CSR, locally. CN is the device id.
+openssl req -new -newkey rsa:2048 -nodes \
+  -keyout "$DEVICE_ID.key" -out "$DEVICE_ID.csr" -subj "/CN=$DEVICE_ID"
+
+# 2. AWS signs it; the key stays here.
+CERT_ARN=$(aws iot create-certificate-from-csr \
+  --certificate-signing-request "file://$DEVICE_ID.csr" \
+  --set-as-active --query certificateArn --output text)
+
+# 3. Thing, so ${iot:Connection.Thing.ThingName} resolves (§3).
+aws iot create-thing --thing-name "$DEVICE_ID"
+aws iot attach-thing-principal --thing-name "$DEVICE_ID" --principal "$CERT_ARN"
+
+# 4. The one shared policy, created by CDK (§14).
+aws iot attach-policy --policy-name garden-bot-device --target "$CERT_ARN"
+
+# 5. Endpoint the firmware needs.
+aws iot describe-endpoint --endpoint-type iot:Data-ATS
+```
+
+Then, in the same script: generate the claim code, write `DEVICE#<id>/META` with its hash,
+render the sticker PNG (QR + text), and **emit a ready-to-compile `secrets.h`** for that
+board — certificate PEM, private key PEM, device id, Wi-Fi, endpoint. Flashing a new bot
+should be "run the script, paste one file, upload", with no console clicking and no
+copy-paste of PEM blocks.
+
+Write it in **Python with boto3**: the repo already has boto3 scripts, it's a single file,
+and it's operational tooling rather than infrastructure. The `openssl` step can be
+`cryptography` instead of shelling out, if you prefer one language end to end.
+
+> **Key type is worth measuring, not assuming.** The TLS handshake dominates the energy
+> budget of every wake (§2), and the client's private-key operation is part of it. The
+> usual advice is "ECC is lighter than RSA", but this board is a **classic ESP32**, which
+> has a hardware RSA/MPI accelerator and *no* ECC accelerator — so ECDSA P-256 runs in
+> software while RSA-2048 runs in hardware, and RSA may well be the faster of the two here.
+> AWS IoT accepts both. Provision one board each way and time the handshake before
+> committing the fleet; it's a 20-minute experiment against a cost you pay 48 times a day
+> forever.
 
 ### Device ids should not be guessable
 
@@ -885,27 +937,33 @@ Disjunctive normal form: rules OR'd, comparisons within a rule AND'd. Complete �
 boolean expression can be written this way — so forbidding nested parentheses costs no
 expressiveness and buys a UI that is two flat lists instead of a tree editor.
 
+**Stored** in DynamoDB in the readable form, with names, for the UI:
+
 ```json
 {
-  "schema": 1,
-  "version": 7,
-  "tz": "EET-2EEST,M3.5.0/3,M10.5.0/4",
-  "watering_duration_s": 150,
   "rules": [
     { "name": "hot afternoon",
       "all": [
         { "var": "max_temp_c",           "op": "gte", "value": 28 },
         { "var": "hours_since_watering", "op": "gte", "value": 24 },
         { "var": "hour_of_day",          "op": "eq",  "value": 15 }
-      ] },
-    { "name": "morning",
-      "all": [
-        { "var": "hour_of_day",          "op": "eq",  "value": 8 },
-        { "var": "hours_since_watering", "op": "gte", "value": 48 }
       ] }
   ]
 }
 ```
+
+**On the wire** to the device, compacted to arrays with 8-character codes (§2, §7) — a
+rule is an array of comparisons, a comparison is `[code, op, value]`:
+
+```json
+{"schema":1,"version":7,"tz":"EET-2EEST,M3.5.0/3,M10.5.0/4","watering_duration_s":150,
+ "rules":[[["temp_max","gte",28],["hrs_wtrd","gte",24],["hour_day","eq",15]],
+          [["hour_day","eq",8],["hrs_wtrd","gte",48]]]}
+```
+
+The backend does the translation when publishing; the front end does the reverse when it
+evaluates. Both directions are table lookups against the same frozen code table, and rule
+names never leave the database.
 
 **`rules: []` means "never water"** — the config an unclaimed or freshly reset device
 runs. It must be an explicit, documented value, not an accident.
@@ -955,16 +1013,29 @@ Four things about this that will bite:
 Store `mlPerSecondAtSave` on each config item, so an old config in the history still
 renders as the volume it actually meant. Recalibrating shouldn't silently rewrite history.
 
-### Variables (whitelist)
+### Variables (whitelist) and their wire codes
 
-| Variable | Units | Range | Source |
-| --- | --- | --- | --- |
-| `moisture_pct` | % | 0–100 | current reading |
-| `temp_c` | °C | −40–60 | current reading |
-| `max_temp_c` | °C | −40–60 | `maxRecentTemperature`, reset on watering |
-| `hours_since_watering` | h | 0–2000 | `now - lastWateredEpoch`, both corrected by NTP |
-| `hour_of_day` | h | 0–23 | device-local time |
-| `day_of_week` | 0=Sun | 0–6 | optional, cheap now |
+Every variable has an **exactly-8-character wire code**. The long name is what the UI
+shows; the code is what crosses the network and what the firmware matches on.
+
+| Variable (UI) | Wire code | Units | Range | Source |
+| --- | --- | --- | --- | --- |
+| `moisture_pct` | `moist_pc` | % | 0–100 | current reading |
+| `temp_c` | `temp_now` | °C | −40–60 | current reading |
+| `max_temp_c` | `temp_max` | °C | −40–60 | `maxRecentTemperature`, reset on watering |
+| `hours_since_watering` | `hrs_wtrd` | h | 0–2000 | `now - lastWateredEpoch`, both corrected by NTP |
+| `hour_of_day` | `hour_day` | h | 0–23 | device-local time |
+| `day_of_week` | `day_week` | 0=Sun | 0–6 | optional, cheap now |
+
+Fixed width is doing real work, not just saving bytes: the firmware matches with a single
+8-byte compare against a static table — no `strlen`, no variable-length compare, and
+anything that isn't exactly 8 bytes is rejected before it's even looked up. It also makes
+the worst-case payload size *deterministic* (§2), so the server-side byte cap is a tight
+bound rather than a guess.
+
+> **This table is a frozen wire format.** Once a board ships with it, a code can never be
+> renamed — only added, and only alongside a `schema` bump. Choose them now and treat this
+> table as the single source of truth shared by the firmware and the front end.
 
 Ops: `gt`, `lt`, `gte`, `lte`, `eq`. Operands: **plain signed int** — correct. Temperature
 is already `round()`ed to an int in the firmware and moisture is an integer percent. If
@@ -977,6 +1048,48 @@ rule may dry-run the pump) and `battery_mv` (a safety floor, hardcode it).
 `hours_since_watering` is `now - lastWateredEpoch`, both real timestamps, kept honest
 across clock corrections by the NTP fast-forward in §9. **Fixed in this branch** — the old
 counter is gone, and §9 explains why replacing it was better than patching it.
+
+### The reading payload
+
+Now carrying the device's config status (the folded ack, §3) and the rule inputs:
+
+```json
+{
+  "device_time": 1893456000,
+  "battery": 4200, "moisture": 55, "temp": 24,
+  "watered": false, "water_available": true, "water_level_raw": 800,
+
+  "max_temp_c": 29, "hours_since_watering": 36,
+
+  "schema": 1,
+  "config_version": 7,
+  "config_status": "applied",
+  "reject_reason": null
+}
+```
+
+279 bytes worst case. `device` is gone — the device id comes from `topic(2)` (§3).
+
+Three additions, each earning its bytes:
+
+- **`max_temp_c` and `hours_since_watering` are stated, not inferred.** The front end
+  currently reconstructs them by scanning readings back to the last `watered` event, which
+  silently disagrees with the device whenever that window is incomplete — a device that was
+  offline, or a `daysago` range shorter than the watering interval. These are the actual
+  rule inputs; having the device report them removes a whole class of "the site says one
+  thing, the device does another", and makes the backtest (§11) exact rather than
+  reconstructed.
+- **`schema`** lets the UI offer only the variables that board's firmware understands, which
+  makes `rejected` (§8) essentially unreachable in normal operation instead of something a
+  user can trigger by using a new feature on an old board.
+- **`config_version` / `config_status`** are the folded ack.
+
+> **Implementation note:** `QueuedMessage` (the RTC ring buffer replayed after an outage)
+> must gain `max_temp_c` and `hours_since_watering` fields too. Reading them from globals
+> at flush time would stamp a backlogged reading with *today's* values instead of the ones
+> that held when it was taken. Cost is 8 bytes × 48 entries = 384 bytes of RTC memory,
+> comfortably within budget. `config_version` and `schema` can stay global — they describe
+> the device, not the moment.
 
 ### Safety invariants stay in firmware
 
@@ -1339,9 +1452,8 @@ silent state.
    published while the device sleeps is lost forever. §2, §8.
 2. **`client.loop()` is called once**, so an inbound config is never processed. §9.
 3. **`MQTT_MAX_PACKET_SIZE` defaults to 256 bytes** in PubSubClient — a config is silently
-   dropped with no error anywhere. Worst case at the §7 bounds measures **3058 bytes**, so
-   `setBufferSize(4096)`, strip rule names on the wire, and cap serialized bytes
-   server-side. §2.
+   dropped with no error anywhere. Worst case is **1266 bytes** with the compact encoding,
+   so `setBufferSize(4096)` for headroom and cap serialized bytes server-side. §2.
 4. **Device id comes from the payload, not the topic** — any device can forge another's
    readings. §3.
 5. **The readings API has no authorization** — current public IDOR. §5, §10.
@@ -1349,6 +1461,8 @@ silent state.
    disables watering. §9.
 7. ~~**DST applied with the wrong rules**~~ — **fixed in this branch** (`configTzTime` +
    full POSIX TZ). §9.
+7b. ~~**Ungraceful MQTT disconnect**~~ — **fixed in this branch**: `client.disconnect()`
+   before the radio goes down, so the broker releases the session immediately. §2.
 8. ~~**The last-watering counter freezes and drifts**~~ — **fixed in this branch**:
    replaced with `lastWateredEpoch` plus an NTP fast-forward, which removes the hidden
    side effect in `shouldWater()` and corrects for the missing external RTC. §9.
@@ -1373,12 +1487,12 @@ silent state.
     Firebase means rewriting every ownership row. Store both. §5.
 17. **The two evaluators will drift.** Shared JSON fixtures cost almost nothing and are
     worth it precisely because there are only two to compare. §7.
-18. **The front end infers `max_temp_c` from readings** rather than being told, so it
-    disagrees with the device whenever the reading window is incomplete. §12 open
-    questions.
+18. ~~**The front end infers `max_temp_c` from readings**~~ — resolved: the device now
+    reports it, along with `hours_since_watering` and `schema`. Needs matching fields in
+    `QueuedMessage` or backlogged readings get stamped with today's values. §7.
 19. **Device ids are immutable** once provisioned (thing name, cert attachment, topics,
-    retained message location) — intended, with `nickname` absorbing renaming, but it
-    means `cherry-3-pot`'s id is a phase-0 decision. §3, §11.
+    retained message location) — intended, with `nickname` absorbing renaming. `cherry-3-pot`
+    gets a fresh opaque id and its history is orphaned. §3, §11.
 20. **A device that never reaches Wi-Fi keeps a wrong absolute clock forever**, so
     `hour_of_day` rules fire at the wrong real-world hour. Intervals stay correct. Accepted
     consequence of keeping the hardcoded seed date. §9.
@@ -1390,53 +1504,105 @@ silent state.
 
 ### Open questions
 
-- **Two topics or three?** Fold `config_version` / `config_status` into the reading payload
-  and drop the ack topic. Recommended; §3.
-- **Publish `max_temp_c` and `hours_since_watering` in the reading.** Right now the front
-  end *reconstructs* them by scanning readings since the last `watered` event, which
-  disagrees with the device whenever the window is incomplete — a device that was offline,
-  or a `daysago` range shorter than the watering interval. These are the actual rule
-  inputs; ~20 bytes to state them authoritatively, and it removes a whole class of "the
-  site says one thing, the device does another". Recommended.
-- **Should the device report its `schema` version in readings, so the UI only offers
-  variables that device's firmware understands?** This makes `rejected` (§8) essentially
-  unreachable in normal operation instead of something a user can trigger by using a new
-  feature on an old board. Cheap, and it turns a confusing failure into an impossible one.
-- **What device id does `cherry-3-pot` keep?** Now that ids are immutable and readings are
-  keyed by device name, renaming the existing bot orphans a year of history. Simplest
-  answer: grandfather the existing name as-is (accepting it's guessable — the claim code is
-  what actually protects it) and use opaque ids only for new boards. Needs deciding in
-  phase 0, before the provisioning script is written.
-- **Do you want notifications at all?** The highest-value one isn't "device offline", it's
-  **"the tank has been empty for two days and your plants haven't been watered"** — the
-  device already reports `water_available`, and today nothing acts on it. Now that accounts
-  carry verified email addresses, this is an EventBridge daily rule + SES/SNS and ~30 lines.
-  Out of scope unless you want it, but it's the gap most likely to actually kill a plant.
-- **Add `client.disconnect()` before deep sleep?** One line, makes the MQTT disconnect
-  graceful (§2). Not done in this branch.
-- **What happens to readings if you ever do need to reassign a device?** Not in scope, but
-  the answer shapes whether readings are keyed by device or by owner. Keeping them keyed
-  by device (as today) leaves both options open — no action needed, just don't key them by
-  owner.
-- **Firmware/schema version handshake**: devices report `firmwareVersion` and `schema`;
-  should the backend refuse to send a schema a device can't parse, or rely on `rejected`
-  to surface it? (`rejected` is the cheaper answer and it's already in the design.)
-- **Stale-device alerting**: "hasn't reported in 3 days" via an EventBridge daily rule +
-  SNS is ~20 lines, and it's the first thing you'll wish for the day a device dies
-  quietly.
+All previously open questions are now decided (§0). Two things remain deliberately
+deferred rather than unresolved:
+
+- **Notifications** — out of scope for now. When a plant does eventually die from a tank
+  that was empty for a week, this is the thing that would have caught it: the device
+  already reports `water_available` and nothing acts on it. An EventBridge daily rule plus
+  SES is ~30 lines whenever you want it.
+- **Certificate key type** — RSA-2048 vs ECDSA P-256. Worth a 20-minute measurement rather
+  than a guess, for the reasons in §4, before you provision more than a couple of boards.
 
 ---
 
-## 13. Phasing
+## 13. Infrastructure as code (CDK)
+
+Yes — and this is a good moment to do it, because the decision to orphan the existing
+readings (§0) means everything can be created greenfield with **no CloudFormation import
+gymnastics**. Those two choices compose unusually well: normally the painful part of
+adopting IaC on a click-ops account is adopting existing resources, and you've just deleted
+that problem.
+
+**Language: TypeScript.** CDK is written in TypeScript and transpiled to the other
+languages via jsii, so TS gets the best types, the most examples, and the fewest sharp
+edges. Python is genuinely first-class if you'd rather match the Lambdas — but note that
+**the CDK language and the Lambda runtime are independent**, so TS infrastructure
+deploying Python Lambdas is completely normal and probably what you want here.
+
+### What goes in, and how well CDK handles it
+
+| Resource | CDK support | Notes |
+| --- | --- | --- |
+| DynamoDB tables (readings + control) | **L2, excellent** | Keys, TTL attribute, on-demand billing, PITR — all first-class props |
+| Lambda functions | **L2, excellent** | Your handlers only use boto3 + stdlib, which the runtime already ships, so plain `Code.fromAsset` — no Docker bundling needed |
+| HTTP API + JWT authorizer | **L2, good** | `HttpApi`, `HttpJwtAuthorizer` pointed at the Firebase issuer. These modules spent a long time as `-alpha`; check whether they're stable in the version you install |
+| IoT policy (the one with the variables) | **L1 only** (`CfnPolicy`) | Just a JSON document — L1 is arguably clearer than a construct would be |
+| IoT topic rule (readings → DynamoDB/Lambda) | **L1**, or alpha L2 | `CfnTopicRule` with the SQL string works fine; `@aws-cdk/aws-iot-alpha` has a nicer `TopicRule` if you accept alpha. **With L1 you must create the rule's IAM role yourself** — the alpha L2 does it for you. Easy to forget, and the failure is a rule that silently drops every message |
+| Claim-code pepper | **L2** | Create an empty Secrets Manager secret or SSM `SecureString` in CDK, set the value by hand once. Never put the value in the repo |
+
+### What deliberately stays out
+
+- **Device certificates and things.** Per-device, created at claim-time-minus-one by the
+  provisioning script (§4). Putting them in CDK would mean a stack deployment every time
+  you build a bot — wrong shape entirely. The script *references* the CDK-created policy by
+  name (`garden-bot-device`); that's the whole interface between them.
+- **Firebase.** Different cloud. The stack just takes the issuer URL and audience as
+  context values.
+- **Allowlist rows.** Data, not infrastructure. Seed your own email with one `put-item`.
+- **The website.** Out of scope as you said. (For reference, if you ever want it: S3 +
+  CloudFront + `BucketDeployment` is about 15 lines and removes the manual upload step.)
+
+### Structure
+
+```
+infra/
+  bin/garden-bot.ts          # app entry
+  lib/garden-bot-stack.ts    # one stack
+  package.json  cdk.json  tsconfig.json
+lambdas/
+  readings_ingest/           # IoT rule target
+  api/                       # HTTP API handlers
+provisioning/
+  provision_device.py        # boto3 - NOT CDK
+```
+
+**One stack, not three.** Splitting into data/iot/api stacks is the reflex, and at this
+size it buys you nothing but cross-stack references and a deployment ordering problem.
+Split when a deploy gets slow or when two parts genuinely need separate lifecycles;
+neither is true here. If `garden-bot-stack.ts` gets long, split it into *constructs* in
+separate files within the same stack — same readability, none of the coupling cost.
+
+### Gotchas
+
+- `cdk bootstrap` once per account/region before the first deploy. CloudFormation and CDK
+  themselves cost nothing.
+- **`dynamodb.Table` defaults to `RemovalPolicy.RETAIN`** — `cdk destroy` leaves your
+  tables behind. That's the right default, but know it, or you'll wonder why a "clean"
+  redeploy hits a name collision.
+- Set an explicit `tableName` only if you need to reference it from outside the stack (the
+  provisioning script does). Otherwise let CDK generate names and export them as outputs —
+  hardcoded physical names force replacement-on-rename into a manual dance.
+- The IoT rule's SQL (`SELECT *, topic(2) AS device, timestamp() AS timestamp FROM
+  'devices/+/readings'`) is a string in the L1 construct. It is not type-checked, not
+  linted, and a typo produces a rule that matches nothing and reports no error. Test it
+  with the console's rule tester before trusting it.
+- Keep the running-in-parallel migration of §9 (old `esp32/pub` rule alongside the new one)
+  as two rules in the stack, then delete one — much easier to reason about as a diff than
+  as console state.
+
+---
+
+## 14. Phasing
 
 Each phase ships independently and leaves the system working.
 
 | Phase | Work | Why |
 | --- | --- | --- |
-| **0. Plumbing** | Provisioning script + sticker generation; per-device topics + policy variables; parallel IoT rules; `ttl` attribute + backfill | No user-visible change; unblocks everything; closes the spoofing hole |
+| **0. Plumbing** | CDK stack (tables, IoT policy + rule, Lambda, HTTP API); provisioning script + sticker generation; per-device topics + policy variables | Greenfield, since the old data is orphaned — no import, no backfill, no parallel-rule migration |
 | **1. Auth + ownership** | Firebase Auth; HTTP API + JWT authorizer; control table; email allowlist; claim; scope existing charts to owned devices | Makes today's dashboard safe; valuable on its own |
-| **2. Config channel** | Rule schema + validator; retained config publish; firmware evaluator (host-testable) + NVS + ack; state machine | The core feature |
+| **2. Config channel** | Rule schema + validator; wire codec (names ↔ codes); retained config publish; firmware evaluator (host-testable) + NVS; config status in the reading; state machine | The core feature |
 | **3. UI** | Presets, DNF builder with plain-English rendering, millilitre input, backtest, next-watering from the active config | Where the value shows up |
-| **4. Polish** | Rollback, stale-device alerts, per-device timezone, wake-interval control | Needs the foundations first |
+| **4. Polish** | Rollback, per-device timezone, empty-tank notifications | Deferred, not forgotten |
 
 Phases 0 and 1 are worth doing even if you never build the rest.
