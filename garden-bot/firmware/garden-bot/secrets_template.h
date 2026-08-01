@@ -4,8 +4,9 @@
 #define AWS_THINGNAME "***************"                         //change this
 
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 7200; //GMT+2
-const int   daylightOffset_sec = 3600; // usually 1h
+// Timezone lives in config.h as TZ_INFO (a full POSIX TZ string with DST rules).
+// The old gmtOffset_sec/daylightOffset_sec pair is no longer read - you can drop
+// it from your local secrets.h.
 
 const char WIFI_SSID[] = "***************";               //change this
 const char WIFI_PASSWORD[] = "***************";           //change this

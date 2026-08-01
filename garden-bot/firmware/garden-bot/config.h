@@ -25,6 +25,15 @@
 #define WATERING_DURATION_S 150 // 50s per pot
 #define SECONDS_TO_SLEEP 1800 // 60s * 30m = 1800
 
+// POSIX TZ string, passed to configTzTime(). Must be a full spec including the
+// DST transition rules - the configTime(gmtOffset, daylightOffset, ...) overload
+// builds a TZ string with no rules, so the C library falls back to its defaults
+// (US dates), which shifts the clock by an hour for the ~3 weeks in March and
+// ~1 week in autumn where the US and EU changeovers disagree.
+// EET-2EEST,M3.5.0/3,M10.5.0/4 = UTC+2, DST +1h, last Sunday of March 03:00 to
+// last Sunday of October 04:00 (Europe/Sofia and the rest of EU Eastern time).
+#define TZ_INFO "EET-2EEST,M3.5.0/3,M10.5.0/4"
+
 #define WIFI_CONNECT_TIMEOUT_MS 30000
 #define AWS_CONNECT_TIMEOUT_MS 15000
 

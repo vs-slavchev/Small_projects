@@ -152,10 +152,14 @@ void messageHandler(char* topic, byte* payload, unsigned int length)
 }
 
 void saveCurrentTime() {
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  configTzTime(TZ_INFO, ntpServer);
   if(!getLocalTime(&timeinfo)){
     debugln("Failed to obtain internet time, adding sleep time to timeinfo");
     timeinfo.tm_sec += SECONDS_TO_SLEEP;
+    // Let mktime() re-derive DST from the date rather than trusting the stale
+    // flag carried over from the last NTP sync - without this, a dead-reckoned
+    // clock that crosses a changeover stays an hour off until Wi-Fi returns.
+    timeinfo.tm_isdst = -1;
     mktime(&timeinfo);
     return;
   }
