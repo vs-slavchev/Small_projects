@@ -15,14 +15,20 @@ Settled in discussion, recorded here so they don't get relitigated:
 
 | Decision | Note |
 | --- | --- |
-| **One account owns a device, permanently.** No transfer or release. | Consequences in §3 |
-| Keep the **30 s unclaimed poll loop**, no backoff ladder | Cost quantified in §9 |
+| **Transport stays MQTT over AWS IoT Core**, config delivered as a retained message | Mechanics in §2 |
+| **One certificate and one topic namespace per device** | §3 |
+| **One account owns a device, permanently.** No transfer or release. | Consequences in §4 |
 | Keep the **hardcoded initial date**; watering at the wrong time beats not watering | §9 |
+| **No external RTC**: track a last-watered *timestamp* and fast-forward it when NTP corrects the clock | Implemented, §9 |
+| Keep the **30 s unclaimed poll loop**, falling back to 30 min after **2 hours** | §9 |
 | The evaluator lives in **firmware C++ and front-end JS only** | Drift mitigation in §7 |
-| **"Water now" is out of scope** | Has one knock-on effect on calibration, §7 |
-| **Cost is not the deciding factor** — pick the pleasant option | Applies to §4 |
-| Watering duration is set per update; the **UI asks for millilitres**, not seconds | §7 |
+| **"Water now" is out of scope**; `mlPerSecond` is **hand-calibrated** | §7 |
+| **Cost is not the deciding factor** — pick the pleasant option | Applies to §5 |
+| Watering duration is set per update; the **UI asks for millilitres, total across all pots** | §7 |
 | Rule order is for **UI stability only**, not evaluation precedence | §7 |
+| **Control plane single-table, readings in their own table** | §6 |
+| **`rejected` is a first-class config state** | §8 |
+| **Sign-up is allowlisted** — authenticate anyone, authorize a list | §5 |
 
 ---
 
@@ -99,33 +105,112 @@ can't validate a client certificate, so authorization would rest on the URL bein
 unguessable, and the upstream path still needs a real authenticated channel. You'd end up
 with **two** trust models and two TLS handshakes to save perhaps 30 lines. Reject it.
 
-### Recommendation: stay on A (MQTT + retained), and know why
+### Decision: A — MQTT with a retained config message
 
-Not because MQTT is the better protocol for this shape of client — request/response
-genuinely fits a 10-second batch client better — but because:
+Not because MQTT is the better protocol shape for this client (request/response genuinely
+fits a 10-second batch client better), but because it already works, X.509 identity and
+policy-variable authorization come free, and one flag buys the delivery property you need.
 
-1. It already works, PubSubClient is already integrated, and the reading queue already
-   flushes through `publish()`.
-2. X.509 identity and policy-variable authorization come free and have no cheap equivalent
-   elsewhere.
-3. The retained message gives **guaranteed eventual delivery with no server state**: the
-   config sits on the broker until the device next subscribes, whether that's in 5 seconds
-   or 5 days. That is the property you actually need, and you get it with one flag.
+#### How retained messages actually work
 
-**Option C is the one to remember.** If the retained-message semantics or the
-`client.loop()` receive window turn out to be fiddly in practice, moving to the IoT HTTPS
-data plane is a firmware-only change — the IoT rules, DynamoDB and Lambda paths are
-identical, because HTTPS publish lands on the same topics. It converts "subscribe, pump
+Normal MQTT is **fire-and-forget to whoever is listening right now**. Publish to a topic
+with no subscribers and the message is gone — there is no mailbox. That is fatal for a
+device that is powered down 99.5% of the time, which is why this is the single most
+important mechanic in the design.
+
+Setting the **retain flag** changes the semantics of a topic from *event* to *state*:
+
+- The broker stores **the last retained message per topic** — exactly one, indefinitely.
+- Publishing a new retained message to that topic **replaces** the stored one.
+- Any client that SUBSCRIBEs to that topic receives the stored message **immediately**, as
+  part of the subscribe, without anyone republishing it.
+- Publishing a zero-length payload with retain set **clears** it.
+
+So the config topic becomes a one-slot mailbox that always holds the current desired
+state. The device doesn't need to be listening when you save a config; it picks it up on
+its next wake, whether that's in 5 seconds or 5 days. **You get durable delivery with no
+queue, no session state, and no server-side retry logic.**
+
+This is exactly the right split for your two directions of traffic:
+
+| Traffic | Nature | Retain |
+| --- | --- | --- |
+| Readings, acks | **Events** — each one is a distinct fact with a timestamp | `false` |
+| Config | **State** — only the current value matters | `true` |
+
+#### Why this also solves the ack problem
+
+**PubSubClient publishes at QoS 0 only** — there is no QoS parameter on `publish()`, and
+no delivery confirmation. So an ack can be lost, and the config would sit at `pending`
+forever.
+
+Retention fixes this for free. Because the config is still sitting on the broker, the
+device receives *the same config again* on its next wake. If it tracks which version it
+last acked (in RTC memory / NVS), it can notice the ack didn't land and re-ack. **A lost
+ack self-heals within one wake cycle.** No QoS 1, no retry queue, no dead-letter handling
+— which is what makes QoS 0 acceptable here rather than a compromise.
+
+That gives the device three cases on receiving a config:
+
+| Received version vs. stored | Action |
+| --- | --- |
+| Newer | Validate, persist to RTC + NVS, ack `applied` (or `rejected`) |
+| Same, already acked | Ignore silently — this is the steady state, ~48×/day |
+| Same, not yet acked | Re-ack (the previous ack was lost) |
+
+#### Wake-cycle sequence
+
+Order matters:
+
+```
+connect TLS + MQTT (client id = thing name)
+  └─ SUBSCRIBE devices/{id}/config       ← retained message arrives here, within ms
+  └─ pump client.loop() for ~2 s         ← callback fires during this window
+  └─ handle config, PUBLISH ack
+  └─ PUBLISH reading (+ flush the RTC backlog)
+  └─ disconnect, deep sleep
+```
+
+**Subscribe before publishing**, and subscribe as early as possible after connect, so the
+retained message is already in flight while you do other work. The receive window is
+mandatory (§9) — `setup()` currently calls `client.loop()` once, which is not enough for a
+callback to fire.
+
+Subscribe at **QoS 1** so the SUBACK confirms the subscription took; retained delivery
+works at QoS 0 too, but QoS 1 costs nothing and PubSubClient supports it on subscribe.
+
+#### Practical notes
+
+- **Payload sizes**: AWS IoT allows 128 KB per message; a config bounded at 8 rules × 6
+  comparisons is ~1.5 KB. No pressure. Note PubSubClient has its own much smaller default
+  buffer (`MQTT_MAX_PACKET_SIZE`, 256 bytes) — you **must** call
+  `client.setBufferSize(2048)` or configs will be silently dropped. This one bites
+  everybody.
+- **Retained messages have an account quota** and are billed as messages. At tens of
+  devices you are nowhere near any limit, and the cost is fractions of a cent.
+- **Don't use a Last Will and Testament**, and don't build "device online" detection from
+  connect/disconnect events. This device disconnects ungracefully every single cycle by
+  design (it powers off), so an LWT would fire 48 times a day and connect/disconnect
+  events are pure noise. Derive liveness from `lastSeenAt` on the readings instead.
+- **Clearing a config** (zero-length retained publish) is how you'd return a device to
+  "never water". Prefer publishing `rules: []` explicitly — same effect, but it's a
+  versioned, acked, auditable config rather than an absence.
+
+#### Keep option C in your back pocket
+
+If the receive window or retained semantics get fiddly in practice, moving to the IoT
+HTTPS data plane is a **firmware-only** change — the IoT rules, DynamoDB and Lambda paths
+are identical because HTTPS publish lands on the same topics. It converts "subscribe, pump
 the event loop, hope the callback fires before deep sleep" into a synchronous `GET` whose
-response you either have or don't. That deletes a whole class of bug.
+response you either have or don't.
 
-The one real cost of C: the policy variable `${iot:Connection.Thing.ThingName}` is tied to
-an **MQTT connection**, so an HTTPS request would have to authorize on
-`${iot:Certificate.Subject.CommonName}` instead — which means setting the certificate's CN
-to the device id, which means signing your own CSR (`CreateCertificateFromCsr`) rather
-than letting AWS mint the keypair. Worth doing at provisioning time anyway if you want to
-keep the door open. *(Verify the exact policy-variable availability before relying on it —
-this is the load-bearing detail of option C.)*
+Its one real cost: `${iot:Connection.Thing.ThingName}` is tied to an **MQTT connection**,
+so an HTTPS request must authorize on `${iot:Certificate.Subject.CommonName}` instead —
+meaning the certificate's CN has to be the device id, meaning you sign your own CSR
+(`CreateCertificateFromCsr`) rather than letting AWS mint the keypair. Doing that at
+provisioning time anyway keeps the door open for ~10 extra lines in a script you only run
+once per board. *(Verify policy-variable availability before relying on it — it's the
+load-bearing detail of option C.)*
 
 ---
 
@@ -217,6 +302,71 @@ Corollary for the rule: **take the device id from `topic(2)`, and drop `doc["dev
 from the payload** (or keep it and ignore it) so nothing downstream can be fooled by a
 forged body.
 
+### Do we need a topic per device? Yes — and it's free.
+
+The common worry is that topics are resources you provision and pay for. **They aren't.**
+An MQTT topic is a string in a message header. There is nothing to create, nothing to
+delete, no per-topic quota, no per-topic cost. `devices/gb-7QXF-2M9K/readings` springs into
+existence the moment something publishes to it and stops existing when nothing does. So
+"one topic namespace per device" costs exactly zero, and scaling to hundreds of devices
+changes nothing about the infrastructure.
+
+The only per-topic state that persists is the **retained message** on the config topic —
+one small stored payload per device, billed as a message, subject to a generous
+account-level quota.
+
+### Do we need a TLS identity per device? Yes — this one is close to mandatory.
+
+Sharing one certificate across all devices breaks three things at once:
+
+1. **Authorization collapses.** Policy variables resolve to the *same* value for every
+   device, so `${iot:Connection.Thing.ThingName}` can no longer distinguish A from B. You'd
+   be back to trusting the payload — the exact hole this design closes.
+2. **Revocation becomes all-or-nothing.** One compromised or discarded board means
+   revoking the certificate that every other board depends on, i.e. reflashing all of
+   them.
+3. **Client ids collide.** Two devices connecting with the same MQTT client id kick each
+   other off in a loop — the broker permits only one connection per client id. This isn't
+   theoretical; it's an immediate operational failure the moment you own two bots that
+   happen to wake at the same time.
+
+Cost of doing it properly: AWS IoT certificates are free and unlimited, and one policy
+document (with variables) covers every device forever. The only real work is the
+provisioning script.
+
+### Drawbacks of putting the device id in the topic
+
+Honest list — none are dealbreakers, but they're real:
+
+- **Device ids become effectively immutable.** The id appears in the thing name, the
+  certificate attachment, the topic strings, and the retained message's location.
+  Renaming means re-provisioning. *Mitigation: the user-facing name is a separate,
+  freely-editable `nickname` (§11); the id is an opaque internal handle they see once, on
+  the sticker.*
+- **You need a second, broader policy for admin/debug tooling.** Nothing can subscribe to
+  `devices/+/readings` under the device policy, so a laptop watching all traffic needs its
+  own certificate with a wildcard policy. Fine — but it's a thing to create, and it's a
+  credential worth guarding, since it can read everything.
+- **Rules must use wildcards**, so per-device rule behaviour means overlapping rule filters
+  rather than a natural per-device split. You don't want that today.
+- **Fan-out debugging is less convenient.** With a single shared topic you can watch one
+  place in the MQTT test client. With per-device topics you subscribe `devices/+/readings`
+  (with the admin cert). Minor.
+
+### The alternative that half-works, for completeness
+
+You *could* keep a single shared readings topic and still authorize correctly, because IoT
+rule SQL exposes `clientid()` — the authenticated MQTT client id of the publisher. A rule
+could compare `clientid()` against the payload's claimed device and drop mismatches.
+
+That works for **upstream** traffic. It cannot work for **downstream**: a shared config
+topic means every device receives every device's config. That's a privacy leak, it wastes
+radio time and battery on every bot in the fleet, and filtering by id would happen *on the
+device* — i.e. exactly where a malicious device would decline to filter.
+
+So downstream must be per-device regardless. And once it is, making upstream per-device
+too is free and keeps one consistent model instead of two.
+
 ---
 
 ## 4. Claiming: the code, and what "possession" means
@@ -249,12 +399,47 @@ the backend compares its hash to the stored one, and if it matches it writes an 
 row. The device finds out later, incidentally, by receiving a config it didn't have
 before.
 
-Putting the code in `secrets.h` would mean it also lives in flash (readable over UART —
-ESP32 flash is not encrypted unless you burn the eFuses, and you haven't), in your build
-tree, in any backup of it, and potentially in git history. All for zero functional
-benefit, because nothing on the device ever reads it. **The whole point of proof-of-
-possession is that the proof is bound to the physical object, not to the software running
-inside it.** A flash dump should get you nothing.
+### "Nothing in flash" — what the recommendation actually is
+
+To be precise, because this is easy to overstate: **the recommendation is not that flash
+holds no secrets.** It can't be. The device's private key is in flash and has to be — that
+is what makes the TLS connection possible, and there's no way around it short of hardware
+you don't have. The recommendation is narrower:
+
+> **Put in flash only what the firmware actually reads. The claim code isn't that.**
+
+Everything on the device is there because some line of code needs it: the Wi-Fi password,
+the certificate, the private key, the BLE passkey. The claim code is the sole exception —
+no line of firmware would ever read it, because claiming happens entirely between the
+browser and the backend. Storing it would add a fourth copy (flash, build tree, backups,
+git history) of a secret purely for symmetry with the other secrets.
+
+**The two secrets have different threat models, which is the real reason to separate them:**
+
+| Leaked secret | What an attacker gains |
+| --- | --- |
+| **Private key** | The ability to impersonate *that one device* — publish fake readings and receive its config. To extract it they need physical access to the board, at which point they could take the plant instead. Bounded, and largely uninteresting. |
+| **Claim code** | The ability to claim a device they have **never touched** — remotely, from a leaked photo, a git history, a support email. Since claiming is permanent and one-shot (§0), that isn't just unauthorized access: **it permanently denies you your own device.** There is no recovery short of editing DynamoDB by hand. |
+
+So the claim code is the *more* damaging of the two to leak, despite protecting the less
+sensitive thing. That inversion is the whole argument. The proof-of-possession must be
+bound to the physical object — the sticker — not to the software running inside it.
+
+### If you did want the key out of flash
+
+Not recommended here, listed so the option is known:
+
+- **Secure element** (ATECC608B, ~$1): stores the private key in hardware and performs
+  ECDSA on-chip; the key is never readable, even with the board in hand. AWS IoT supports
+  this well. Real cost is board respin and firmware work.
+- **ESP32 flash encryption + secure boot** via eFuses: free, no extra parts, but the eFuse
+  burn is **irreversible** and a mistake bricks the board. It also complicates reflashing
+  during development.
+
+For a garden bot, neither is worth it. The honest position is: *the private key is in
+flash, and the threat that implies is someone with physical access to the device — who
+already has the plant.* That's an acceptable risk, stated deliberately rather than by
+omission.
 
 ### QR sticker
 
@@ -378,9 +563,55 @@ different person.
   an authorized domain in the Firebase console for local dev.
 - Production needs an https origin (CloudFront or similar), not a bare S3 website
   endpoint.
-- **Decide whether sign-up is open.** A stranger creating an account is harmless — they
-  can't claim a device without a sticker — but it's your Lambda quota. An allowlist of
-  UIDs in the control table is one `if` if you want it.
+### Allowlisting sign-up
+
+The key move is to **separate authentication from authorization**. Don't try to stop
+people signing in — Firebase will happily authenticate any Google account, and blocking
+that is the expensive path. Instead, let anyone authenticate (which only establishes *who
+they are*) and have your API refuse to do anything for a user who isn't on the list.
+
+**Recommended: an allowlist in the control table, checked in the Lambda.**
+
+| PK | SK | Attributes |
+| --- | --- | --- |
+| `ALLOW#<lowercased email>` | `INVITE` | addedBy, addedAt, claimedByUid |
+
+Flow on every request:
+
+1. The JWT authorizer verifies the token (already happening, no code).
+2. The Lambda looks up `USER#<uid>/PROFILE`. If it exists, proceed — this is the hot path,
+   one `GetItem`.
+3. If it doesn't, look up `ALLOW#<token email>`. If present, create the profile, stamp
+   `claimedByUid`, proceed. If absent, return **403** with a distinct code so the front end
+   can render *"This account isn't enabled yet — ask the owner to add
+   you@example.com"* rather than a generic error.
+
+Two details that matter:
+
+- **Check the `email_verified` claim** before matching on email. With Google sign-in it's
+  always true, but the check costs nothing and stops an unverified address from ever
+  matching an allowlist entry if you add another provider later.
+- **Allowlist by email, not UID**, because email is what you know *before* the person has
+  ever signed in — you can't pre-authorize someone by a UID that doesn't exist yet. Store
+  the UID once they first sign in, then key everything else off the UID (§5). Email is used
+  exactly once, as an invitation lookup.
+
+Adding someone is a single `PutItem` — console, CLI, or a five-line script. For a handful
+of users that's the right amount of machinery; if it ever grows, add an `isAdmin` flag on
+your own profile and a `POST /allow` endpoint.
+
+**Alternatives considered:**
+
+- **Firebase blocking functions** (`beforeCreate` / `beforeSignIn`) reject unknown users at
+  the identity layer, so no account is ever created — cleanest in principle, but they
+  require upgrading to Identity Platform. More moving parts and a billing change for a
+  check you can do in one `GetItem` you're already making.
+- **Invite codes** at sign-up: more machinery than an email list, and it puts a secret in
+  a second place.
+- **Domain restriction** via the `hd` claim: only works for Workspace domains, not Gmail.
+- **Nothing at all** is a defensible position — a stranger's account is inert without a
+  physical sticker, so the allowlist is protecting your Lambda quota and your peace of
+  mind rather than your plants. But since it's one lookup you're already doing, do it.
 
 ---
 
@@ -543,20 +774,20 @@ more than one board.
 
 Four things about this that will bite:
 
-1. **Calibration has no in-product path now that "water now" is out of scope.** The only
-   honest way to measure flow rate is to run the pump into a measuring jug — which needs
-   an on-demand pump command. Without one, the user must calibrate by hand (stopwatch,
-   jug, type the number into settings), or you seed it from the pump datasheet and accept
-   the error. This is a real gap created by the scope decision, not an argument to reverse
-   it — just make the settings field prominent and label it *"measured millilitres per
-   second"* with a one-line how-to. **Open question: is hand-calibration acceptable, or
-   does this pull a minimal pump-test command back into scope?**
+1. **Calibration is by hand** — decided. There's no in-product way to measure flow rate
+   without an on-demand pump command, and that's out of scope. So the settings field is
+   filled in by the user: run the pump for a known time into a measuring jug, divide.
+   Make the field prominent, label it *"measured millilitres per second"*, and put the
+   one-line method in the helper text — an unexplained number nobody knows how to obtain
+   is worse than no field. Seed it from the pump datasheet as a default so a fresh device
+   is usable before anyone calibrates.
 2. **Flow rate is not constant.** It falls as the battery sags and as the tank empties and
    the head height grows. Real-world spread is easily ±20%. Present volumes as approximate
    (*"≈ 500 ml"*), or users will trust a number that was never that precise.
-3. **The current bot waters three pots from one manifold** (`WATERING_DURATION_S 150 //
-   50s per pot`). So "500 ml" is 500 ml *total*, ~165 ml per pot. Either label it "total"
-   or store a pot count per device and show both. **Open question: which?**
+3. **Millilitres are the total across all pots** — decided. The bot waters three pots from
+   one manifold (`WATERING_DURATION_S 150 // 50s per pot`), so "500 ml" means 500 ml
+   leaving the pump, ~165 ml per pot. Label the input *"total water"* explicitly; a user
+   who reads it as per-pot will under-water by 3×, and that failure is silent.
 4. **Rounding and clamping.** Firmware clamps to `[10, 300]` seconds regardless of config;
    the UI must clamp the millilitre input to the equivalent range **and say why**,
    otherwise someone asks for 2 litres and silently gets 300 seconds' worth. Show the
@@ -572,7 +803,7 @@ renders as the volume it actually meant. Recalibrating shouldn't silently rewrit
 | `moisture_pct` | % | 0–100 | current reading |
 | `temp_c` | °C | −40–60 | current reading |
 | `max_temp_c` | °C | −40–60 | `maxRecentTemperature`, reset on watering |
-| `hours_since_watering` | h | 0–2000 | the RTC counter, **not** clock arithmetic |
+| `hours_since_watering` | h | 0–2000 | `now - lastWateredEpoch`, both corrected by NTP |
 | `hour_of_day` | h | 0–23 | device-local time |
 | `day_of_week` | 0=Sun | 0–6 | optional, cheap now |
 
@@ -584,20 +815,9 @@ changing an existing one's type; int→float invalidates every stored config.
 Deliberately **not** exposed: `water_available` (stays a hardcoded firmware gate — no user
 rule may dry-run the pump) and `battery_mv` (a safety floor, hardcode it).
 
-**`hours_since_watering` must come from the RTC counter, not from `now - lastWatered`.**
-The counter is immune to clock jumps, which matters a lot given the hardcoded initial date
-(§9): when NTP finally lands and the clock leaps from June 2023 to today, a
-timestamp-derived value would jump by two years and fire everything at once. The counter
-just keeps counting.
-
-> **Bug in the existing counter.** `shouldWater()` increments
-> `seconds_since_last_watering` only inside its own `if (!shouldWater)` branch — a side
-> effect hidden in a predicate. So when conditions are met but `water_available` is false,
-> the counter **freezes**: a device with an empty tank stops accumulating time, and
-> `hours_since_watering` reported upstream goes stale. Harmless today; a real bug once
-> that value is a user-visible rule variable. Fix during the rules-engine work: increment
-> unconditionally at the top of the wake cycle, reset to 0 (not `SECONDS_TO_SLEEP`) on
-> watering.
+`hours_since_watering` is `now - lastWateredEpoch`, both real timestamps, kept honest
+across clock corrections by the NTP fast-forward in §9. **Fixed in this branch** — the old
+counter is gone, and §9 explains why replacing it was better than patching it.
 
 ### Safety invariants stay in firmware
 
@@ -771,29 +991,75 @@ local `secrets.h` that still defines them is harmless, they're simply unread.
 Later, `tz` becomes a per-device config field so the timezone is set from the website
 rather than compiled in.
 
-### Hardcoded initial date — kept, with one consequence
+### No external RTC: last-watered as a timestamp, fast-forwarded by NTP — **fixed in this branch**
 
-*"Watering at the wrong time beats not watering at all"* is right for a plant, and the
-2023-06-02 13:00 seed plus `seconds_since_last_watering = 10 days` means a fresh boot with
-no Wi-Fi will fire the first matching hour rule within a day. Fine.
+The hardcoded 2023-06-02 seed stays: *"watering at the wrong time beats not watering at
+all"* is right for a plant. But it creates a hazard — when NTP eventually lands, the clock
+**leaps by years**, and anything derived from a timestamp difference explodes.
 
-The consequence to protect against: when NTP eventually succeeds, the clock **leaps by
-two years**. Nothing may derive a duration from a timestamp difference — this is the
-concrete reason `hours_since_watering` must come from the RTC counter (§7). Get that wrong
-and the first successful NTP sync after a cold boot fires every time-based rule at once.
+The old approach dodged this with a counter (`seconds_since_last_watering += SECONDS_TO_SLEEP`
+every wake), which is immune to clock jumps but has two problems of its own:
 
-### The 30 s unclaimed loop — kept, with a suggested 5-line net
+- **It froze.** The increment lived inside `shouldWater()`'s `if (!shouldWater)` branch — a
+  side effect hidden in a predicate — so when conditions were met but the tank was empty,
+  the counter stopped accumulating entirely.
+- **It drifts.** With no external RTC, the ESP32 sleeps on its internal oscillator, which
+  is off by tens of seconds per 30-minute sleep. Adding a nominal `SECONDS_TO_SLEEP` each
+  wake accumulates that error indefinitely, and nothing ever corrects it.
+
+Replaced with a **real timestamp plus an NTP correction**, which fixes both at once:
+
+```c
+RTC_DATA_ATTR time_t lastWateredEpoch = 0;   // 0 = not watered this power cycle
+```
+
+`saveCurrentTime()` now dead-reckons **unconditionally** (advance `timeinfo` by the sleep
+just finished, `tm_isdst = -1` so DST is re-derived from the date), records that estimate,
+then syncs. If NTP answers and the correction exceeds `CLOCK_JUMP_THRESHOLD_S` (300 s),
+`lastWateredEpoch` is shifted by the same delta:
+
+```c
+time_t actual = mktime(&timeinfo);
+long clockJump = (long)(actual - estimated);
+if (lastWateredEpoch != 0 && (clockJump > CLOCK_JUMP_THRESHOLD_S || clockJump < -CLOCK_JUMP_THRESHOLD_S)) {
+  lastWateredEpoch += clockJump;
+}
+```
+
+**Shifting both endpoints preserves the interval across the jump.** A bot that watered
+while its clock read June 2023 and then syncs to today has its `lastWateredEpoch` carried
+forward by the same three years, so `now - lastWateredEpoch` is still "four hours ago" —
+not "three years ago", which would fire every time-based rule at once.
+
+The 300 s threshold is chosen so ordinary oscillator drift (tens of seconds) is ignored
+while real corrections (hours to years) are caught. Ignoring small drift is correct, not
+lazy: once NTP works, *both* endpoints are real timestamps and the difference is accurate
+without any adjustment. The correction exists solely to rescue a `lastWateredEpoch` that
+was recorded against a wrong clock.
+
+`secondsSinceLastWatering()` returns `INITIAL_SECONDS_SINCE_WATERING` (10 days) while
+`lastWateredEpoch == 0`, preserving the old "water at the first opportunity after power-on"
+behaviour. `shouldWater()` is now a pure predicate with no side effects.
+
+> Remaining edge, accepted: a device that **never** gets Wi-Fi keeps a wrong absolute clock
+> forever, so `hour_of_day` rules fire at the wrong real-world hour. Intervals stay
+> correct (they're relative), so it still waters roughly on schedule — which is the
+> trade-off you chose.
+
+### The 30 s unclaimed loop — kept, with a 2-hour cap
 
 At ~10 s awake per 30 s cycle the duty cycle is ~33%, versus ~0.55% in normal operation —
 roughly **60× the average current**. A pack that lasts months normally lasts about a day
-in claim mode. Your reasoning holds for the intended flow (power on, claim within
-minutes), and the loop exits as soon as a config arrives.
+in claim mode.
 
-The only case it doesn't cover is a device powered on and forgotten. If you want that
-covered without the backoff ladder you rejected, a single hard cap does it: **after ~4 h
-of unclaimed polling, fall back to the normal 30-minute cycle.** Five lines, fires only in
-the scenario you said won't happen, and costs nothing when you're right. Your call — noted
-as a suggestion, not folded into the plan.
+That's fine for the intended flow (power on, claim within minutes), and the loop exits as
+soon as a config arrives. To cover the powered-on-and-forgotten case, **after 2 hours of
+unclaimed polling the device falls back to the normal 30-minute cycle** — one RTC-retained
+counter and one comparison. Power-cycling re-enters fast claim mode, which is the natural
+gesture anyway ("I'm about to set this up, let me switch it on").
+
+Nothing is lost by falling back: because the config is a retained message (§2), a device on
+the slow cycle still picks up its first config on its very next wake.
 
 While unclaimed the device should publish `{"type":"unclaimed"}` to its ack topic so the
 site can show *"device seen, ready to claim"* during setup, but should **not** publish
@@ -814,7 +1080,7 @@ All routes behind the JWT authorizer; every device-scoped route re-checks
 
 | Method | Route | Notes |
 | --- | --- | --- |
-| `GET` | `/me` | profile, created on first call |
+| `GET` | `/me` | profile; created on first call **if the email is on the allowlist**, else 403 |
 | `GET` | `/devices` | owned devices, last-seen, active/pending version |
 | `POST` | `/devices/claim` | `{deviceId, claimCode}`, rate-limited, conditional write, generic errors |
 | `PATCH` | `/devices/{id}` | nickname, timezone, `mlPerSecond` |
@@ -896,17 +1162,19 @@ silent state.
 1. **Sleeping devices miss non-retained MQTT config** — without the retain flag, a config
    published while the device sleeps is lost forever. §2, §8.
 2. **`client.loop()` is called once**, so an inbound config is never processed. §9.
-3. **Device id comes from the payload, not the topic** — any device can forge another's
+3. **`MQTT_MAX_PACKET_SIZE` defaults to 256 bytes** in PubSubClient — a ~1.5 KB config is
+   silently dropped with no error anywhere. Call `client.setBufferSize(2048)`. This one
+   bites everybody, and it fails quietly. §2.
+4. **Device id comes from the payload, not the topic** — any device can forge another's
    readings. §3.
-4. **The readings API has no authorization** — current public IDOR. §5, §10.
-5. **Config must survive power loss** (NVS, not just RTC), or a battery swap silently
+5. **The readings API has no authorization** — current public IDOR. §5, §10.
+6. **Config must survive power loss** (NVS, not just RTC), or a battery swap silently
    disables watering. §9.
-6. ~~**DST applied with the wrong rules**~~ — **fixed in this branch** (`configTzTime` +
+7. ~~**DST applied with the wrong rules**~~ — **fixed in this branch** (`configTzTime` +
    full POSIX TZ). §9.
-7. **`hours_since_watering` must come from the RTC counter, not clock arithmetic** — the
-   hardcoded 2023 date means the clock leaps two years on first NTP sync. §7, §9.
-8. **The counter freezes when the tank is empty** — the increment is a hidden side effect
-   inside `shouldWater()`'s `if`. Harmless today, a real bug once it's a rule variable. §7.
+8. ~~**The last-watering counter freezes and drifts**~~ — **fixed in this branch**:
+   replaced with `lastWateredEpoch` plus an NTP fast-forward, which removes the hidden
+   side effect in `shouldWater()` and corrects for the missing external RTC. §9.
 9. **Ack races**: promoting "the pending one" instead of matching on version is a genuine
    bug once two edits land close together. §8.
 10. **TTL in seconds vs a millisecond range key** — a units mistake here deletes the
@@ -915,11 +1183,12 @@ silent state.
 
 ### Design concerns
 
-12. **`mlPerSecond` has no in-product calibration path** now that "water now" is out of
-    scope — the user must measure with a jug and a stopwatch. §7.
+12. **`mlPerSecond` is hand-calibrated** (decided) — so the settings field needs the
+    method in its helper text and a datasheet default, or it's an unfillable box. §7.
 13. **Flow rate isn't constant** (battery sag, tank head) — millilitres are ±20%, present
     them as approximate. §7.
-14. **Three pots on one manifold** — is the millilitre figure total or per pot? §7.
+14. **Millilitres are the total across three pots** (decided) — label it explicitly;
+    someone reading it as per-pot under-waters by 3×, silently. §7.
 15. **Permanent ownership has no undo**: never claim a real device with a test account,
     keep the DynamoDB-console escape hatch working, and put a confirmation on the claim
     button. §4.
@@ -927,21 +1196,22 @@ silent state.
     Firebase means rewriting every ownership row. Store both. §5.
 17. **The two evaluators will drift.** Shared JSON fixtures cost almost nothing and are
     worth it precisely because there are only two to compare. §7.
-18. **The 30 s claim loop is ~60× normal current** — fine for the intended flow, flat in a
-    day if a device is powered on and forgotten. Optional 4-hour hard cap. §9.
-19. **Topic migration is breaking** — run old and new IoT rules in parallel. §9.
-20. **No provisioning script exists yet** (thing + cert + policy + DDB row + claim code +
+18. **An admin certificate with a wildcard policy can read every device** — needed for
+    debugging `devices/+/readings`, and worth guarding accordingly. §3.
+19. **Device ids are effectively immutable** once provisioned (thing name, cert
+    attachment, topics, retained message location). The editable `nickname` exists to
+    absorb this. §3, §11.
+20. **A device that never reaches Wi-Fi keeps a wrong absolute clock forever**, so
+    `hour_of_day` rules fire at the wrong real-world hour. Intervals stay correct. Accepted
+    consequence of keeping the hardcoded seed date. §9.
+21. **Topic migration is breaking** — run old and new IoT rules in parallel. §9.
+22. **No provisioning script exists yet** (thing + cert + policy + DDB row + claim code +
     sticker PNG). Prerequisite for everything, easy to under-scope. §4.
-21. **Rule order is decorative** — document it in both implementations before someone
+23. **Rule order is decorative** — document it in both implementations before someone
     relies on precedence that isn't there. §7.
 
 ### Open questions
 
-- **Is hand-calibration of `mlPerSecond` acceptable**, or does the millilitre UI pull a
-  minimal pump-test command back into scope? (§7 — the one question that could change
-  scope.)
-- **Millilitres total or per pot?** Affects labels and whether devices need a pot count.
-- **Is sign-up open or allowlisted?** One `if`; decide before a stranger finds it.
 - **Should the wake interval be user-configurable?** Nice for tuning rules, needs its own
   clamp (never below 5 min).
 - **What happens to readings if you ever do need to reassign a device?** Not in scope, but
@@ -964,7 +1234,7 @@ Each phase ships independently and leaves the system working.
 | Phase | Work | Why |
 | --- | --- | --- |
 | **0. Plumbing** | Provisioning script + sticker generation; per-device topics + policy variables; parallel IoT rules; `ttl` attribute + backfill | No user-visible change; unblocks everything; closes the spoofing hole |
-| **1. Auth + ownership** | Firebase Auth; HTTP API + JWT authorizer; control table; claim; scope existing charts to owned devices | Makes today's dashboard safe; valuable on its own |
+| **1. Auth + ownership** | Firebase Auth; HTTP API + JWT authorizer; control table; email allowlist; claim; scope existing charts to owned devices | Makes today's dashboard safe; valuable on its own |
 | **2. Config channel** | Rule schema + validator; retained config publish; firmware evaluator (host-testable) + NVS + ack; state machine | The core feature |
 | **3. UI** | Presets, DNF builder with plain-English rendering, millilitre input, backtest, next-watering from the active config | Where the value shows up |
 | **4. Polish** | Rollback, stale-device alerts, per-device timezone, wake-interval control | Needs the foundations first |

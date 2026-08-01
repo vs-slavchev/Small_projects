@@ -28,7 +28,11 @@ bool water_available = false;
 int water_level_raw = 0;
 bool watered = false;
 int tempC = -100;
-RTC_DATA_ATTR int seconds_since_last_watering = 3600*24*10;
+// When the last watering happened, as a real timestamp rather than a counter.
+// A counter has to be incremented somewhere every cycle, which is easy to skip
+// on a branch; a timestamp is derived from the clock and can't silently freeze.
+// 0 means "not watered since this power cycle" - see secondsSinceLastWatering().
+RTC_DATA_ATTR time_t lastWateredEpoch = 0;
 RTC_DATA_ATTR struct tm timeinfo = { 0, 0, 13, 2, 6, 123 };
 RTC_DATA_ATTR int maxRecentTemperature = INT_MIN;
 
@@ -152,16 +156,33 @@ void messageHandler(char* topic, byte* payload, unsigned int length)
 }
 
 void saveCurrentTime() {
+  // Dead-reckon first, unconditionally: advance the RTC-retained clock by the
+  // sleep we just finished, so there's a comparable estimate of "now" whether
+  // or not NTP answers. tm_isdst = -1 makes mktime() re-derive DST from the
+  // date instead of trusting the flag left over from the last sync, so a
+  // dead-reckoned clock crossing a changeover doesn't stay an hour off.
+  timeinfo.tm_sec += SECONDS_TO_SLEEP;
+  timeinfo.tm_isdst = -1;
+  time_t estimated = mktime(&timeinfo);
+
   configTzTime(TZ_INFO, ntpServer);
   if(!getLocalTime(&timeinfo)){
-    debugln("Failed to obtain internet time, adding sleep time to timeinfo");
-    timeinfo.tm_sec += SECONDS_TO_SLEEP;
-    // Let mktime() re-derive DST from the date rather than trusting the stale
-    // flag carried over from the last NTP sync - without this, a dead-reckoned
-    // clock that crosses a changeover stays an hour off until Wi-Fi returns.
-    timeinfo.tm_isdst = -1;
-    mktime(&timeinfo);
+    debugln("Failed to obtain internet time, dead reckoning from last known time");
     return;
+  }
+
+  // There is no external RTC, so the clock starts from the hardcoded date above
+  // after any power loss and drifts whenever Wi-Fi is down. When NTP corrects a
+  // large error, shift lastWateredEpoch by the same amount so the *interval*
+  // since the last watering survives the jump. Without this, a bot that watered
+  // while its clock read 2023 would, on its first successful sync, see years of
+  // elapsed time and water again immediately.
+  time_t actual = mktime(&timeinfo);
+  long clockJump = (long)(actual - estimated);
+  if (lastWateredEpoch != 0 &&
+      (clockJump > CLOCK_JUMP_THRESHOLD_S || clockJump < -CLOCK_JUMP_THRESHOLD_S)) {
+    lastWateredEpoch += clockJump;
+    debugf("clock corrected by %lds, fast-forwarded lastWateredEpoch\n", clockJump);
   }
   debugln((String)"Current time: " + asctime(&timeinfo));
 }
@@ -263,16 +284,21 @@ void readWaterLevel() {
   debugf("Water level: r1=%d, r2=%d\n", reading1, reading2);
 }
 
+long secondsSinceLastWatering() {
+  if (lastWateredEpoch == 0) {
+    return INITIAL_SECONDS_SINCE_WATERING;
+  }
+  long elapsed = (long)(mktime(&timeinfo) - lastWateredEpoch);
+  return elapsed > 0 ? elapsed : 0;
+}
+
 bool shouldWater() {
-  bool enoughTimePassedSinceWateringForRecentMaxTemps = seconds_since_last_watering >= calculateSecondsBetweenWateringFromMaxRecentTemperature();
+  long secondsSince = secondsSinceLastWatering();
+  debugln((String)"seconds since last watering: " + secondsSince);
+  bool enoughTimePassedSinceWateringForRecentMaxTemps = secondsSince >= calculateSecondsBetweenWateringFromMaxRecentTemperature();
   bool isMorning = timeinfo.tm_hour == 8;
   bool isHotAfternoon = timeinfo.tm_hour == 15 && maxRecentTemperature >= 29;
-  bool shouldWater = enoughTimePassedSinceWateringForRecentMaxTemps && (isMorning || isHotAfternoon);
-  if (!shouldWater) {
-    seconds_since_last_watering += SECONDS_TO_SLEEP;
-    debugln((String)"set seconds_since_last_watering to: " + seconds_since_last_watering);
-  }
-  return shouldWater;
+  return enoughTimePassedSinceWateringForRecentMaxTemps && (isMorning || isHotAfternoon);
 }
 
 int calculateSecondsBetweenWateringFromMaxRecentTemperature() {
@@ -306,9 +332,11 @@ void powerPump() {
 
 void finishWatering() {
   watered = true;
-  seconds_since_last_watering = SECONDS_TO_SLEEP;
+  // Stamped from timeinfo, which was last set before the pump ran, so this is
+  // WATERING_DURATION_S early - irrelevant against intervals measured in hours.
+  lastWateredEpoch = mktime(&timeinfo);
   maxRecentTemperature = INT_MIN;
-  debugln((String)"\nrestarted seconds_since_last_watering and reset maxRecentTemperature");
+  debugln((String)"\nrecorded watering time and reset maxRecentTemperature");
 }
 
 void waitForBleToFinish() {

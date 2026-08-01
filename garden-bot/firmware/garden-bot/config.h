@@ -34,6 +34,19 @@
 // last Sunday of October 04:00 (Europe/Sofia and the rest of EU Eastern time).
 #define TZ_INFO "EET-2EEST,M3.5.0/3,M10.5.0/4"
 
+// Assumed time since the last watering before any watering has happened in this
+// power cycle - long enough that a freshly powered bot waters at its first
+// opportunity rather than waiting out a full interval.
+#define INITIAL_SECONDS_SINCE_WATERING (3600L * 24 * 10)
+
+// How far the clock has to move during an NTP sync before we treat it as a
+// correction rather than ordinary drift, and shift lastWateredEpoch to match.
+// The ESP32 has no external RTC: its internal oscillator drifts by tens of
+// seconds over a 30-minute sleep, and it starts from a hardcoded date after
+// power loss, so a real correction is hours-to-years and ordinary drift is
+// well under this.
+#define CLOCK_JUMP_THRESHOLD_S 300
+
 #define WIFI_CONNECT_TIMEOUT_MS 30000
 #define AWS_CONNECT_TIMEOUT_MS 15000
 
