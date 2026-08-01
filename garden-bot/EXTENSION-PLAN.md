@@ -29,6 +29,11 @@ Settled in discussion, recorded here so they don't get relitigated:
 | **Control plane single-table, readings in their own table** | §6 |
 | **`rejected` is a first-class config state** | §8 |
 | **Sign-up is allowlisted** — authenticate anyone, authorize a list | §5 |
+| **Device ids are immutable**; the editable `nickname` absorbs renaming | §3 |
+| **One certificate per device and no others** — backend and console use IAM | §3 |
+| **Threat model: remote attackers only.** Physical access is out of scope | §4 |
+| **No compression**; `setBufferSize(4096)` and a 3 KB server-side cap | §2 |
+| **The wake interval is fixed at 30 min**, not user-configurable | — |
 
 ---
 
@@ -181,17 +186,84 @@ works at QoS 0 too, but QoS 1 costs nothing and PubSubClient supports it on subs
 
 #### Practical notes
 
-- **Payload sizes**: AWS IoT allows 128 KB per message; a config bounded at 8 rules × 6
-  comparisons is ~1.5 KB. No pressure. Note PubSubClient has its own much smaller default
-  buffer (`MQTT_MAX_PACKET_SIZE`, 256 bytes) — you **must** call
-  `client.setBufferSize(2048)` or configs will be silently dropped. This one bites
-  everybody.
+#### Buffer sizing — 2048 is not enough
+
+AWS IoT allows 128 KB per message, so the broker is never the constraint. **PubSubClient
+is.** Its buffer defaults to `MQTT_MAX_PACKET_SIZE` = 256 bytes and is a single allocation
+used for both inbound and outbound packets; anything larger is **silently dropped, with no
+error and no callback**. You must call `setBufferSize()` — and the number matters.
+
+Worst case at the §7 bounds (8 rules × 6 comparisons, longest variable name,
+four-digit values, 20-character rule names), measured rather than estimated:
+
+| Encoding | Bytes |
+| --- | --- |
+| Verbose objects, with rule names | **3058** |
+| Verbose objects, names stripped on the wire | 2818 |
+| Compact arrays `["hours_since_watering","gte",2000]` | 1842 |
+
+So `setBufferSize(4096)`. 4 KB of heap is free money on an ESP32 even with mbedTLS
+resident, and it leaves headroom for the bounds to grow.
+
+Two changes worth making regardless of the buffer:
+
+- **Strip rule `name` before publishing to the device.** Names are UI-only; the device
+  never reads them. Beyond the 240 bytes, this removes the *only* unbounded user-controlled
+  string from the device's parse path — everything the firmware then sees is a known token
+  or an integer. The full version with names stays in DynamoDB for the UI.
+- **Enforce a serialized-byte cap server-side** (3 KB), not just a rule/comparison count.
+  Counts don't bound bytes, and the failure mode on the device is silence.
+
+#### Compression: no
+
+Gzip would take a 3 KB config to roughly 500 bytes. Don't do it:
+
+- **The saving is worth nothing.** 2.5 KB over a link that just spent 1–3 seconds on a TLS
+  handshake is ~20 ms of radio at any realistic rate. Handshake dominates everything (§2).
+- **It costs more RAM, not less.** You'd need the compressed buffer *and* a decompression
+  output buffer, i.e. more than the 4 KB you were trying to avoid.
+- **It destroys your best debugging tool.** A retained message you can read in the AWS IoT
+  MQTT test client is worth far more than 2.5 KB.
+
+If size ever genuinely becomes a problem, the compact array encoding above buys 40% for
+free and stays human-readable. Reach for that first; compression never.
+
+Do note the recurring cost this implies: the retained config is re-delivered on **every**
+subscribe, so ~3 KB × 48 wakes/day of downstream traffic per device, forever. That's fine
+— it's the price of the delivery guarantee, and it's what makes lost acks self-heal.
+
+#### Last Will and Testament, and why this device disconnects ungracefully
+
+**LWT** is an MQTT dead-man's switch. At connect time a client can register a will — a
+topic, a payload, and a retain flag — which the broker holds. If that client disconnects
+**without sending a DISCONNECT packet**, the broker publishes the will on its behalf. The
+classic use is `home/sensor/status = "offline"`, retained, so dashboards show liveness
+without polling.
+
+The distinction that matters:
+
+| Disconnect | What happens | Will fires? |
+| --- | --- | --- |
+| **Graceful** — client sends an MQTT `DISCONNECT`, then closes TCP | Broker knows it was deliberate | **No**, will is discarded |
+| **Ungraceful** — TCP drops with no DISCONNECT: crash, power cut, network loss, keepalive timeout | Broker can't tell why it vanished | **Yes** |
+
+This device's disconnect is ungraceful **because nothing ever sends DISCONNECT**.
+`deepSleep()` calls `disconnectWiFi()` and then `esp_deep_sleep_start()`; `client.disconnect()`
+is never called, so the TCP connection simply evaporates when the radio goes down and the
+CPU powers off. From the broker's side that is indistinguishable from the board falling in
+a pond. It waits out the keepalive interval and then declares the client gone.
+
+So: **don't register an LWT here** — it would fire 48 times a day on a perfectly healthy
+device — and don't derive "online" from connect/disconnect events, which are pure noise at
+this duty cycle. Liveness comes from `lastSeenAt` on the readings.
+
+> Worth doing anyway: add `client.disconnect()` before `disconnectWiFi()` in `deepSleep()`.
+> One line. It lets the broker release the session immediately instead of waiting out a
+> keepalive timeout, and it makes an ungraceful disconnect *mean something* again — a real
+> crash — if you ever want that signal. Not done in this branch; say the word.
+
 - **Retained messages have an account quota** and are billed as messages. At tens of
   devices you are nowhere near any limit, and the cost is fractions of a cent.
-- **Don't use a Last Will and Testament**, and don't build "device online" detection from
-  connect/disconnect events. This device disconnects ungracefully every single cycle by
-  design (it powers off), so an LWT would fire 48 times a day and connect/disconnect
-  events are pure noise. Derive liveness from `lastSeenAt` on the readings instead.
 - **Clearing a config** (zero-length retained publish) is how you'd return a device to
   "never water". Prefer publishing `rules: []` explicitly — same effect, but it's a
   versioned, acked, auditable config rather than an absence.
@@ -302,6 +374,48 @@ Corollary for the rule: **take the device id from `topic(2)`, and drop `doc["dev
 from the payload** (or keep it and ignore it) so nothing downstream can be fooled by a
 forged body.
 
+### The topic set
+
+| Topic | Direction | Retained | Purpose |
+| --- | --- | --- | --- |
+| `devices/{id}/readings` | device → cloud | no | sensor readings (replaces `esp32/pub`) |
+| `devices/{id}/config` | cloud → device | **yes** | desired watering config |
+| `devices/{id}/ack` | device → cloud | no | `applied` / `rejected` / `unclaimed` |
+
+### Proposal: two topics, not three — fold the ack into the reading
+
+Worth deciding before any of this is built, because it simplifies several sections at once.
+
+The ack topic exists to carry one fact: *"I am currently running config version N"*
+(or *"I refused version N because…"*). But the device already publishes a reading on
+**every single wake**, in the same connection, moments later. Putting `config_version` and
+`config_status` in the reading payload costs ~30 bytes and deletes:
+
+- one topic and its two policy statements,
+- one IoT rule and one Lambda,
+- the entire "what if the ack is lost" question — because **every reading re-states the
+  device's current config version**, so the backend's view is refreshed 48 times a day
+  instead of once per config change. The self-healing property of §2 stops being a clever
+  consequence of retention and becomes structural.
+
+Reading payload gains:
+
+```json
+{ "config_version": 7, "config_status": "applied", "reject_reason": null, ... }
+```
+
+The one thing the ack topic does that a reading can't is announce an **unclaimed** device,
+since the plan says unclaimed devices don't publish readings. That's easily resolved: let
+an unclaimed device publish readings anyway. Its own telemetry is not sensitive, storing it
+gives you history from first power-on (a small bonus), and the "device seen, ready to
+claim" signal the setup page needs comes free. The backend simply doesn't attribute
+readings to an owner until one exists.
+
+**Recommendation: two topics.** Three was the right instinct — acks *are* conceptually
+distinct from readings — but the device's wake cycle already gives you a heartbeat, and
+piggybacking state onto it is strictly more robust than a separate one-shot message. Your
+call; the rest of this document assumes three so it still reads correctly either way.
+
 ### Do we need a topic per device? Yes — and it's free.
 
 The common worry is that topics are resources you provision and pay for. **They aren't.**
@@ -338,20 +452,37 @@ provisioning script.
 
 Honest list — none are dealbreakers, but they're real:
 
-- **Device ids become effectively immutable.** The id appears in the thing name, the
-  certificate attachment, the topic strings, and the retained message's location.
-  Renaming means re-provisioning. *Mitigation: the user-facing name is a separate,
-  freely-editable `nickname` (§11); the id is an opaque internal handle they see once, on
-  the sticker.*
-- **You need a second, broader policy for admin/debug tooling.** Nothing can subscribe to
-  `devices/+/readings` under the device policy, so a laptop watching all traffic needs its
-  own certificate with a wildcard policy. Fine — but it's a thing to create, and it's a
-  credential worth guarding, since it can read everything.
-- **Rules must use wildcards**, so per-device rule behaviour means overlapping rule filters
-  rather than a natural per-device split. You don't want that today.
-- **Fan-out debugging is less convenient.** With a single shared topic you can watch one
-  place in the MQTT test client. With per-device topics you subscribe `devices/+/readings`
-  (with the admin cert). Minor.
+- **Device ids become immutable** — which you want anyway. The id appears in the thing
+  name, the certificate attachment, the topic strings, and the retained message's
+  location, so renaming means re-provisioning. Treat the id as a permanent opaque handle
+  the user sees exactly once, on the sticker, and give them a freely-editable `nickname`
+  for everything user-facing (§11).
+- **Rules must use wildcards**, so per-device rule behaviour would mean overlapping rule
+  filters rather than a natural per-device split. You don't want that today.
+- **Fan-out debugging is less convenient.** With a single shared topic you watch one place;
+  with per-device topics you subscribe `devices/+/readings`. See below — this needs no
+  extra certificate.
+
+### How many certificates? One per device, and nothing else.
+
+Correcting an earlier claim in this document: **no second "admin" certificate is needed.**
+X.509 client certs are only for things that connect *as MQTT clients over mutual TLS* —
+i.e. the devices. Everything else in this system authenticates with **IAM**:
+
+| Who | How it talks to IoT Core | Credential |
+| --- | --- | --- |
+| ESP32 devices | MQTT over mutual TLS, port 8883 | **X.509 cert, one per device** |
+| Backend Lambdas (publishing config) | `iot-data` SDK `publish()` — an HTTPS API call | IAM execution role |
+| You, debugging | AWS console MQTT test client, or an SDK/WebSocket client | IAM console session |
+
+So the answer to "can we do with one?" is: **you already are** — one per device, zero
+extras. The backend never holds a certificate, and neither do you. Subscribing to
+`devices/+/readings` to watch the whole fleet is an IAM-authorized action from the console
+test client, governed by your IAM policy rather than by an IoT policy attached to a cert.
+
+You'd only need an additional certificate for a *standalone* cert-authenticated MQTT
+client — a `mosquitto_sub` script, or a monitoring gadget with no AWS credentials. Neither
+is on the roadmap, and if one ever is, that's the moment to create it, not now.
 
 ### The alternative that half-works, for completeness
 
@@ -370,6 +501,34 @@ too is free and keeps one consistent model instead of two.
 ---
 
 ## 4. Claiming: the code, and what "possession" means
+
+### The threat model, stated plainly
+
+Everything in this section follows from one sentence:
+
+> **The goal is to stop someone *without* physical access from taking control of another
+> person's device. An attacker who is holding the device is out of scope.**
+
+That's the right line for a garden bot — someone standing in your garden with a screwdriver
+can take the plant, and no amount of cryptography helps.
+
+What it lets you **not** do:
+
+- No flash encryption, no secure boot, no eFuse burning.
+- No secure element for the private key.
+- The BLE passkey can stay a fixed compile-time constant.
+- No tamper detection, no attestation.
+
+What it still **requires**, and these are the ones that matter:
+
+- **The claim code must never leak through a non-physical channel** — not git, not logs,
+  not a URL query string, not a `Referer` header, not a backup. That single requirement
+  drives the sticker, the URL fragment, the hash-at-rest, and the rate limiting below.
+- **Per-device certificates**, so a remote attacker who extracts one device's key gains
+  nothing about any other (§3).
+- **Broker-enforced topic isolation**, so a compromised device can't read or write another's
+  traffic (§3).
+- **Server-side ownership checks on every API call** (§10).
 
 ### Three different identity questions
 
@@ -1013,9 +1172,26 @@ Replaced with a **real timestamp plus an NTP correction**, which fixes both at o
 RTC_DATA_ATTR time_t lastWateredEpoch = 0;   // 0 = not watered this power cycle
 ```
 
+**Dead reckoning** is the navigation term: estimating where you are now from your last
+known fix plus how fast and how long you've travelled, with no external reference. Ships
+did it with a compass and a knotted log line between star sightings. It's always
+approximate and the error accumulates, but it beats having no position at all.
+
+Here the last known fix is `timeinfo` (the time at the previous wake), the "speed and
+heading" is `SECONDS_TO_SLEEP`, and the star sighting is NTP. `timeinfo.tm_sec +=
+SECONDS_TO_SLEEP` estimates the current time by assuming the sleep lasted exactly its
+nominal 30 minutes. It didn't: the ESP32's deep-sleep timer runs on an internal RC
+oscillator rather than a crystal, so it's off by tens of seconds per sleep, and the awake
+time isn't counted at all. The error is systematic, not noise, and it compounds every
+cycle until a real fix corrects it.
+
 `saveCurrentTime()` now dead-reckons **unconditionally** (advance `timeinfo` by the sleep
 just finished, `tm_isdst = -1` so DST is re-derived from the date), records that estimate,
-then syncs. If NTP answers and the correction exceeds `CLOCK_JUMP_THRESHOLD_S` (300 s),
+then syncs. Doing it always — rather than only in the NTP-failure branch, as before — is
+what makes jump detection possible at all: without an estimate to compare against, you
+cannot distinguish "the clock is badly wrong" from "30 minutes have passed."
+
+If NTP answers and the correction exceeds `CLOCK_JUMP_THRESHOLD_S` (300 s),
 `lastWateredEpoch` is shifted by the same delta:
 
 ```c
@@ -1162,9 +1338,10 @@ silent state.
 1. **Sleeping devices miss non-retained MQTT config** — without the retain flag, a config
    published while the device sleeps is lost forever. §2, §8.
 2. **`client.loop()` is called once**, so an inbound config is never processed. §9.
-3. **`MQTT_MAX_PACKET_SIZE` defaults to 256 bytes** in PubSubClient — a ~1.5 KB config is
-   silently dropped with no error anywhere. Call `client.setBufferSize(2048)`. This one
-   bites everybody, and it fails quietly. §2.
+3. **`MQTT_MAX_PACKET_SIZE` defaults to 256 bytes** in PubSubClient — a config is silently
+   dropped with no error anywhere. Worst case at the §7 bounds measures **3058 bytes**, so
+   `setBufferSize(4096)`, strip rule names on the wire, and cap serialized bytes
+   server-side. §2.
 4. **Device id comes from the payload, not the topic** — any device can forge another's
    readings. §3.
 5. **The readings API has no authorization** — current public IDOR. §5, §10.
@@ -1196,11 +1373,12 @@ silent state.
     Firebase means rewriting every ownership row. Store both. §5.
 17. **The two evaluators will drift.** Shared JSON fixtures cost almost nothing and are
     worth it precisely because there are only two to compare. §7.
-18. **An admin certificate with a wildcard policy can read every device** — needed for
-    debugging `devices/+/readings`, and worth guarding accordingly. §3.
-19. **Device ids are effectively immutable** once provisioned (thing name, cert
-    attachment, topics, retained message location). The editable `nickname` exists to
-    absorb this. §3, §11.
+18. **The front end infers `max_temp_c` from readings** rather than being told, so it
+    disagrees with the device whenever the reading window is incomplete. §12 open
+    questions.
+19. **Device ids are immutable** once provisioned (thing name, cert attachment, topics,
+    retained message location) — intended, with `nickname` absorbing renaming, but it
+    means `cherry-3-pot`'s id is a phase-0 decision. §3, §11.
 20. **A device that never reaches Wi-Fi keeps a wrong absolute clock forever**, so
     `hour_of_day` rules fire at the wrong real-world hour. Intervals stay correct. Accepted
     consequence of keeping the hardcoded seed date. §9.
@@ -1212,8 +1390,30 @@ silent state.
 
 ### Open questions
 
-- **Should the wake interval be user-configurable?** Nice for tuning rules, needs its own
-  clamp (never below 5 min).
+- **Two topics or three?** Fold `config_version` / `config_status` into the reading payload
+  and drop the ack topic. Recommended; §3.
+- **Publish `max_temp_c` and `hours_since_watering` in the reading.** Right now the front
+  end *reconstructs* them by scanning readings since the last `watered` event, which
+  disagrees with the device whenever the window is incomplete — a device that was offline,
+  or a `daysago` range shorter than the watering interval. These are the actual rule
+  inputs; ~20 bytes to state them authoritatively, and it removes a whole class of "the
+  site says one thing, the device does another". Recommended.
+- **Should the device report its `schema` version in readings, so the UI only offers
+  variables that device's firmware understands?** This makes `rejected` (§8) essentially
+  unreachable in normal operation instead of something a user can trigger by using a new
+  feature on an old board. Cheap, and it turns a confusing failure into an impossible one.
+- **What device id does `cherry-3-pot` keep?** Now that ids are immutable and readings are
+  keyed by device name, renaming the existing bot orphans a year of history. Simplest
+  answer: grandfather the existing name as-is (accepting it's guessable — the claim code is
+  what actually protects it) and use opaque ids only for new boards. Needs deciding in
+  phase 0, before the provisioning script is written.
+- **Do you want notifications at all?** The highest-value one isn't "device offline", it's
+  **"the tank has been empty for two days and your plants haven't been watered"** — the
+  device already reports `water_available`, and today nothing acts on it. Now that accounts
+  carry verified email addresses, this is an EventBridge daily rule + SES/SNS and ~30 lines.
+  Out of scope unless you want it, but it's the gap most likely to actually kill a plant.
+- **Add `client.disconnect()` before deep sleep?** One line, makes the MQTT disconnect
+  graceful (§2). Not done in this branch.
 - **What happens to readings if you ever do need to reassign a device?** Not in scope, but
   the answer shapes whether readings are keyed by device or by owner. Keeping them keyed
   by device (as today) leaves both options open — no action needed, just don't key them by
