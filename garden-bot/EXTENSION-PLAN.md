@@ -42,6 +42,7 @@ Settled in discussion, recorded here so they don't get relitigated:
 | **Devices are provisioned by an idempotent script, not CDK** | §13 |
 | **Every §14 walkthrough fix is in scope** | §14 |
 | **Build incrementally, each step gated on a re-runnable check** | §15 |
+| **RSA-2048 device certificates from day one** | §4 |
 
 ---
 
@@ -679,14 +680,17 @@ Write it in **Python with boto3**: the repo already has boto3 scripts, it's a si
 and it's operational tooling rather than infrastructure. The `openssl` step can be
 `cryptography` instead of shelling out, if you prefer one language end to end.
 
-> **Key type is worth measuring, not assuming.** The TLS handshake dominates the energy
-> budget of every wake (§2), and the client's private-key operation is part of it. The
-> usual advice is "ECC is lighter than RSA", but this board is a **classic ESP32**, which
-> has a hardware RSA/MPI accelerator and *no* ECC accelerator — so ECDSA P-256 runs in
-> software while RSA-2048 runs in hardware, and RSA may well be the faster of the two here.
-> AWS IoT accepts both. Provision one board each way and time the handshake before
-> committing the fleet; it's a 20-minute experiment against a cost you pay 48 times a day
-> forever.
+**Key type: RSA-2048, decided.** The usual advice is "ECC is lighter than RSA", but that
+generalises from microcontrollers without crypto acceleration. This is a **classic ESP32**,
+which has a hardware RSA/MPI accelerator and *no* ECC accelerator — so ECDSA P-256 would
+run in software while RSA-2048 runs in hardware. The conventional choice is very likely the
+wrong one here, and RSA is also the better-trodden path with AWS IoT and mbedTLS.
+
+Two consequences, both benign: an RSA-2048 certificate PEM is roughly twice the size of an
+EC one (~1.2 KB vs ~600 B), which matters not at all sitting in `PROGMEM`; and keypair
+*generation* is slow, which also matters not at all because it happens on your laptop via
+`openssl`, never on the device. AWS IoT requires at least 2048 bits, so 2048 is both the
+floor and the right choice.
 
 ### Device ids should not be guessable
 
@@ -1531,8 +1535,9 @@ deferred rather than unresolved:
   that was empty for a week, this is the thing that would have caught it: the device
   already reports `water_available` and nothing acts on it. An EventBridge daily rule plus
   SES is ~30 lines whenever you want it.
-- **Certificate key type** — RSA-2048 vs ECDSA P-256. Worth a 20-minute measurement rather
-  than a guess, for the reasons in §4, before you provision more than a couple of boards.
+- **Nothing else.** The four §15.0 spikes are experiments, not decisions — they confirm
+  assumptions rather than choose between options, and §15.0 gives the prior and the
+  fallback for each.
 
 ---
 
@@ -1877,12 +1882,98 @@ Each answers one binary question that the design rests on.
 | **S3** | Do policy variables actually block cross-device traffic? | Two certs, two things, the §3 policy. Try publishing to the *other* device's topic | Broker refuses — connection dropped, message never lands |
 | **S4** | Can the ESP32 receive a 1.3 KB retained config? | `setBufferSize(4096)`, subscribe, 2 s `client.loop()` window, print payload | Full payload on serial, on the first wake after publish |
 
-Also worth folding into S4 while a board is on the bench: **time the TLS handshake with an
-RSA-2048 cert and an ECDSA P-256 cert** (§4). It's the one open question left, it's 20
-minutes here, and the answer is baked into every certificate you ever issue.
-
 If S1 or S4 fails, the transport decision reopens (§2 option C). If S2 fails, auth reopens
-(§5, Cognito). Better to know on day one.
+(§5). Better to know on day one.
+
+#### How much to expect from each
+
+They are not equally risky, and they shouldn't get equal time. My priors, so you can
+budget accordingly:
+
+**S1 — retained messages. ~95% it passes. Budget 15 minutes.**
+Retained delivery is core MQTT 3.1.1 semantics and AWS has supported it since late 2021.
+This isn't really risk reduction — it's **learning the debugging tool you'll live in for
+the rest of the project**. `get-retained-message` is how you'll answer "did the backend
+actually publish that?" for the next six months.
+
+One variation worth doing since it's the property the whole design rests on: publish,
+then **wait ten minutes**, *then* subscribe with a fresh client id. That proves the message
+is broker state rather than session state — which is the entire reason retention was chosen
+over persistent sessions (§2). Thirty seconds of work, ten minutes of wall clock, do
+something else meanwhile.
+
+Note in passing: re-delivery on subscribe is billed as a message, so it's 48 extra
+messages/device/day. Still fractions of a cent.
+
+**S2 — the Firebase JWT authorizer. ~75-80%. This is the real risk. Do it first.**
+Everything else on this list is me confirming something I'm confident about. This one I'm
+genuinely unsure of, and it's load-bearing: if it fails, §5's "you write zero auth code"
+claim goes away.
+
+The crux is narrow: API Gateway's JWT authorizer does **OIDC discovery**, so it needs
+`https://securetoken.google.com/<project-id>/.well-known/openid-configuration` to exist and
+return a document containing `jwks_uri`. I believe Google publishes it. I'm not certain.
+
+**Decompose it — there's a 30-second pre-check that resolves most of the risk before you
+build anything:**
+
+```bash
+curl -s https://securetoken.google.com/<your-firebase-project-id>/.well-known/openid-configuration | jq .
+```
+
+If that returns a discovery document with a `jwks_uri`, you're most of the way there and
+the throwaway stack is just confirming API Gateway behaves as documented. If it 404s, stop
+— don't build the stack, go straight to the fallback. Either way you've spent half a minute
+instead of half a morning.
+
+Fallbacks, in order, if it fails:
+1. **Lambda authorizer** with `firebase-admin` and `verify_id_token`. ~30 lines, but now you
+   store a service-account key in Secrets Manager and eat a heavier cold start. Firebase
+   keeps all its UX benefits; you just lose the "no code" part.
+2. **Cognito with Google federation** (§5 option 2), whose issuer is unambiguously
+   discoverable. More console setup, and it moves you off Firebase's token refresh.
+
+Neither is a disaster. The design survives; only its elegance suffers.
+
+**S3 — policy variables. ~95% it passes. Budget an hour, mostly on tooling.**
+This is well-trodden AWS IoT. What you're really testing is **your policy document**, not
+AWS. Three specific things to watch, because they're the ones that actually go wrong:
+
+- **`iot:Subscribe` takes `topicfilter/` ARNs; `iot:Receive` takes `topic/`.** Mixing them
+  up is *the* classic error, and it fails in the most confusing possible way: the SUBSCRIBE
+  succeeds and messages simply never arrive.
+- A certificate not attached to a thing means `${iot:Connection.Thing.ThingName}` doesn't
+  resolve and **everything** is denied. Loud, at least.
+- On an authorization failure AWS IoT usually **closes the connection** rather than
+  returning an error, so from the client it looks like a mysterious disconnect. Expect
+  that; don't debug it as a network problem.
+
+> **Turn on AWS IoT logging before you start this**, because it is off by default and it is
+> the only way to see *why* a connection was refused:
+> ```bash
+> aws iot set-v2-logging-options --default-log-level WARN --role-arn <role>
+> ```
+> Without it you are guessing. This single step is worth more than the rest of S3.
+
+The assertion that matters is the **negative** one: device A publishing to device B's topic
+must fail. A passing positive test proves nothing about isolation.
+
+**S4 — the ESP32 receiving a 1.3 KB config. ~90%. Budget two hours.**
+The message size itself is not the risk. Three other things are:
+
+- **`setBufferSize()` is a PubSubClient 2.x runtime API.** Older versions only have the
+  compile-time `MQTT_MAX_PACKET_SIZE`, which means editing the library header. Check your
+  installed version first. It also **returns a bool** — check it; allocation can fail.
+- **Heap, and this one is specific to your firmware.** `startBLE()` runs for the whole wake
+  (§9), so NimBLE, Wi-Fi, mbedTLS and now a 4 KB MQTT buffer are all resident
+  simultaneously. That combination is already tight on a classic ESP32. **Print
+  `ESP.getFreeHeap()` at the top of the wake, after `connectAWS()`, and after the config
+  arrives.** If anything on this list bites, it's this — and it's the one thing a spike on
+  someone else's example code would never reveal.
+- **Measure the actual arrival latency** of the retained message rather than assuming 2 s
+  is right, then set `CONFIG_WAIT_MS` from data with margin.
+
+Call `setBufferSize()` *before* `connect()`, or it won't apply to the session.
 
 ### 15.1 Infrastructure skeleton
 
