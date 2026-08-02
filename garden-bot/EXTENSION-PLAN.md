@@ -39,6 +39,9 @@ Settled in discussion, recorded here so they don't get relitigated:
 | **Infrastructure in CDK (TypeScript)**, excluding the website | §13 |
 | **The wake interval is fixed at 30 min**, not user-configurable | — |
 | **MQTT DISCONNECT sent before deep sleep** | Implemented, §2 |
+| **Devices are provisioned by an idempotent script, not CDK** | §13 |
+| **Every §14 walkthrough fix is in scope** | §14 |
+| **Build incrementally, each step gated on a re-runnable check** | §15 |
 
 ---
 
@@ -1671,6 +1674,9 @@ The sections above each hold together on their own. This one traces the four end
 flows looking for the gaps *between* them — ordering, atomicity, and dependencies nobody
 owns because they fall between two components.
 
+**Everything in this section is approved and in scope**, and each item is wired into a
+specific step of the build plan in §15 rather than left as advice.
+
 ### A. Deploying the account from zero
 
 ```
@@ -1792,10 +1798,29 @@ The UI already gates variables by the device's reported `schema` (§7), but that
 client-side check. Enforcing it server-side turns a `rejected` round trip into an immediate,
 clear error.
 
-**D5. Verify the SDK's retain flag.** The backend publishes via `iot-data`'s `publish()`
-rather than an MQTT client. It takes a `retain` parameter — confirm it on your SDK version
-before building on it, because if it's absent the whole delivery model needs an MQTT client
-inside Lambda and that is a very different Lambda.
+**D5. The SDK's retain flag — nothing is preventing us.** AWS IoT Core gained retained
+messages in late 2021, and `iot-data`'s `Publish` took a `retain` parameter at the same
+time. Any current Lambda Python runtime ships a boto3 far newer than that, so the bundled
+SDK has it and there is nothing to install.
+
+The general caveat is still worth internalising, because it will bite on some *other* API
+one day: **you do not control the SDK version inside a Lambda.** AWS pins boto3 per runtime
+and updates it on their schedule, sometimes months behind release. If you ever need a
+genuinely new API, you must ship boto3 in the deployment package or a layer. For `retain`,
+you don't.
+
+Rather than trusting any of that, it's two commands to prove — and that check is step S1 of
+the plan in §15, deliberately placed before anything depends on it:
+
+```bash
+aws iot-data publish --topic 'devices/test/config' --retain --payload '{"v":1}' --cli-binary-format raw-in-base64-out
+aws iot-data get-retained-message --topic 'devices/test/config'
+```
+
+Two related things the same API surface implies: the publishing Lambda's role needs
+`iot:Publish` on the config topic ARNs, and **retained messages are never cleaned up
+automatically** — decommissioning a device leaves its config on the broker forever unless
+the decommission script calls `iot:DeleteRetainedMessage`.
 
 **D6. Two tabs editing at once** both get distinct versions from the atomic counter, both
 publish, and the broker keeps the last. If the publishes land out of order the DB can
@@ -1810,16 +1835,149 @@ have. Two unrelated decisions landing well together.
 
 ---
 
-## 15. Phasing
+## 15. The build plan
 
-Each phase ships independently and leaves the system working.
+Coarse phases were the wrong granularity for this. There are five moving parts (CDK, IoT,
+DynamoDB, Firebase, firmware) plus manual console work, and a bug in any of them presents
+as *"the message didn't arrive"*. The cure is that **every step below ends with a check
+that fails loudly and can be re-run**, and no step is started until the previous one's
+check passes.
 
-| Phase | Work | Why |
+Three rules that make the difference:
+
+1. **De-risk before you build.** The spikes in §15.0 test the four assumptions that would
+   change the design if they turned out false. They cost half a day and are thrown away.
+   Discovering any of them in week three means rework.
+2. **The fake device is the main tool, not the ESP32.** `fake_device.py` (step 1.4) is a
+   real certificate talking real MQTT — everything backend-side is developed and tested
+   against it, in seconds, with no flash cycle. The physical bot is the *last* consumer of
+   each feature, not the first.
+3. **Break your error paths on purpose, once.** An `errorAction` you've never seen fire is
+   not a check, it's a hope. Same for the rate limiter, the 403, and the config validator.
+
+### Standing checks
+
+Run after every deploy, not just when something feels wrong:
+
+- `cdk diff` before every `cdk deploy` — no surprises, no drift.
+- `scripts/smoke.py` — the end-to-end regression suite, grown one assertion per step
+  below. By the end it is ~150 lines and covers: reading ingestion, retained config
+  round-trip, every API route with and without a token, and cross-device denial.
+- `pytest` (validator, codec, evaluator fixtures) and `npm test` (JS evaluator, same
+  fixtures) in CI.
+
+### 15.0 Spikes — half a day, throwaway
+
+Each answers one binary question that the design rests on.
+
+| # | Question | How | Pass looks like |
+| --- | --- | --- | --- |
+| **S1** | Do retained messages work end to end? | `aws iot-data publish --retain`, then `get-retained-message`, then subscribe with the console test client | The subscriber receives the payload **immediately on subscribe**, having never been connected when it was published |
+| **S2** | Does the HTTP API JWT authorizer accept Firebase tokens? | Throwaway stack: one route, one Lambda echoing `event.requestContext.authorizer.jwt.claims`. Real token from a scratch Firebase project | Valid token → claims; no token → 401; expired token → 401 |
+| **S3** | Do policy variables actually block cross-device traffic? | Two certs, two things, the §3 policy. Try publishing to the *other* device's topic | Broker refuses — connection dropped, message never lands |
+| **S4** | Can the ESP32 receive a 1.3 KB retained config? | `setBufferSize(4096)`, subscribe, 2 s `client.loop()` window, print payload | Full payload on serial, on the first wake after publish |
+
+Also worth folding into S4 while a board is on the bench: **time the TLS handshake with an
+RSA-2048 cert and an ECDSA P-256 cert** (§4). It's the one open question left, it's 20
+minutes here, and the answer is baked into every certificate you ever issue.
+
+If S1 or S4 fails, the transport decision reopens (§2 option C). If S2 fails, auth reopens
+(§5, Cognito). Better to know on day one.
+
+### 15.1 Infrastructure skeleton
+
+| Step | Deliverable | Check |
 | --- | --- | --- |
-| **0. Plumbing** | CDK stack (tables, IoT policy + rule, Lambda, HTTP API); provisioning script + sticker generation; per-device topics + policy variables | Greenfield, since the old data is orphaned — no import, no backfill, no parallel-rule migration |
-| **1. Auth + ownership** | Firebase Auth; HTTP API + JWT authorizer; control table; email allowlist; claim; scope existing charts to owned devices | Makes today's dashboard safe; valuable on its own |
-| **2. Config channel** | Rule schema + validator; wire codec (names ↔ codes); retained config publish; firmware evaluator (host-testable) + NVS; config status in the reading; state machine | The core feature |
-| **3. UI** | Presets, DNF builder with plain-English rendering, millilitre input, backtest, next-watering from the active config | Where the value shows up |
-| **4. Polish** | Rollback, per-device timezone, empty-tank notifications | Deferred, not forgotten |
+| 1.1 | CDK app, bootstrap, empty stack | `cdk deploy` succeeds; `cdk diff` clean immediately after |
+| 1.2 | Both tables, TTL enabled on **both**, names published as SSM parameters | Script writes an item with `ttl` and asserts it's epoch **seconds**, not ms (§6); reads the table name from SSM, never a literal |
+| 1.3 | IoT policy, topic rule with `errorAction`, ingest Lambda | Publish a fake reading via CLI → row appears. **Then break the Lambda's IAM permission on purpose and confirm `errorAction` fires** — restore it after |
+| 1.4 | `fake_device.py` — real cert, connects, subscribes, publishes | Publishes → row appears. Attempts a foreign device's topic → **denied** (this is S3, now permanent as a smoke-test assertion) |
 
-Phases 0 and 1 are worth doing even if you never build the rest.
+Step 1.4 is the one to not skip. Everything from here to §15.5 is testable without a
+soldering iron because of it.
+
+### 15.2 Provisioning
+
+| Step | Deliverable | Check |
+| --- | --- | --- |
+| 2.1 | `provision_device.py`: `devices.yaml`, DDB row **first**, idempotent, append-only | Run twice → second run is a no-op. Kill it mid-run, re-run → repairs cleanly, no orphan cert |
+| 2.2 | Claim code (`secrets.token_bytes`), hash + pepper, sticker PNG, generated `secrets.h` | **`git status` is clean after a provisioning run** — automatable, and it's the §14 B2 leak check |
+| 2.3 | `BOT_NAME` deleted from `config.h`; id lives only in the generated file | Firmware compiles; the id appears in exactly one version-controlled place: `devices.yaml` |
+
+### 15.3 Auth and the read path
+
+| Step | Deliverable | Check |
+| --- | --- | --- |
+| 3.1 | Firebase project, Google sign-in, authorized domains incl. localhost | Manual — sign in from a static page, print the token |
+| 3.2 | HTTP API, JWT authorizer, `corsPreflight`, `GET /me` with allowlist | 401 no token, **403 not allowlisted**, 200 allowlisted. Browser call from the real origin succeeds (proves CORS, §14 A3) |
+| 3.3 | `GET /devices`, `GET /devices/{id}/readings`, ownership check | **403 for a device you don't own** — the IDOR regression test, permanently in the smoke suite |
+| 3.4 | Front end signs in, renders existing charts against the new API | Charts render for your device; a second test account sees nothing |
+
+### 15.4 Claiming
+
+| Step | Deliverable | Check |
+| --- | --- | --- |
+| 4.1 | `POST /devices/claim`: `TransactWriteItems`, rate limit, generic errors | Wrong code, unknown device and already-claimed all return the **identical** response. Double-claim fails. Rate limit trips on the 6th attempt — verified by tripping it |
+| 4.2 | Claim publishes version 1 with `rules: []`, retained | `get-retained-message` returns it; `fake_device.py` receives it on next subscribe |
+| 4.3 | Claim page, QR with the code in the URL **fragment**, `signInWithPopup` | Scan → sign in → claim, in one pass, with the fragment surviving the sign-in |
+
+### 15.5 Config channel, backend only
+
+| Step | Deliverable | Check |
+| --- | --- | --- |
+| 5.1 | Rule schema, validator, wire codec (names ↔ 8-char codes) | `pytest`: every reject case (unknown var/op, out of range, too many rules, oversize, bad `tz`). Codec round-trips. **A size assertion that fails the build if the worst case exceeds 2048 bytes** — this turns §2's silent-drop failure into a red CI run |
+| 5.2 | `PUT /config` → version → store → publish retained | `fake_device.py` receives it, reports `applied` in its next reading, status goes `pending` → `active` |
+| 5.3 | Full state machine: `rejected`, `abandoned`, `superseded`; republish | Drive each transition from `fake_device.py`, including telling it to reject. Two rapid edits → first becomes `abandoned`, not lost |
+
+By the end of 15.5 the entire backend works and has never needed the physical bot.
+
+### 15.6 Firmware
+
+| Step | Deliverable | Check |
+| --- | --- | --- |
+| 6.1 | Evaluator as pure C++, no Arduino deps, + shared JSON fixtures | Host-compiled C++ test and JS test **both green on the same fixture file** |
+| 6.2 | Config receive, validate, NVS persist, monotonic version check | Apply a config, **pull the battery**, reboot → config survives (this is the §9 NVS requirement, and pulling the battery is the only real test of it) |
+| 6.3 | Rules drive watering; clamps and minimum-interval floor | **Bench rig: `WATERING_DURATION_S` short and an LED in place of the pump.** Send a config that asks for 15000 s → clamped. Send `hour_of_day == 8` alone → fires once, not twice |
+| 6.4 | Reading payload: status, `max_temp_c`, `hours_since_watering`, `schema`; unclaimed mode; 2 h cap | Backlog replay after a forced outage reports the values from when each reading was *taken* |
+| 6.5 | Flash the real bot | Keep the old firmware on hand. Watch one full day of wakes before trusting it |
+
+Do not flash the garden bot before 6.5. The bench rig costs one spare ESP32 and removes
+every "is it the firmware or the backend?" question from the preceding four steps.
+
+### 15.7 UI
+
+| Step | Deliverable | Check |
+| --- | --- | --- |
+| 7.1 | Presets, DNF builder, plain-English rendering, client-side validation | Client and server reject the same inputs — feed the validator's reject table through the UI |
+| 7.2 | Backtest over recorded readings | A rule set that waters every wake shows an absurd count *before* it can be saved |
+| 7.3 | Next-watering from the **active** config; millilitre input with `mlPerSecond` | Prediction matches what the bot actually does over a few days |
+
+### 15.8 Deferred
+
+Rollback, per-device timezone dropdown, empty-tank notifications. All cheap once the
+foundations exist; none of them blocks anything.
+
+### What automation is worth writing
+
+Ranked by how much pain it prevents:
+
+1. **`fake_device.py`** — collapses the backend feedback loop from a flash cycle to a
+   second, and doubles as the cross-device denial test.
+2. **The codec size assertion** — the only failure mode in this design that is completely
+   silent on the device becomes a failing build instead.
+3. **Shared evaluator fixtures** — the two implementations *will* drift, and this is the
+   only thing that will notice.
+4. **`scripts/smoke.py`** — one assertion added per step; by the end it re-verifies every
+   earlier step in seconds, which is what makes later changes safe.
+5. **Validator reject-case tests** — pure functions, trivially testable, and they're the
+   boundary where hostile input meets the pump.
+
+CDK snapshot tests are not worth it at this size; `cdk diff` before every deploy does the
+real work.
+
+### What stays manual
+
+Firebase console setup, the pepper secret's value, flashing, and anything involving actual
+water. Write these down in a `RUNBOOK.md` as you do them — the deployment-order dependency
+in §14 A1 is exactly the kind of thing that is obvious while you're doing it and
+irrecoverable six months later.
