@@ -1463,6 +1463,9 @@ silent state.
    full POSIX TZ). §9.
 7b. ~~**Ungraceful MQTT disconnect**~~ — **fixed in this branch**: `client.disconnect()`
    before the radio goes down, so the broker releases the session immediately. §2.
+7c. ~~**Backlogged readings would report today's rule inputs**~~ — **fixed in this
+   branch**: `max_temp_c` and `hours_since_watering` are captured into `QueuedMessage` at
+   read time, snapshotted before watering resets them. §7.
 8. ~~**The last-watering counter freezes and drifts**~~ — **fixed in this branch**:
    replaced with `lastWateredEpoch` plus an NTP fast-forward, which removes the hidden
    side effect in `shouldWater()` and corrects for the missing external RTC. §9.
@@ -1501,6 +1504,20 @@ silent state.
     sticker PNG). Prerequisite for everything, easy to under-scope. §4.
 23. **Rule order is decorative** — document it in both implementations before someone
     relies on precedence that isn't there. §7.
+24. **Claim is two items, so it needs a transaction**, not a single conditional update, or
+    a device can end up owned but invisible and permanently unclaimable. §14 C1.
+25. **The IoT rule needs an `errorAction`** or failures drop messages in total silence.
+    §14 A4.
+26. **CORS preflight must bypass the JWT authorizer**, or every browser call fails with an
+    error that looks like an auth bug. §14 A3.
+27. **`tz` is the last unbounded user string reaching the device** — make it a fixed
+    dropdown, not free text. §14 D1.
+28. **`BOT_NAME` is a per-device value in a version-controlled file** and now has three
+    copies (config.h, secrets.h, certificate CN). Collapse to one. §14 B3.
+29. **The provisioning script writes a private key and a claim code to disk** next to a git
+    repo whose `.gitignore` covers only `secrets.h`. §14 B2.
+30. **The topic string is duplicated across policy, rule and firmware** with no shared
+    definition and silent failure on mismatch. §14 A6.
 
 ### Open questions
 
@@ -1540,6 +1557,61 @@ deploying Python Lambdas is completely normal and probably what you want here.
 | IoT policy (the one with the variables) | **L1 only** (`CfnPolicy`) | Just a JSON document — L1 is arguably clearer than a construct would be |
 | IoT topic rule (readings → DynamoDB/Lambda) | **L1**, or alpha L2 | `CfnTopicRule` with the SQL string works fine; `@aws-cdk/aws-iot-alpha` has a nicer `TopicRule` if you accept alpha. **With L1 you must create the rule's IAM role yourself** — the alpha L2 does it for you. Easy to forget, and the failure is a rule that silently drops every message |
 | Claim-code pepper | **L2** | Create an empty Secrets Manager secret or SSM `SecureString` in CDK, set the value by hand once. Never put the value in the repo |
+
+### Could device creation be batched into a `cdk deploy` instead of a script?
+
+It can, and the instinct behind the question is right — you want a reviewable,
+version-controlled record of which devices exist, not a script someone ran once on a
+laptop. But CloudFormation is the wrong mechanism for it, for one reason that overrides
+the rest.
+
+**First, a factual limit:** `AWS::IoT::Certificate` **cannot generate a keypair.** It
+accepts a CSR or an existing PEM, and never returns a private key. So you still generate
+the keypair locally with `openssl` and paste the CSR in. CDK doesn't replace the script —
+it replaces the *easy half* of it and leaves the local key step, the claim code, the
+DynamoDB row and the sticker exactly where they were.
+
+**The overriding argument is lifecycle mismatch.** CloudFormation is *declarative and
+convergent*: it makes reality match the template, including by deleting things. Device
+provisioning is a *one-way, append-only ceremony tied to a physical object that exists in
+the world*. Those two models disagree in exactly the way that hurts:
+
+- **Removing a device from the array deletes its certificate.** Someone tidies up a list,
+  runs `cdk deploy`, and a bot in the garden is bricked until it's reflashed. There is no
+  confirmation step, because to CloudFormation this is a routine convergence.
+- **A failed deploy rolls back.** If a deploy fails partway for an unrelated reason, CFN
+  reverts — potentially deleting certificates it created earlier in the same change set.
+  Your blast radius for a typo in an unrelated Lambda now includes fielded hardware.
+- **`cdk destroy` takes every device with it.**
+- **Deploy time and risk grow with the fleet.** Every deploy evaluates every device's
+  resources. And CloudFormation caps a stack at 500 resources — at ~4 per device that's a
+  hard ceiling around 100 bots.
+
+**Security-wise** the CSR itself is harmless in a repo (it's a public key plus a subject),
+so that part is fine. The problem is the claim code: generating it inside a custom resource
+puts it in CloudFormation's response data, which is **stored in plaintext in the stack and
+readable by anyone with CFN read access**. You'd have to be scrupulous about returning only
+the hash. That's a footgun with no upside.
+
+**Recommendation: keep the script, and make it declarative.** The thing you actually want
+from CDK is the reviewable diff — and you can have that without CloudFormation owning
+device lifecycles:
+
+```yaml
+# provisioning/devices.yaml   (no secrets - safe to commit)
+- id: gb-7QXF-2M9K
+  label: cherry pot, balcony
+  provisioned: 2026-08-02
+```
+
+Make `provision_device.py` **idempotent and append-only**: it reads the file, checks AWS
+for what already exists, creates only what's missing, and **never deletes**. Adding a bot
+is a one-line PR plus a script run; removing a line does nothing until you explicitly run a
+separate `decommission` command. You get the version-controlled record, the batching, and
+the review, without a convergence engine that treats your hardware as disposable.
+
+If you ever genuinely need bulk provisioning by someone who isn't you, the answer is **AWS
+IoT fleet provisioning**, not CDK.
 
 ### What deliberately stays out
 
@@ -1593,7 +1665,152 @@ separate files within the same stack — same readability, none of the coupling 
 
 ---
 
-## 14. Phasing
+## 14. Walkthroughs: what breaks between the boxes
+
+The sections above each hold together on their own. This one traces the four end-to-end
+flows looking for the gaps *between* them — ordering, atomicity, and dependencies nobody
+owns because they fall between two components.
+
+### A. Deploying the account from zero
+
+```
+cdk bootstrap → Firebase project → cdk deploy → set pepper secret
+  → seed your own allowlist row → deploy front end with API URL + Firebase config
+```
+
+**A1. Firebase must come first.** The JWT authorizer needs the project id at synth time, so
+the order is Firebase → CDK → front end (which needs the CDK-output API URL). Not circular,
+but get it wrong and you're redeploying. Write it down in the README.
+
+**A2. A wrong JWT issuer fails at request time, not deploy time.** CDK will happily deploy
+an authorizer pointing at a nonexistent issuer; you find out via an opaque 401 much later.
+**Curl the API with a real token as the very first thing after deploying**, before building
+anything on top of it.
+
+**A3. CORS preflight must bypass the authorizer.** `OPTIONS` requests carry no
+`Authorization` header. HTTP API handles this correctly *only if* you configure
+`corsPreflight` on the `HttpApi` construct. Forget it and every browser request fails with a
+CORS error that looks exactly like an auth bug — reliably a wasted afternoon.
+
+**A4. The IoT topic rule needs an `errorAction`.** Without one, a rule that fails (missing
+IAM permission, malformed SQL, throttled table) **drops messages silently** — no error, no
+metric you'd think to look at. Wire `errorAction` to CloudWatch Logs or an SQS queue. This
+is the single most commonly skipped thing in an IoT setup and the reason people spend days
+wondering where their data went.
+
+**A5. Region is baked into firmware.** The IoT endpoint lives in `secrets.h`. Changing
+region later means reflashing every device. Choose once, deliberately.
+
+**A6. Nobody owns the topic string.** `devices/{id}/readings` appears in the IoT policy,
+the rule's `FROM` clause, and the firmware's `snprintf`. Three places, one string, no shared
+definition, and every mismatch fails silently. Define the patterns once in the CDK stack
+and publish them as **SSM parameters**; have the provisioning script read them and bake
+them into the generated `secrets.h`. Same for the policy name and the control table name —
+otherwise the script hardcodes values CDK is free to change.
+
+### B. Provisioning a device
+
+**B1. Write the DynamoDB row *first*.** If the script dies after creating the certificate
+but before writing `DEVICE#<id>/META`, you get a board that can connect and publish but
+that **nobody can ever claim** — the claim endpoint looks up META, finds nothing, and
+returns the deliberately-generic error. A silent orphan that looks like a bad claim code.
+Write the (cheap, reversible) DynamoDB row first, then create AWS resources, then flip
+`provisioned: true`. Make every step idempotent so a re-run repairs a partial failure.
+
+**B2. The script writes two secrets to disk.** `secrets.h` holds the private key and the
+sticker PNG holds the claim code — the two things §4 spends its length insisting must not
+leak. `garden-bot/.gitignore` currently covers `secrets.h` and nothing else. **Have the
+script write to a directory outside the repo by default**, or create its output directory
+with a `.gitignore` containing `*` as its first action. One `git add -A` from a tired
+person is the entire threat model here.
+
+**B3. `BOT_NAME` is checked into git and must die.** The device id currently lives in
+`config.h` as `BOT_NAME` *and* in `secrets.h` as `AWS_THINGNAME`, and the CSR now adds a
+third copy as the certificate CN. `config.h` is version-controlled, so a per-device value
+sits in a shared file. **Move the id entirely into the generated `secrets.h`, delete
+`BOT_NAME` from `config.h`,** and have the script derive thing name, CN, topics and DDB key
+from one variable.
+
+**B4. Use `secrets.token_bytes`, not `random`.** A claim code from a seeded PRNG is not a
+secret. Obvious written down; routinely got wrong.
+
+**B5. The control table needs TTL enabled too.** §6 discusses TTL only for readings, but
+`CLAIMATTEMPT#` items rely on it to clean up. TTL is a per-table setting — easy to miss
+because the interesting TTL conversation was about a different table.
+
+**B6. CDK must be deployed before any provisioning**, since `attach-policy` needs the
+policy to exist. Obvious in isolation, easy to trip over when rebuilding an account.
+
+### C. Claiming
+
+**C1. Claim must be a transaction, not an update.** §10 shows one conditional `UpdateItem`
+on `DEVICE#<id>/META`, but ownership is *two* items — the META attribute and the
+`USER#<uid>/DEVICE#<id>` edge. If the second write fails, the device is owned but doesn't
+appear in the owner's list, and it can never be claimed again because the conditional check
+now fails. **Both writes go in one `TransactWriteItems`.**
+
+**C2. Claiming should publish version 1 immediately.** Otherwise a freshly claimed device
+sits in a *third* state — not "no rules" (`rules: []`) but "no config at all" — which the
+firmware, the backend and the UI each have to special-case. Have the claim operation
+publish a version-1 config with `rules: []`. One state machine, no null case, and the
+device's next reading confirms it received something.
+
+**C3. Use `signInWithPopup`, not `signInWithRedirect`.** The QR flow carries the claim code
+in the URL fragment (§4). A popup leaves the page — and the fragment — intact; a redirect
+may not. Firebase's redirect flow has also become unreliable under third-party-cookie
+restrictions.
+
+**C4. "Power-cycle, then claim" collides with the 2-hour cap.** If a device has been
+powered on for more than two hours it's on the 30-minute cycle, so a user who claims and
+waits sees a spinner for up to half an hour. Don't block on confirmation: claim
+immediately, then show *"Claimed. Your bot will pick this up within 30 minutes — or
+power-cycle it now to apply immediately."* The claim must also succeed for a device that
+has **never** connected, since it's a pure backend operation — the setup page can say
+"never seen" without preventing anything.
+
+### D. Editing a config, and steady state
+
+**D1. `tz` is user-controlled text going into `setenv()`.** With rule names stripped, this
+is now the *only* unbounded string reaching the device's parser — and it lands in a libc
+call. **Make it a fixed dropdown of known POSIX TZ strings** in the UI and validate against
+that same list server-side. Don't accept free text.
+
+**D2. The ingest Lambda now writes to the control table**, which needs IAM permission and,
+more importantly, restraint: 48 readings a day per device all reporting "version 7 applied"
+must not produce 48 status writes. **Update the config status conditionally**, only when the
+reported version differs from the stored one. `lastSeenAt` genuinely does change every
+reading — writing it every time is simplest and still costs cents, but note you could derive
+it from the readings table instead and skip the write entirely.
+
+**D3. The device needs its own monotonic version check.** Ignore any config whose version
+is not greater than the one it's running. The backend allocates versions monotonically, but
+the device should not depend on that being true — a stale retained message or a restored
+backup shouldn't roll a bot backwards.
+
+**D4. The backend should refuse to publish a schema the device hasn't reported supporting.**
+The UI already gates variables by the device's reported `schema` (§7), but that's a
+client-side check. Enforcing it server-side turns a `rejected` round trip into an immediate,
+clear error.
+
+**D5. Verify the SDK's retain flag.** The backend publishes via `iot-data`'s `publish()`
+rather than an MQTT client. It takes a `retain` parameter — confirm it on your SDK version
+before building on it, because if it's absent the whole delivery model needs an MQTT client
+inside Lambda and that is a very different Lambda.
+
+**D6. Two tabs editing at once** both get distinct versions from the atomic counter, both
+publish, and the broker keeps the last. If the publishes land out of order the DB can
+briefly disagree with the broker — self-healing via the version-matching rule in §8, but
+worth knowing it's the mechanism doing the healing rather than luck.
+
+**D7. Backtest accuracy is now a consequence of B/D decisions.** Because readings carry
+`max_temp_c` and `hours_since_watering` (§7), the backtest replays *recorded* rule inputs
+instead of reconstructing them. That only holds for readings taken after this change — and
+since the existing history is being orphaned anyway, it holds for everything you'll ever
+have. Two unrelated decisions landing well together.
+
+---
+
+## 15. Phasing
 
 Each phase ships independently and leaves the system working.
 

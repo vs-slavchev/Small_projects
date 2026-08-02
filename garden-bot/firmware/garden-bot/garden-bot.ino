@@ -28,6 +28,10 @@ bool water_available = false;
 int water_level_raw = 0;
 bool watered = false;
 int tempC = -100;
+// Rule inputs snapshotted before the watering decision, since watering resets
+// both of them - a reading must report the values the decision was made on.
+int maxTempAtReading = 0;
+int hoursSinceWateringAtReading = 0;
 // When the last watering happened, as a real timestamp rather than a counter.
 // A counter has to be incremented somewhere every cycle, which is easy to skip
 // on a branch; a timestamp is derived from the clock and can't silently freeze.
@@ -112,6 +116,8 @@ QueuedMessage buildCurrentMessage() {
   msg.watered = watered;
   msg.water_available = water_available;
   msg.water_level_raw = water_level_raw;
+  msg.maxTempC = maxTempAtReading;
+  msg.hoursSinceWatering = hoursSinceWateringAtReading;
   return msg;
 }
 
@@ -126,6 +132,8 @@ bool publishMessage(const QueuedMessage& msg)
   doc["temp"] = msg.tempC;
   doc["water_available"] = msg.water_available;
   doc["water_level_raw"] = msg.water_level_raw;
+  doc["max_temp_c"] = msg.maxTempC;
+  doc["hours_since_watering"] = msg.hoursSinceWatering;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
 
@@ -414,6 +422,11 @@ void setup()
 
   bool wifiConnected = connectWiFi();
   saveCurrentTime();
+
+  // Snapshot before watering, which resets maxRecentTemperature and
+  // lastWateredEpoch - these are the inputs the decision below is made on.
+  maxTempAtReading = maxRecentTemperature;
+  hoursSinceWateringAtReading = secondsSinceLastWatering() / 3600;
 
   if (shouldWater() && water_available) {
     if (wifiConnected) {
