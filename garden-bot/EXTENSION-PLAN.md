@@ -1,5 +1,12 @@
 # Garden Bot: remote-configurable watering — design plan
 
+> **Parked — reference only.** The immediate need is being met by the much smaller
+> BLE-based design in `BLE-CONFIG-PLAN.md`: the browser writes the config straight to the
+> device over Bluetooth, with no accounts and no cloud config channel. This document stays
+> for when multi-user, remote configuration becomes worth its cost. The rule format and the
+> firmware evaluator are shared between the two, so the small version is a subset of this
+> one rather than a detour away from it.
+
 Extending the current system (ESP32 → AWS IoT → DynamoDB → Lambda → static site) so
 watering rules can be changed from the website without reflashing, with accounts and
 device ownership.
