@@ -15,6 +15,11 @@ struct QueuedMessage {
   bool watered;
   bool water_available;
   int water_level_raw;
+  // Watering-rule inputs, captured with the reading rather than read from
+  // globals at publish time: a message replayed after an outage must report the
+  // values that held when it was taken, not the ones current at flush.
+  int maxTempC;
+  int hoursSinceWatering;
 };
 
 // Ring buffer: drops the oldest entry once full rather than blocking
