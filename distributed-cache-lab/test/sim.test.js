@@ -4,7 +4,7 @@ const assert = require('node:assert');
 
 require('../shared/sim.js');
 require('../shared/scenarios.js');
-require('../v1-single-node/cache.js');
+require('../v1-single-server/cache.js');
 require('../v2-modulo-sharding/cache.js');
 
 const version = (id) => LAB.versions.find((v) => v.id === id);
@@ -45,7 +45,7 @@ test('v1: a crash makes everything unavailable, then everything is lost', () => 
 });
 
 test('v1 cannot add nodes', () => {
-  assert.strictEqual(LAB.run(version('v1'), scenario('add-node')).supported, false);
+  assert.strictEqual(LAB.run(version('v1'), scenario('add-server')).supported, false);
 });
 
 test('v2: a crash only affects the keys that live on the crashed node', () => {
@@ -55,7 +55,7 @@ test('v2: a crash only affects the keys that live on the crashed node', () => {
 });
 
 test('v2: adding a node turns most keys into misses', () => {
-  const r = LAB.run(version('v2'), scenario('add-node'));
+  const r = LAB.run(version('v2'), scenario('add-server'));
   const gets = r.outcomes.filter((o) => o.do === 'get').map((o) => `${o.key} ${o.kind}`);
   assert.deepStrictEqual(gets, ['item:1 lost', 'item:3 ok', 'item:4 lost', 'item:5 lost']);
   const moved = parseFloat(version('v2').facts[0].value);

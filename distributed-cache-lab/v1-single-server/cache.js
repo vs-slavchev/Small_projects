@@ -1,19 +1,19 @@
 /*
- * v1 · Single node
+ * v1 · Single server
  *
- * One cache node, A, holds every key. The client sends everything to A.
+ * One cache server, S1, holds every key. The client sends everything to S1.
  * This is the baseline every later version is compared against.
  */
 (function () {
-  const TIMEOUT_MS = 50; // client gives up if no reply arrives within this time
+  const TIMEOUT_MS = 50; // client gives up if no reply arrives within this time (5 message trips)
 
   LAB.versions.push({
     id: 'v1',
-    folder: 'v1-single-node',
-    title: 'Single node',
-    idea: 'One node holds every key. The client sends every request to it.',
+    folder: 'v1-single-server',
+    title: 'Single server',
+    idea: 'One server holds every key. The client sends every request to it.',
     changed: 'Starting point.',
-    nodes: ['A'],
+    nodes: ['S1'],
 
     // ---- node ----------------------------------------------------------
 
@@ -40,7 +40,7 @@
     // ---- client --------------------------------------------------------
 
     initClient(client) {
-      client.server = 'A'; // the only place to send anything
+      client.server = 'S1'; // the only place to send anything
       client.timers = {}; // req -> timeout timer id
     },
 
@@ -52,13 +52,13 @@
       const type = op.do === 'put' ? 'PUT' : 'GET';
       net.send(client.server, { type, req: op.req, key: op.key, value: op.value });
       client.timers[op.req] = net.timer(TIMEOUT_MS, { type: 'TIMEOUT', req: op.req, key: op.key });
-      net.say(`sends it to ${client.server}, the only node`);
+      net.say(`sends it to ${client.server}, the only server`);
     },
 
     onClientMessage(client, msg, net) {
       if (msg.type === 'TIMEOUT') {
         delete client.timers[msg.req];
-        net.say(`no reply within ${TIMEOUT_MS} ms, so the request fails`);
+        net.say('no reply in time, so the request fails');
         net.done(msg.req, { error: 'timeout' });
         return;
       }

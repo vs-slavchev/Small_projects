@@ -45,13 +45,13 @@
     const lines = version.clientLines ? version.clientLines(c, snap) : [];
     const pending = c.pending.length
       ? `<ul class="pending">${c.pending
-          .map((p) => `<li><span class="req">#r${p.req}</span> ${p.do.toUpperCase()} ${esc(p.key)}</li>`)
+          .map((p) => `<li><span class="req">#r${p.req}</span> ${p.do.toUpperCase()} ${esc(p.key)}${p.do === 'put' ? ' = ' + esc(show(p.value)) : ''}</li>`)
           .join('')}</ul>`
-      : '<p class="quiet">no open requests</p>';
+      : '<p class="quiet">nothing</p>';
     return `<article class="card client${snap.actor === c.name ? ' is-active' : ''}" data-actor="${esc(c.name)}">
       <header><span class="name">${esc(c.name)}</span><span class="role">client</span></header>
       ${lines.map((l) => `<p class="meta">${esc(l)}</p>`).join('')}
-      <p class="sub">waiting for</p>${pending}
+      <p class="sub">waiting for a reply</p>${pending}
     </article>`;
   }
 
@@ -164,10 +164,10 @@
 
   // ---- event log ---------------------------------------------------------
 
-  function logItem(s, current) {
+  function logItem(s, n, current) {
     const o = s.outcome ? outcomeLabel(s.outcome) : null;
     return `<li class="ev ev-${s.kind}${current ? ' is-current' : ''}">
-      <span class="t">${s.time} ms</span>
+      <span class="t">${n}</span>
       <div class="body">
         <p class="title">${esc(s.title)}</p>
         ${s.lines.map((l) => `<p class="line">${esc(l)}</p>`).join('')}
@@ -237,14 +237,19 @@
       <div class="controls">
         <button type="button" id="next" class="next">Next event</button>
         <span class="counter" id="counter"></span>
-        <span class="clock" id="clock"></span>
       </div>
       <div class="done" id="done" hidden></div>
       <div class="layout">
         <div class="stage" id="stage">
           <svg class="wires" aria-hidden="true"></svg>
-          <div class="row row-clients" id="clients"></div>
-          <div class="row row-nodes" id="nodes"></div>
+          <div class="tier">
+            <p class="tier-label">Clients</p>
+            <div class="row row-clients" id="clients"></div>
+          </div>
+          <div class="tier">
+            <p class="tier-label">Cache servers</p>
+            <div class="row row-nodes" id="nodes"></div>
+          </div>
           <div class="chips" aria-hidden="true"></div>
         </div>
         <section class="log-panel" aria-label="Event log">
@@ -265,15 +270,15 @@
       runEl.querySelector('#nodes').innerHTML = snap.nodes.map((n) => nodeCard(version, n, snap, prev)).join('');
       drawWires(stage, snap);
       runEl.querySelector('#counter').textContent = i === 0 ? `${last} events ahead` : `Event ${i} of ${last}`;
-      runEl.querySelector('#clock').textContent = `t = ${snap.time} ms`;
-      runEl.querySelector('#log').innerHTML =
+      const log = runEl.querySelector('#log');
+      log.innerHTML =
         i === 0
-          ? '<li class="ev ev-start is-current"><span class="t">0 ms</span><div class="body"><p class="title">Nothing has happened yet.</p><p class="line">Press Next event, or the → key.</p></div></li>'
+          ? '<li class="ev ev-start is-current"><span class="t">0</span><div class="body"><p class="title">Nothing has happened yet.</p><p class="line">Press Next event, or the → key.</p></div></li>'
           : result.steps
               .slice(1, i + 1)
-              .map((s, k) => logItem(s, k === i - 1))
-              .reverse()
+              .map((s, k) => logItem(s, k + 1, k === i - 1))
               .join('');
+      log.scrollTop = log.scrollHeight; // newest event is at the bottom
       const done = runEl.querySelector('#done');
       done.hidden = i !== last;
       if (i === last) {
@@ -341,8 +346,9 @@
             <li>Before stepping, guess what will happen.</li>
             <li>Press <kbd>Next event</kbd> (or <kbd>→</kbd>) to move one event forward.</li>
           </ol>
-          <p class="model">Model: every message takes ${LAB.LATENCY_MS} ms. Clients give up after 50 ms without a reply.
-          A crashed node loses its memory. Nothing is random, so a run always plays out the same way.</p>
+          <p class="model">Model: clients (C1, C2, …) talk to cache servers (S1, S2, …). Every message takes the same time
+          to arrive, and a client gives up if no reply comes back in time. A crashed server loses its memory.
+          Nothing is random, so a run always plays out the same way.</p>
         </header>
 
         <h2>Compare</h2>

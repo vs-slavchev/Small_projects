@@ -2,7 +2,7 @@
  * Simulation harness.
  *
  * Runs one scenario against one version and records every event as a step:
- * a client starting a request, a message arriving, a timer firing, a node
+ * a client starting a request, a message arriving, a timer firing, a server
  * crashing. The harness knows nothing about caching. Nodes and clients get
  * all their behaviour from the version's cache.js.
  *
@@ -27,7 +27,7 @@
 
   function unsupportedReason(version, scenario) {
     if (scenario.ops.some((op) => op.do === 'addNode') && !version.onAddNode) {
-      return 'This version has a fixed set of nodes, so there is no way to add one.';
+      return 'This version has a fixed set of servers, so there is no way to add one.';
     }
     return null;
   }
@@ -138,7 +138,7 @@
 
     function doOp(op) {
       if (op.do === 'put' || op.do === 'get') {
-        const client = w.clients[op.client || 'c1'];
+        const client = w.clients[op.client || 'C1'];
         const req = ++w.reqSeq;
         w.open[req] = { req, client: client.name, do: op.do, key: op.key, value: op.value, expected: w.acked[op.key] };
         if (op.do === 'put') (w.puts[op.key] = w.puts[op.key] || []).push({ value: op.value, seq: req });
@@ -157,7 +157,7 @@
         newStep('fault', node.name, `${node.name} restarts with empty memory`);
         node.up = true;
       } else if (op.do === 'addNode') {
-        newStep('topology', op.node, `Node ${op.node} joins the cluster`);
+        newStep('topology', op.node, `Server ${op.node} joins the cluster`);
         createNode(op.node);
         version.onAddNode(op.node, Object.values(w.clients), netFor({ name: op.node }));
       } else {
@@ -203,7 +203,7 @@
     }
 
     for (const name of version.nodes) createNode(name);
-    const clientNames = [...new Set(scenario.ops.filter((op) => op.do === 'put' || op.do === 'get').map((op) => op.client || 'c1'))];
+    const clientNames = [...new Set(scenario.ops.filter((op) => op.do === 'put' || op.do === 'get').map((op) => op.client || 'C1'))];
     for (const name of clientNames) createClient(name);
 
     newStep('start', null, 'Start. Nothing has happened yet.');

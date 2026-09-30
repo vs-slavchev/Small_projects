@@ -3,7 +3,7 @@
 A distributed cache built one idea at a time, to learn the core trade-offs by watching them happen.
 
 Every version runs the same planned scenarios in a simulated network. You step through a run one
-event at a time (a request sent, a message arriving, a node crashing) and see every node's memory,
+event at a time (a request sent, a message arriving, a server crashing) and see every server's memory,
 every message in flight, and whether each read returned the right answer.
 
 **Open `index.html` in a browser.** No build, no server, no dependencies.
@@ -16,8 +16,10 @@ Tests: `node --test` in this folder.
 4. The **Overview** page compares every version on every scenario.
 
 ## The model
-- Every message takes exactly **10 ms**. Clients give up after **50 ms** without a reply.
-- A crashed node loses its memory (it's a cache). Messages sent to a down node are dropped.
+- Clients are named **C1, C2, …** and cache servers **S1, S2, …**.
+- Every message takes the same time to arrive. A client gives up if no reply comes back in time
+  (5 message trips).
+- A crashed server loses its memory (it's a cache). Messages sent to a down server are dropped.
 - There is no randomness, so a run always plays out the same way.
 - Every finished request is judged against what the client was told earlier:
 
@@ -36,9 +38,9 @@ database hit. `stale read` is the one that silently shows users wrong data.
 ```
 index.html            overview + comparison table + stepper
 shared/sim.js         simulation harness: clock, message queue, crashes, outcome judging
-shared/scenarios.js   the scenarios (inputs only: client ops, crashes, joins)
-shared/view.js        drawing: node cards, messages in flight, event log
-v1-single-node/       cache.js (the behaviour) + NOTES.md (idea, predictions, results)
+shared/scenarios.js   the scenarios (inputs only: client ops, crashes, servers joining)
+shared/view.js        drawing: client and server cards, messages in flight, event log
+v1-single-server/     cache.js (the behaviour) + NOTES.md (idea, predictions, results)
 v2-modulo-sharding/   copy of v1 plus one change
 test/                 node:test checks for determinism and expected outcomes
 ```
@@ -52,8 +54,8 @@ its own. Duplication is intentional.
 ## Versions
 | | Version | The one new idea | Status |
 |---|---|---|---|
-| v1 | Single node | One node holds everything | built |
-| v2 | Modulo sharding | `hash(key) % N` over 3 nodes, client-side routing | built |
+| v1 | Single server | One server holds everything | built |
+| v2 | Modulo sharding | `hash(key) % N` over 3 servers, client-side routing | built |
 | v3 | Consistent hashing | Hash ring + virtual nodes | planned |
 | v4 | Async primary–backup | A backup copy sent after the reply | planned |
 | v5 | Sync replication | Reply only once the backup has it | planned |

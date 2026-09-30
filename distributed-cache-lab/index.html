@@ -20,17 +20,17 @@
 <script src="shared/sim.js"></script>
 <script src="shared/scenarios.js"></script>
 <script src="shared/view.js"></script>
-<script src="v1-single-node/cache.js"></script>
+<script src="v1-single-server/cache.js"></script>
 <script src="v2-modulo-sharding/cache.js"></script>
 <script>
   // The full plan. A version shows as "built" once its cache.js is loaded above.
   const LADDER = [
-    { id: 'v1', title: 'Single node', idea: 'One node holds everything. A crash loses everything.' },
-    { id: 'v2', title: 'Modulo sharding', idea: 'Three nodes, hash(key) % N. Adding a node remaps most keys.' },
-    { id: 'v3', title: 'Consistent hashing', idea: 'A hash ring with virtual nodes. Adding a node moves only a small share of keys.' },
+    { id: 'v1', title: 'Single server', idea: 'One server holds everything. A crash loses everything.' },
+    { id: 'v2', title: 'Modulo sharding', idea: 'Three servers, hash(key) % N. Adding a server remaps most keys.' },
+    { id: 'v3', title: 'Consistent hashing', idea: 'A hash ring with virtual nodes. Adding a server moves only a small share of keys.' },
     { id: 'v4', title: 'Async primary–backup', idea: 'Each key gets a backup copy, sent after the reply. Crashes can lose acknowledged writes.' },
     { id: 'v5', title: 'Sync replication', idea: 'Reply only after the backup has the write. Slower, and stuck when the backup is down.' },
-    { id: 'v6', title: 'Heartbeats and failover', idea: 'Detect dead nodes and promote backups. A false alarm can leave two primaries.' },
+    { id: 'v6', title: 'Heartbeats and failover', idea: 'Detect dead servers and promote backups. A false alarm can leave two primaries.' },
     { id: 'v7', title: 'Versions and conflicts', idea: 'Last-write-wins versus compare-and-set. Clock skew silently drops writes.' },
     { id: 'v8', title: 'Leaderless quorums', idea: 'Write to W of N replicas, read from R. Branches from v3.' },
     { id: 'v9', title: 'Read repair and hinted handoff', idea: 'Replicas heal themselves after failures.' },
