@@ -11,6 +11,13 @@
   --accent-soft: #dcecf2;
   --client: #6a4fb8;
   --client-soft: #efeafa;
+  /* one colour per key, shown as a dot */
+  --k1: #2f6fdb;
+  --k2: #d6336c;
+  --k3: #5c940d;
+  --k4: #e8590c;
+  --k5: #8d5a2b;
+  --k6: #c29a00;
   --ok: #2f7a4b;
   --ok-soft: #e0efe5;
   --warn: #9a5a08;
@@ -34,6 +41,12 @@
     --accent-soft: #15313b;
     --client: #ad97f2;
     --client-soft: #231d38;
+    --k1: #74a9ff;
+    --k2: #f06595;
+    --k3: #94d82d;
+    --k4: #ff922b;
+    --k5: #d2a679;
+    --k6: #ffd43b;
     --ok: #66c28e;
     --ok-soft: #16302a;
     --warn: #e2a64d;
@@ -54,6 +67,12 @@
   --accent-soft: #15313b;
   --client: #ad97f2;
   --client-soft: #231d38;
+  --k1: #74a9ff;
+  --k2: #f06595;
+  --k3: #94d82d;
+  --k4: #ff922b;
+  --k5: #d2a679;
+  --k6: #ffd43b;
   --ok: #66c28e;
   --ok-soft: #16302a;
   --warn: #e2a64d;
@@ -227,11 +246,12 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; }
 .tier { position: relative; z-index: 1; display: grid; gap: 8px; }
 .tier-label { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
 }
+.row > .card { flex: 1 1 150px; max-width: 220px; }
 .wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .wire { fill: none; stroke: var(--accent); stroke-width: 1.5; }
 .wire.flight { stroke-dasharray: 2 4; stroke-linecap: round; opacity: 0.8; }
@@ -368,9 +388,94 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; }
   .o-head h1 { font-size: 34px; }
   .v-head h1 { font-size: 28px; }
   .stage { gap: 112px; padding: 16px 10px 48px; }
-  .row { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .row { gap: 10px; }
+  .row > .card { flex-basis: 130px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ---- key colours ---- */
+.key { white-space: nowrap; }
+.swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--kc);
+  margin-right: 5px;
+  vertical-align: 0;
+  flex: none;
+}
+
+/* ---- action callout: what the active card just did ---- */
+.callout {
+  position: relative;
+  font-size: 12.5px;
+  line-height: 1.4;
+  padding: 5px 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+}
+.callout::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 14px;
+  width: 9px;
+  height: 9px;
+  background: var(--surface);
+  border-left: 1.5px solid var(--accent);
+  border-top: 1.5px solid var(--accent);
+  transform: rotate(45deg);
+}
+
+/* ---- promised panel ---- */
+.main-col { display: grid; gap: 16px; min-width: 0; }
+.promised-panel {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  min-width: 0;
+}
+.promised-panel > * { min-width: 0; }
+.promised-panel h2 { font-size: 16px; font-weight: 600; }
+.table-scroll { overflow-x: auto; }
+.promised { width: 100%; border-collapse: collapse; font-size: 13px; }
+.promised th {
+  text-align: left;
+  font: 500 11px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+.promised td { padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; font-family: var(--font-mono); }
+.promised tr.is-changed td { background: var(--accent-soft); }
+.promised tr.is-pending td { opacity: 0.75; }
+.holders { display: flex; flex-wrap: wrap; gap: 4px; }
+.holder { padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; white-space: nowrap; }
+.holder small { font-size: 11px; }
+.holder.is-orphaned { color: var(--warn); border-color: var(--warn); }
+.holder.is-stale { color: var(--bad); border-color: var(--bad); }
+.writing {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1.5px dotted var(--client);
+  border-radius: 4px;
+  opacity: 0.75;
+  font-size: 12px;
+}
+.promised td:first-child .writing { margin-left: 0; }

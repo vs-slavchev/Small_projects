@@ -15,6 +15,12 @@ Tests: `node --test` in this folder.
 3. Press **Next event** (or `→`) and check your prediction.
 4. The **Overview** page compares every version on every scenario.
 
+While stepping:
+- The card that acted in this step is outlined and has a short note on what it just did.
+- Every key has its own coloured dot, on servers, messages and requests, so you can follow it around.
+- **What clients were promised** lists each key's last acknowledged value and which servers still
+  hold it: `safe`, `unreachable` (only orphaned copies left) or `lost` (held nowhere).
+
 ## The model
 - Clients are named **C1, C2, …** and cache servers **S1, S2, …**.
 - Every message takes the same time to arrive. A client gives up if no reply comes back in time

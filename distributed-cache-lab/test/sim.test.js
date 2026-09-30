@@ -77,3 +77,12 @@ test('the checker flags a stale read', () => {
   const r = LAB.run(broken, scenario('overwrite'));
   assert.strictEqual(r.outcomes.at(-1).kind, 'stale');
 });
+
+test('snapshots record what clients were promised', () => {
+  const grow = LAB.run(version('v2'), scenario('add-server')).steps.at(-1);
+  assert.deepStrictEqual(grow.promised, { 'item:1': 'lamp', 'item:3': 'desk', 'item:4': 'chair', 'item:5': 'rug' });
+
+  const crash = LAB.run(version('v1'), scenario('crash')).steps.at(-1);
+  assert.deepStrictEqual(Object.keys(crash.promised), ['user:1', 'user:2', 'user:3']);
+  assert.deepStrictEqual(crash.nodes[0].store, {}); // promised, but held nowhere
+});

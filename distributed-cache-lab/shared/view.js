@@ -39,17 +39,55 @@
       .join(' ');
   }
 
+  // ---- key colours ---------------------------------------------------------
+
+  // Each key in the scenario gets its own colour, in order of first use.
+  let keyIndex = {};
+  const KEY_COLOURS = 6;
+
+  function setKeyColours(scenario) {
+    keyIndex = {};
+    for (const op of scenario.ops) {
+      if (op.key !== undefined && !(op.key in keyIndex)) keyIndex[op.key] = Object.keys(keyIndex).length % KEY_COLOURS;
+    }
+  }
+
+  function swatch(key) {
+    return key in keyIndex ? `<i class="swatch" style="--kc: var(--k${keyIndex[key] + 1})"></i>` : '';
+  }
+
+  function keyTag(key) {
+    return `<span class="key">${swatch(key)}${esc(key)}</span>`;
+  }
+
+  // ---- action callout ------------------------------------------------------
+
+  // A short note on the card of whoever acted in this step.
+  function callout(snap, name) {
+    if (snap.actor !== name) return '';
+    let html;
+    if (snap.outcome) {
+      const o = outcomeLabel(snap.outcome);
+      const got = snap.outcome.do === 'get' && snap.outcome.value !== undefined ? ' ' + esc(show(snap.outcome.value)) : '';
+      html = `${badge(o.text, o.tone)}${got}`;
+    } else if (snap.short) html = esc(snap.short);
+    else if (snap.lines.length) html = esc(snap.lines[0]);
+    else return '';
+    return `<p class="callout">${html}</p>`;
+  }
+
   // ---- cards -------------------------------------------------------------
 
   function clientCard(version, c, snap) {
     const lines = version.clientLines ? version.clientLines(c, snap) : [];
     const pending = c.pending.length
       ? `<ul class="pending">${c.pending
-          .map((p) => `<li><span class="req">#r${p.req}</span> ${p.do.toUpperCase()} ${esc(p.key)}${p.do === 'put' ? ' = ' + esc(show(p.value)) : ''}</li>`)
+          .map((p) => `<li><span class="req">#r${p.req}</span> ${p.do.toUpperCase()} ${keyTag(p.key)}${p.do === 'put' ? ' = ' + esc(show(p.value)) : ''}</li>`)
           .join('')}</ul>`
       : '<p class="quiet">nothing</p>';
     return `<article class="card client${snap.actor === c.name ? ' is-active' : ''}" data-actor="${esc(c.name)}">
       <header><span class="name">${esc(c.name)}</span><span class="role">client</span></header>
+      ${callout(snap, c.name)}
       ${lines.map((l) => `<p class="meta">${esc(l)}</p>`).join('')}
       <p class="sub">waiting for a reply</p>${pending}
     </article>`;
@@ -68,7 +106,7 @@
           const old = before && before.up && before.store ? before.store[k] : undefined;
           const cls = old === undefined ? (before ? 'is-new' : '') : old !== n.store[k] ? 'is-changed' : '';
           const note = version.entryNote ? version.entryNote(n, k, snap) : null;
-          return `<tr class="${cls}${note ? ' has-note' : ''}"><td class="k">${esc(k)}</td><td class="v">${esc(show(n.store[k]))}${
+          return `<tr class="${cls}${note ? ' has-note' : ''}"><td class="k">${keyTag(k)}</td><td class="v">${esc(show(n.store[k]))}${
             note ? `<span class="note">${esc(note)}</span>` : ''
           }</td></tr>`;
         })
@@ -77,9 +115,72 @@
     const status = n.up ? '<span class="pill up">up</span>' : '<span class="pill down">down</span>';
     return `<article class="card node${n.up ? '' : ' is-down'}${snap.actor === n.name ? ' is-active' : ''}" data-actor="${esc(n.name)}">
       <header><span class="name">${esc(n.name)}</span>${status}</header>
+      ${callout(snap, n.name)}
       ${lines.map((l) => `<p class="meta">${esc(l)}</p>`).join('')}
       ${body}
     </article>`;
+  }
+
+  // ---- what clients were promised ------------------------------------------
+
+  // For one key: which servers hold it, and whether the promised value is still reachable.
+  function promiseRow(version, snap, key) {
+    const promised = snap.promised[key];
+    const holders = snap.nodes
+      .filter((n) => n.store && key in n.store)
+      .map((n) => ({
+        name: n.name,
+        value: n.store[key],
+        orphaned: !!(version.entryNote && version.entryNote(n, key, snap)),
+      }));
+    const writing = snap.clients.flatMap((c) => c.pending.filter((p) => p.do === 'put' && p.key === key));
+    let status;
+    if (promised === undefined) status = { text: 'writing', tone: 'neutral' };
+    else if (holders.some((h) => h.value === promised && !h.orphaned)) status = { text: 'safe', tone: 'ok' };
+    else if (holders.some((h) => h.value === promised)) status = { text: 'unreachable', tone: 'warn' };
+    else if (holders.length) status = { text: 'only stale copies', tone: 'bad' };
+    else status = { text: 'lost', tone: 'warn' };
+    return { key, promised, holders, writing, status };
+  }
+
+  function promiseRows(version, snap) {
+    if (!snap) return [];
+    const keys = Object.keys(snap.promised);
+    for (const c of snap.clients) for (const p of c.pending) if (p.do === 'put' && !keys.includes(p.key)) keys.push(p.key);
+    return keys.map((k) => promiseRow(version, snap, k));
+  }
+
+  function rowSignature(r) {
+    return JSON.stringify([r.promised, r.holders, r.status.text]);
+  }
+
+  function promisedPanel(version, snap, prev) {
+    const rows = promiseRows(version, snap);
+    const before = Object.fromEntries(promiseRows(version, prev).map((r) => [r.key, rowSignature(r)]));
+    if (!rows.length) return '<p class="quiet">No writes acknowledged yet.</p>';
+    const body = rows
+      .map((r) => {
+        const changed = prev && before[r.key] !== rowSignature(r);
+        const held = r.holders.length
+          ? r.holders
+              .map((h) => {
+                const mark = h.value !== r.promised && r.promised !== undefined ? 'stale' : h.orphaned ? 'orphaned' : '';
+                return `<span class="holder${mark ? ' is-' + mark : ''}">${esc(h.name)} ${esc(show(h.value))}${mark ? ` <small>${mark === 'stale' ? 'stale copy' : 'orphaned'}</small>` : ''}</span>`;
+              })
+              .join('')
+          : '<span class="quiet">nowhere</span>';
+        const writing = r.writing.map((p) => `<span class="writing">writing ${esc(show(p.value))}</span>`).join('');
+        return `<tr class="${changed ? 'is-changed' : ''}${r.promised === undefined ? ' is-pending' : ''}">
+          <td>${keyTag(r.key)}</td>
+          <td class="mono">${r.promised === undefined ? '' : esc(show(r.promised))}${writing}</td>
+          <td><div class="holders">${held}</div></td>
+          <td>${badge(r.status.text, r.status.tone)}</td>
+        </tr>`;
+      })
+      .join('');
+    return `<div class="table-scroll"><table class="promised">
+      <thead><tr><th scope="col">Key</th><th scope="col">Promised</th><th scope="col">Held by</th><th scope="col">Status</th></tr></thead>
+      <tbody>${body}</tbody></table></div>`;
   }
 
   // ---- wires and message chips ------------------------------------------
@@ -138,7 +239,7 @@
       paths += `<path class="wire ${state}" d="${d}" marker-end="url(#arrow-${state === 'dropped' ? 'dropped' : 'ok'})"/>`;
       chipHtml += `<span class="chip ${state}" style="left:${x}px;top:${y}px">${
         state === 'dropped' ? '<span class="x" aria-hidden="true">✕</span>' : ''
-      }${esc(LAB.label(m))}</span>`;
+      }${m.key !== undefined ? swatch(m.key) : ''}${esc(LAB.label(m))}</span>`;
     }
     svg.innerHTML = `<defs>
       <marker id="arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0,0 L10,5 L0,10 z"/></marker>
@@ -191,6 +292,7 @@
   function renderVersion(root, version, scenarioId) {
     const scenario = LAB.scenarios.find((s) => s.id === scenarioId) || LAB.scenarios[0];
     const result = LAB.run(version, scenario);
+    setKeyColours(scenario);
     const index = LAB.versions.indexOf(version);
     const prevVersion = LAB.versions[index - 1];
 
@@ -240,6 +342,7 @@
       </div>
       <div class="done" id="done" hidden></div>
       <div class="layout">
+        <div class="main-col">
         <div class="stage" id="stage">
           <svg class="wires" aria-hidden="true"></svg>
           <div class="tier">
@@ -251,6 +354,12 @@
             <div class="row row-nodes" id="nodes"></div>
           </div>
           <div class="chips" aria-hidden="true"></div>
+        </div>
+        <section class="promised-panel" aria-labelledby="promised-title">
+          <h2 id="promised-title">What clients were promised</h2>
+          <p class="section-note">The last acknowledged value of each key, and which servers still hold it.</p>
+          <div id="promised"></div>
+        </section>
         </div>
         <section class="log-panel" aria-label="Event log">
           <h2>Events</h2>
@@ -269,6 +378,7 @@
       runEl.querySelector('#clients').innerHTML = snap.clients.map((c) => clientCard(version, c, snap)).join('');
       runEl.querySelector('#nodes').innerHTML = snap.nodes.map((n) => nodeCard(version, n, snap, prev)).join('');
       drawWires(stage, snap);
+      runEl.querySelector('#promised').innerHTML = promisedPanel(version, snap, prev);
       runEl.querySelector('#counter').textContent = i === 0 ? `${last} events ahead` : `Event ${i} of ${last}`;
       const log = runEl.querySelector('#log');
       log.innerHTML =

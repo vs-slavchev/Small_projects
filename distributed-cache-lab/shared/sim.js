@@ -53,7 +53,7 @@
     let step = null;
 
     function newStep(kind, actor, title) {
-      step = { kind, actor, title, lines: [], outcome: null, delivered: null, dropped: false };
+      step = { kind, actor, title, short: null, lines: [], outcome: null, delivered: null, dropped: false };
     }
 
     function createNode(name) {
@@ -148,6 +148,7 @@
       } else if (op.do === 'crash') {
         const node = w.nodes[op.node];
         newStep('fault', node.name, `${node.name} crashes. Everything in its memory is gone.`);
+        step.short = 'crashed, memory wiped';
         node.up = false;
         for (const k of Object.keys(node)) if (k !== 'name' && k !== 'up') delete node[k];
         version.initNode(node);
@@ -155,9 +156,11 @@
       } else if (op.do === 'restart') {
         const node = w.nodes[op.node];
         newStep('fault', node.name, `${node.name} restarts with empty memory`);
+        step.short = 'restarted, empty';
         node.up = true;
       } else if (op.do === 'addNode') {
         newStep('topology', op.node, `Server ${op.node} joins the cluster`);
+        step.short = 'joined the cluster';
         createNode(op.node);
         version.onAddNode(op.node, Object.values(w.clients), netFor({ name: op.node }));
       } else {
@@ -176,6 +179,7 @@
         newStep('drop', m.to, `${label(m)} from ${m.from} is lost: ${m.to} is down`);
         step.delivered = clone(m);
         step.dropped = true;
+        step.short = "message dropped: I'm down";
         return;
       }
       newStep('deliver', m.to, `${m.to} receives ${label(m)} from ${m.from}`);
@@ -199,6 +203,8 @@
           .filter((m) => !m.timer)
           .sort((a, b) => a.at - b.at || a.id - b.id)
           .map(clone),
+        // key -> last acknowledged value: what clients were promised so far
+        promised: Object.fromEntries(Object.entries(w.acked).map(([k, a]) => [k, a.value])),
       };
     }
 
