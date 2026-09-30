@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cache Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#overview">Cache <span>Lab</span></a>
+  <nav class="tabs" id="tabs" aria-label="Versions"></nav>
+</header>
+<main id="app"></main>
+
+<!-- Classic scripts (not modules) so the page also works when opened straight from disk. -->
+<script src="shared/sim.js"></script>
+<script src="shared/scenarios.js"></script>
+<script src="shared/view.js"></script>
+<script src="v1-single-node/cache.js"></script>
+<script src="v2-modulo-sharding/cache.js"></script>
+<script>
+  // The full plan. A version shows as "built" once its cache.js is loaded above.
+  const LADDER = [
+    { id: 'v1', title: 'Single node', idea: 'One node holds everything. A crash loses everything.' },
+    { id: 'v2', title: 'Modulo sharding', idea: 'Three nodes, hash(key) % N. Adding a node remaps most keys.' },
+    { id: 'v3', title: 'Consistent hashing', idea: 'A hash ring with virtual nodes. Adding a node moves only a small share of keys.' },
+    { id: 'v4', title: 'Async primary–backup', idea: 'Each key gets a backup copy, sent after the reply. Crashes can lose acknowledged writes.' },
+    { id: 'v5', title: 'Sync replication', idea: 'Reply only after the backup has the write. Slower, and stuck when the backup is down.' },
+    { id: 'v6', title: 'Heartbeats and failover', idea: 'Detect dead nodes and promote backups. A false alarm can leave two primaries.' },
+    { id: 'v7', title: 'Versions and conflicts', idea: 'Last-write-wins versus compare-and-set. Clock skew silently drops writes.' },
+    { id: 'v8', title: 'Leaderless quorums', idea: 'Write to W of N replicas, read from R. Branches from v3.' },
+    { id: 'v9', title: 'Read repair and hinted handoff', idea: 'Replicas heal themselves after failures.' },
+    { id: 'v10', title: 'Cache-aside with a database', idea: 'The cache in front of a real source of truth: stale-set races and stampedes.' },
+    { id: 'v11', title: 'Near cache and invalidation', idea: 'A local copy in every client, kept fresh by invalidation messages.' },
+  ];
+
+  let shownVersion;
+  function route() {
+    const hash = location.hash.slice(1);
+    const [vid, ...rest] = hash.split('-');
+    const version = LAB.versions.find((v) => v.id === vid);
+    const switchedPage = version !== shownVersion;
+    shownVersion = version;
+    const app = document.getElementById('app');
+    if (version) LAB.view.renderVersion(app, version, rest.join('-'));
+    else LAB.view.renderOverview(app, LADDER);
+
+    document.getElementById('tabs').innerHTML =
+      `<a href="#overview"${version ? '' : ' aria-current="page"'}>Overview</a>` +
+      LAB.versions
+        .map((v) => `<a href="#${v.id}"${v === version ? ' aria-current="page"' : ''}><span class="vid">${v.id}</span>${v.title}</a>`)
+        .join('');
+    if (switchedPage) window.scrollTo(0, 0);
+  }
+
+  window.addEventListener('hashchange', route);
+  route();
+</script>
+</body>
+</html>

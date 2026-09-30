@@ -26,3 +26,5 @@ and also make it executable with chmod.
 11. "SnakeRL" is a reinforcement learning project that can learn to play the game, can be played by user and can replay a saved game. It uses Q-learning and is a simple approach to solving the basics of the game in a ok-ish way.
 
 12. "Egg hunt" is an old C++ and Allegro game. Compete against a dog to collect more easter eggs.
+
+13. "distributed-cache-lab" is a learning exercise: a distributed cache built one idea at a time. Each version runs the same planned scenarios in a simulated network, and a browser page steps through them event by event, so the trade-offs (sharding, replication, failures, consistency) can be seen and compared. Open distributed-cache-lab/index.html.
