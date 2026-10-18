@@ -1,0 +1,105 @@
+import { GameSession, DEFAULT_GAME_LENGTH } from '../domain/gameSession.js';
+import { WordSelectionPolicy } from '../domain/wordSelection.js';
+import { AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps } from '../domain/achievements.js';
+import { ProgressReport } from '../domain/progressReport.js';
+import { GameSummary, rateGame } from '../domain/gameSummary.js';
+
+/**
+ * Cas d'utilisation du jeu. Ils orchestrent les objets du domaine et les ports
+ * (stockage, horloge, hasard) sans rien savoir de l'interface.
+ *
+ * Ports attendus :
+ * - profiles    : { load(): PlayerProfile, save(profile): void }
+ * - preferences : { load(): { soundEnabled: boolean }, save(prefs): void }
+ * - clock       : { now(): number }   // millisecondes
+ * - random      : () => number        // [0, 1)
+ *
+ * @param {{ bank: import('../domain/wordBank.js').WordBank, profiles: object, preferences: object,
+ *           clock: { now(): number }, random?: () => number, gameLength?: number }} deps
+ */
+export function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
+  const profile = profiles.load();
+  let prefs = preferences.load();
+  const today = () => new Date(clock.now());
+  const achievements = () => evaluateAchievements(AchievementFacts.collect(profile, bank));
+
+  return Object.freeze({
+    /** Série quotidienne et activité de la semaine, pour l'accueil. */
+    getHomeOverview() {
+      const calendar = profile.calendar;
+      const now = today();
+      return Object.freeze({
+        streak: calendar.currentStreak(now),
+        playedToday: calendar.playedOn(now),
+        week: calendar.week(now),
+      });
+    },
+
+    /** Démarre une partie à la difficulté courante du joueur. */
+    startGame() {
+      const policy = new WordSelectionPolicy({ bank, stats: profile.wordStats, random });
+      return GameSession.start({
+        length: gameLength,
+        difficulty: profile.difficulty,
+        drawWord: request => policy.pick(request).word,
+        now: clock.now(),
+      });
+    },
+
+    /** @param {GameSession} session @param {import('../domain/gender.js').Gender} gender */
+    submitAnswer(session, gender) {
+      return session.answer(gender, clock.now());
+    },
+
+    /** @param {GameSession} session */
+    nextWord(session) {
+      session.next(clock.now());
+    },
+
+    /**
+     * Archive la partie, met à jour le profil et retourne le bilan
+     * (verdict, succès débloqués, mots à revoir).
+     * @param {GameSession} session @returns {GameSummary}
+     */
+    finishGame(session) {
+      const record = session.finish(clock.now());
+      const earlierGames = profile.games;
+      const before = achievements();
+      profile.recordGame(record, bank);
+      profiles.save(profile);
+      return new GameSummary({
+        record,
+        verdict: rateGame(record, earlierGames),
+        unlocked: newlyUnlocked(before, achievements()),
+        missedWords: record.missedWords.map(text => bank.word(text)).filter(Boolean),
+        streak: profile.calendar.currentStreak(today()),
+      });
+    },
+
+    /**
+     * Abandon en cours de partie : rien n'est enregistré, ni statistiques ni difficulté.
+     * Explicite pour que la règle soit lisible à un seul endroit.
+     */
+    abandonGame(_session) {},
+
+    getProgress() {
+      return new ProgressReport(profile.games, today());
+    },
+
+    getAchievements() {
+      const list = achievements();
+      return Object.freeze({ list, earned: earnedSteps(list), total: totalSteps(list) });
+    },
+
+    isSoundEnabled() {
+      return prefs.soundEnabled;
+    },
+
+    /** @returns {boolean} nouvel état du son */
+    toggleSound() {
+      prefs = { ...prefs, soundEnabled: !prefs.soundEnabled };
+      preferences.save(prefs);
+      return prefs.soundEnabled;
+    },
+  });
+}
