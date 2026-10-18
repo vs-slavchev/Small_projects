@@ -25,12 +25,14 @@ test('une statistique refuse plus de réussites que de passages', () => {
   assert.throws(() => new WordStat(1, 2));
 });
 
-test('les mots les plus faibles excluent les mots jamais vus et ceux maîtrisés à 100 %', () => {
+test('les mots les plus faibles excluent les mots jamais vus et ceux à 80 % ou plus', () => {
   const book = new WordStatsBook();
   book.record('a', false);              // 0 %
   book.record('b', true); book.record('b', false); // 50 %
   book.record('c', true);              // 100 % → exclu
-  assert.deepEqual(book.weakest(['a', 'b', 'c', 'jamais-vu'], 20), ['a', 'b']);
+  book.record('d', false); for (let i = 0; i < 4; i++) book.record('d', true); // 80 % → exclu
+  book.record('e', false); for (let i = 0; i < 3; i++) book.record('e', true); // 75 % → gardé
+  assert.deepEqual(book.weakest(['a', 'b', 'c', 'd', 'e', 'jamais-vu'], 20), ['a', 'b', 'e']);
   assert.deepEqual(book.weakest(['a', 'b'], 1), ['a']);
   assert.equal(book.get('a').lastCorrect, false);
 });

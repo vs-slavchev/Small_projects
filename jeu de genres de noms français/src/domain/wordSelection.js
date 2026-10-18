@@ -13,7 +13,7 @@ const SelectionStrategy = Object.freeze({
  * Politique de choix du prochain mot :
  * - 20 % : un mot au hasard ;
  * - 30 % : un des 20 mots au plus faible taux de réussite
- *          (hors mots déjà proposés dans la partie et mots maîtrisés à 100 %) ;
+ *          (hors mots déjà proposés dans la partie et mots maîtrisés, à 80 % ou plus) ;
  * - 50 % : tirage de 0 à 100 comparé à la difficulté → mot régulier ou exception.
  * Si une stratégie n'a aucun candidat, on se rabat sur le hasard.
  */

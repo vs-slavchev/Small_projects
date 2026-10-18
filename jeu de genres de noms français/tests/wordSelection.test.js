@@ -24,7 +24,7 @@ test('tirage dans [0,2 ; 0,5) → un des mots les plus faibles, hors mots déjà
 
 test('sans mot faible disponible, on se rabat sur le hasard', () => {
   const stats = new WordStatsBook();
-  stats.record('baguette', true); // maîtrisé à 100 % → exclu
+  stats.record('baguette', true); // maîtrisé (80 % ou plus) → exclu
   const { strategy } = policy(sequence(0.3, 0), stats).pick({ difficulty: Difficulty.initial() });
   assert.equal(strategy, SelectionStrategy.RANDOM);
 });
