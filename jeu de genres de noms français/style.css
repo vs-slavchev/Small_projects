@@ -182,6 +182,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .chip.m { background: var(--masc-tint); color: var(--masc-d); }
 .chip.strike { text-decoration: line-through; }
 .chip.exc { background: var(--ink); color: var(--amber); font-size: 13px; }
+.chip.none { background: var(--line-2); color: var(--ink-3); font-size: 13px; }
 .to { font-size: 14px; font-weight: 700; }
 .to.f { color: var(--fem-d); }
 .to.m { color: var(--masc-d); }

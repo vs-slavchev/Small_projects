@@ -30,7 +30,8 @@ class WordGroup {
 
 /**
  * Nom à deviner. Invariant : un mot régulier a le genre de son groupe,
- * une exception a le genre opposé.
+ * une exception a le genre opposé. Un mot sans groupe (`group` null) ne suit
+ * aucune règle : son genre s'apprend par cœur, et ce n'est pas une exception.
  *
  * Devant une voyelle ou un h muet, l'article s'élide (« l’école ») et ne révèle plus le genre.
  * Pour un mot en h, `aspiratedH` est obligatoire : true pour un h aspiré (« le hérisson »),
@@ -38,14 +39,17 @@ class WordGroup {
  */
 class Word {
   /**
-   * @param {{ text: string, gender: Gender, group: WordGroup, isException?: boolean,
+   * @param {{ text: string, gender: Gender, group: WordGroup | null, isException?: boolean,
    *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
    */
-  constructor({ text, gender, group, isException = false, aspiratedH, translation = '', anecdote = null }) {
+  constructor({ text, gender, group = null, isException = false, aspiratedH, translation = '', anecdote = null }) {
     if (!text) throw new DomainError('Un mot doit avoir un texte.');
     if (!(gender instanceof Gender)) throw new DomainError(`« ${text} » : genre invalide.`);
-    if (!(group instanceof WordGroup)) throw new DomainError(`« ${text} » : groupe invalide.`);
-    if (isException === gender.equals(group.gender)) {
+    if (group === null) {
+      if (isException) throw new DomainError(`« ${text} » n'a pas de groupe : il ne peut pas être une exception.`);
+    } else if (!(group instanceof WordGroup)) {
+      throw new DomainError(`« ${text} » : groupe invalide.`);
+    } else if (isException === gender.equals(group.gender)) {
       throw new DomainError(isException
         ? `« ${text} » est marqué comme exception mais a le genre de son groupe ${group.suffix}.`
         : `« ${text} » n'a pas le genre de son groupe ${group.suffix} : c'est une exception.`);
@@ -63,6 +67,11 @@ class Word {
     this.translation = translation;
     this.anecdote = anecdote || null;
     Object.freeze(this);
+  }
+
+  /** Vrai pour un mot régulier de son groupe ; faux pour une exception ou un mot sans règle. */
+  get followsRule() {
+    return this.group !== null && !this.isException;
   }
 
   /** Vrai pour un mot en h, que ce h soit aspiré ou muet. */
@@ -117,7 +126,7 @@ class WordBank {
     const byText = new Map();
     for (const w of words) {
       if (byText.has(w.text)) throw new DomainError(`Mot en double : ${w.text}.`);
-      if (!groupIds.has(w.group.id)) throw new DomainError(`« ${w.text} » : groupe inconnu ${w.group.id}.`);
+      if (w.group && !groupIds.has(w.group.id)) throw new DomainError(`« ${w.text} » : groupe inconnu ${w.group.id}.`);
       byText.set(w.text, w);
     }
     if (!words.length) throw new DomainError('La banque de mots est vide.');
@@ -131,8 +140,9 @@ class WordBank {
     const groupList = groups.map(g => new WordGroup({ id: g.id, suffix: g.label, gender: Gender.fromCode(g.g), rule: g.rule }));
     const byId = new Map(groupList.map(g => [g.id, g]));
     const wordList = words.map(w => {
-      const group = byId.get(w.grp);
-      if (!group) throw new DomainError(`« ${w.w} » : groupe inconnu ${w.grp}.`);
+      // grp absent, null ou vide : mot sans règle.
+      if (w.grp && !byId.has(w.grp)) throw new DomainError(`« ${w.w} » : groupe inconnu ${w.grp}.`);
+      const group = w.grp ? byId.get(w.grp) : null;
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
         isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdote: w.fun,

@@ -6,6 +6,8 @@ const { DomainError } = LeOuLa;
 /** Historique des réponses à un mot. Objet valeur immuable. */
 class WordStat {
   static EMPTY = new WordStat();
+  /** Taux de réussite à partir duquel un mot est considéré comme acquis. */
+  static MASTERY_ACCURACY = 0.8;
 
   /** @param {number} seen @param {number} correct @param {boolean | null} lastCorrect */
   constructor(seen = 0, correct = 0, lastCorrect = null) {
@@ -23,8 +25,15 @@ class WordStat {
     return this.seen ? this.correct / this.seen : null;
   }
 
+  /**
+   * Mot acquis : dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
+   * Une erreur ancienne, suivie d'assez de bonnes réponses, ne le fait plus revenir en révision ;
+   * une erreur toute récente, si.
+   * (À ne pas confondre avec « Maître du groupe », qui ne regarde que la dernière réponse,
+   * pour chaque mot d'un groupe, sans seuil de réussite.)
+   */
   get isMastered() {
-    return this.seen > 0 && this.correct === this.seen;
+    return this.lastCorrect === true && this.accuracy >= WordStat.MASTERY_ACCURACY;
   }
 
   /** @param {boolean} correct @returns {WordStat} */
@@ -57,7 +66,7 @@ class WordStatsBook {
   }
 
   /**
-   * Parmi `candidates`, les mots déjà vus et pas encore maîtrisés,
+   * Parmi `candidates`, les mots déjà vus et pas encore maîtrisés (voir `WordStat.isMastered`),
    * du plus faible taux de réussite au plus élevé.
    * @param {string[]} candidates @param {number} limit @returns {string[]}
    */

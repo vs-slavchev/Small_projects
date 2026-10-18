@@ -188,7 +188,7 @@ test('Sans hâte : chaque anecdote affichée au moins 5 s', () => {
 });
 
 test('Maître du groupe : la dernière réponse à chaque mot du groupe est juste', () => {
-  const ette = bank.words.filter(w => w.group.id === 'ette');
+  const ette = bank.words.filter(w => w.group?.id === 'ette');
   assert.equal(progressAfter('groupMaster', [game({ words: ette, correct: ette.length })]).value, 1);
   assert.equal(progressAfter('groupMaster', [game({ words: ette, correct: ette.length - 1 })]).value, 0);
   const p = progressAfter('groupMaster', [game({ words: ette, correct: ette.length }), game({ endedAt: day(19), words: ette, correct: 0 })]);

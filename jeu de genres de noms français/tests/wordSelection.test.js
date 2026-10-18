@@ -24,20 +24,20 @@ test('tirage dans [0,2 ; 0,5) → un des mots les plus faibles, hors mots déjà
 
 test('sans mot faible disponible, on se rabat sur le hasard', () => {
   const stats = new WordStatsBook();
-  stats.record('baguette', true); // maîtrisé à 100 % → exclu
+  stats.record('baguette', true); // maîtrisé (80 % ou plus) → exclu
   const { strategy } = policy(sequence(0.3, 0), stats).pick({ difficulty: Difficulty.initial() });
   assert.equal(strategy, SelectionStrategy.RANDOM);
 });
 
-test('stratégie difficulté : à 0, toujours un mot régulier ; à 100, toujours une exception', () => {
+test('stratégie difficulté : à 0, toujours un mot qui suit sa règle ; à 100, toujours une exception ou un mot sans règle', () => {
   const random = seededRandom(7);
   for (let i = 0; i < 200; i++) {
     const roll = () => { const r = random(); return r === 0 ? 0.5 : r; };
     const low = policy(sequence(0.6, roll(), roll())).pick({ difficulty: Difficulty.of(0) });
-    if (low.strategy === SelectionStrategy.DIFFICULTY) assert.equal(low.word.isException, false);
+    if (low.strategy === SelectionStrategy.DIFFICULTY) assert.equal(low.word.followsRule, true);
     const high = policy(sequence(0.6, roll(), roll())).pick({ difficulty: Difficulty.of(100) });
     assert.equal(high.strategy, SelectionStrategy.DIFFICULTY);
-    assert.equal(high.word.isException, true);
+    assert.equal(high.word.followsRule, false);
   }
 });
 
