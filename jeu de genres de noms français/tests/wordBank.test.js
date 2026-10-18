@@ -63,6 +63,19 @@ test('la banque refuse les doublons et les groupes inconnus', () => {
   assert.throws(() => new WordBank([other], [w]), /inconnu/);
 });
 
+test('un mot sans règle n’a pas de groupe et n’est pas une exception', () => {
+  const bank = realBank();
+  const lit = bank.word('lit');
+  assert.equal(lit.group, null);
+  assert.equal(lit.isException, false);
+  assert.equal(lit.followsRule, false);
+  assert.equal(bank.word('école').withArticle, 'l’école');
+  assert.equal(bank.word('baguette').followsRule, true);
+  assert.equal(bank.word('squelette').followsRule, false);
+  assert.throws(() => new Word({ text: 'mer', gender: Gender.FEMININE, group: null, isException: true }), /pas de groupe/);
+  assert.throws(() => WordBank.fromData({ groups: [], words: [{ w: 'mer', g: 'f', grp: 'inconnu' }] }), /groupe inconnu/);
+});
+
 test('un mot connaît son article et vérifie une réponse', () => {
   const w = realBank().word('baguette');
   assert.equal(w.withArticle, 'la baguette');

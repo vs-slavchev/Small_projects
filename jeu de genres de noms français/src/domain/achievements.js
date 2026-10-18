@@ -53,7 +53,7 @@ class AchievementFacts {
     // un groupe est maîtrisé dès que la dernière réponse à chacun de ses mots est juste.
     const replay = new WordStatsBook();
     const wordsByGroup = new Map();
-    for (const w of bank.words) wordsByGroup.set(w.group.id, [...(wordsByGroup.get(w.group.id) ?? []), w]);
+    for (const w of bank.words) if (w.group) wordsByGroup.set(w.group.id, [...(wordsByGroup.get(w.group.id) ?? []), w]);
     const masteredGroups = new Set();
 
     for (const game of profile.games) {
@@ -81,11 +81,12 @@ class AchievementFacts {
           if (a.readMs === null || a.readMs < READ_MIN_MS) allAnecdotesRead = false;
         }
         replay.record(word.text, a.correct);
-        touchedGroups.add(word.group.id);
+        if (word.group) touchedGroups.add(word.group.id);
         if (!a.correct) continue;
         totalCorrect++;
-        bump(correctByGroup, word.group.id);
         if (word.startsWithH) hWordsFound.add(word.text);
+        if (!word.group) continue;
+        bump(correctByGroup, word.group.id);
         if (word.isException) bump(exceptionsByGroup, word.group.id);
       }
       if (anecdotes && allAnecdotesRead) unhurriedGames++;

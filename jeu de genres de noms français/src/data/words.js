@@ -1,7 +1,7 @@
 // Banque de mots brute : groupes (terminaisons) et mots.
 // Chaque groupe compte au moins deux mots réguliers et au plus une exception
 // (vérifié par tests/wordBank.test.js).
-// Mot : w (texte), g ('m' | 'f'), grp (id du groupe), exc (exception),
+// Mot : w (texte), g ('m' | 'f'), grp (id du groupe ; absent pour un mot sans règle, à apprendre par cœur), exc (exception),
 //       asp (obligatoire pour un mot en h : true si h aspiré, false si h muet),
 //       en (traduction), fun (anecdote facultative).
 // Les mots commençant par une voyelle ou un h muet prennent l'article élidé « l’ » ; un mot en y- ne s'élide pas.
@@ -280,6 +280,25 @@ const WORDS = Object.freeze([
   { w: 'Brésil', g: 'm', grp: 'paysM', en: 'Brazil', fun: "Il doit son nom au bois de braise (<i>pau-brasil</i>), un arbre au bois rouge exporté vers l’Europe. Masculin : « le Brésil », « au Brésil »." },
   { w: 'Danemark', g: 'm', grp: 'paysM', en: 'Denmark', fun: "Littéralement la « marche des Danois » : une marche était une région frontière. Masculin : « le Danemark », « au Danemark »." },
   { w: 'Iran', g: 'm', grp: 'paysM', en: 'Iran', fun: "Du persan ancien : « le pays des Aryens ». L’article s’élide, mais l’accord montre le masculin : « l’Iran est grand »." },
+  // Sans règle : ni groupe, ni exception, le genre s'apprend par cœur
+  { w: 'mer', g: 'f', en: 'sea', fun: "Du latin <i>mare</i>, neutre, devenu féminin en français : « la mer », comme dans la chanson de Charles Trenet." },
+  { w: 'nuit', g: 'f', en: 'night', fun: "Du latin <i>nox, noctis</i>, déjà féminin. On souhaite « bonne nuit » et l’on passe « une nuit blanche »." },
+  { w: 'dent', g: 'f', en: 'tooth', fun: "Du latin <i>dens</i>, qui était masculin ! Le mot est devenu féminin en français : « une dent de lait »." },
+  { w: 'voix', g: 'f', en: 'voice', fun: "Du latin <i>vox, vocis</i>, déjà féminin, qu’on retrouve dans « vocal ». On parle « à voix basse » avec « une belle voix »." },
+  { w: 'souris', g: 'f', en: 'mouse', fun: "Du latin <i>sorex</i>, « musaraigne ». Féminin en français : c’est « la petite souris » qui apporte une pièce contre une dent." },
+  { w: 'clé', g: 'f', en: 'key', fun: "Du latin <i>clavis</i>, déjà féminin. On l’écrit aussi « clef », avec un f muet : « la clé du mystère »." },
+  { w: 'radio', g: 'f', en: 'radio', fun: "Abréviation de « radiodiffusion », féminin : c’est pourquoi on dit « la radio », « écouter la radio »." },
+  { w: 'photo', g: 'f', en: 'photo', fun: "Abréviation de « photographie », du grec <i>phôs</i>, « lumière », et <i>graphein</i>, « écrire » : écrire avec la lumière. Féminin comme le mot entier : « une photo »." },
+  { w: 'vélo', g: 'm', en: 'bike', fun: "Abréviation de « vélocipède », du latin <i>velox</i>, « rapide », et <i>pes</i>, « pied ». Masculin comme le mot entier : « un vélo »." },
+  { w: 'lit', g: 'm', en: 'bed', fun: "Du latin <i>lectus</i>, déjà masculin. On va « au lit » ; « faire son lit », c’est le préparer." },
+  { w: 'nez', g: 'm', en: 'nose', fun: "Du latin <i>nasus</i>, déjà masculin. Le z final ne se prononce pas : « le bout du nez »." },
+  { w: 'pied', g: 'm', en: 'foot', fun: "Du latin <i>pes, pedis</i>, déjà masculin, qu’on retrouve dans « piéton » et « pédale ». On va « à pied »." },
+  { w: 'sel', g: 'm', en: 'salt', fun: "Du latin <i>sal</i>, qui a aussi donné « salaire » : selon la tradition, une part de la solde des soldats romains servait à acheter du sel. Masculin : « le sel »." },
+  { w: 'livre', g: 'm', en: 'book', fun: "Du latin <i>liber</i>, « écorce » : on écrivait sur l’écorce intérieure des arbres. Attention : « le livre » se lit, « la livre » (500 g) se pèse." },
+  { w: 'dos', g: 'm', en: 'back', fun: "Du latin <i>dorsum</i>, neutre, devenu masculin en français. Le s final ne se prononce pas : « le dos », « sac à dos »." },
+  { w: 'lait', g: 'm', en: 'milk', fun: "Du latin <i>lac, lactis</i>, neutre, qu’on retrouve dans « lactose ». Masculin en français : « un verre de lait »." },
+  { w: 'école', g: 'f', en: 'school', fun: "Du latin <i>schola</i>, du grec <i>skholê</i>, « loisir » : le temps libre consacré à l’étude. L’article s’élide, mais l’accord montre le féminin : « une grande école »." },
+  { w: 'arbre', g: 'm', en: 'tree', fun: "Du latin <i>arbor</i>, qui était féminin ! Le mot est devenu masculin en français. L’article s’élide, mais l’accord le montre : « un grand arbre »." },
 ]);
 
 const WORD_DATA = Object.freeze({ groups: GROUPS, words: WORDS });

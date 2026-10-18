@@ -14,7 +14,7 @@ Les dépendances vont toujours vers le centre : l'interface connaît l'applicati
 
 ```
 src/
-├── data/words.js              Données brutes : 34 groupes, 196 mots
+├── data/words.js              Données brutes : 34 groupes, 214 mots (dont 18 sans règle)
 ├── domain/                    Règles du jeu, sans DOM ni stockage
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
@@ -80,11 +80,12 @@ stateDiagram-v2
 | Règle | Emplacement |
 |---|---|
 | Un mot régulier a le genre de son groupe, une exception le genre opposé | `Word` (constructeur) |
+| Un mot sans groupe ne suit aucune règle : ni régulier, ni exception, son genre s'apprend par cœur | `Word` (constructeur), `Word.followsRule` |
 | Devant une voyelle ou un h muet, l'article s'élide (« l’ ») ; un h aspiré l'empêche (« le hérisson ») | `Word.elides`, champ `asp` des données |
 | Mot élidé : les boutons affichent « l’ (m.) » / « l’ (f.) » ; l'explication dit « masculin » ou « féminin » | `ui/views.js` (question, explication, bilan) |
 | Un mot en h doit déclarer son h aspiré ou muet ; un mot en y- ne s'élide pas | `Word` (constructeur), champ `asp` |
 | Un enregistrement invalide est ignoré au chargement, le reste de l'historique est conservé | `PlayerProfile.fromSnapshot` |
-| 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots à 80 % ou plus) · 50 % difficulté | `WordSelectionPolicy.pick` |
+| 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots à 80 % ou plus) · 50 % difficulté (mot qui suit sa règle, ou mot difficile : exception ou sans règle) | `WordSelectionPolicy.pick` |
 | Tirage 0-100 > difficulté → mot régulier, sinon exception | `Difficulty.callsForException` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
 | Le chrono ne compte que le temps de réflexion | `GameSession.thinkingTime` |

@@ -206,16 +206,24 @@ const feedback = {
     } else if (word.isException) {
       title = 'Piège classique.';
       subtitle = "Tu l'auras la prochaine fois.";
+    } else if (!group) {
+      title = 'Pas cette fois.';
+      subtitle = 'Celui-là s’apprend par cœur.';
     } else {
       title = 'Pas cette fois.';
       subtitle = 'La règle ci-dessous va t’aider.';
     }
-    const tags = word.isException
-      ? `<span class="chip ${group.gender.code} strike">${esc(group.suffix)}</span><span class="chip exc">EXCEPTION</span>`
-      : `<span class="chip ${group.gender.code}">${esc(group.suffix)}</span><span class="to ${group.gender.code}">→ ${group.gender.label}</span>`;
-    const rule = word.isException
-      ? `Les ${group.isEnding ? 'noms en ' : ''}<b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`
-      : group.rule;
+    let tags, rule;
+    if (!group) {
+      tags = `<span class="chip exc">SANS RÈGLE</span><span class="to ${word.gender.code}">→ ${word.gender.label}</span>`;
+      rule = `Aucune règle ici : le genre de <b>${esc(word.text)}</b> s’apprend par cœur. Retiens-le avec son article.`;
+    } else if (word.isException) {
+      tags = `<span class="chip ${group.gender.code} strike">${esc(group.suffix)}</span><span class="chip exc">EXCEPTION</span>`;
+      rule = `Les ${group.isEnding ? 'noms en ' : ''}<b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`;
+    } else {
+      tags = `<span class="chip ${group.gender.code}">${esc(group.suffix)}</span><span class="to ${group.gender.code}">→ ${group.gender.label}</span>`;
+      rule = group.rule;
+    }
     return `<div class="screen play fb">
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
