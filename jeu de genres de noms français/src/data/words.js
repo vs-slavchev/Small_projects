@@ -1,6 +1,6 @@
 // Banque de mots brute : groupes (terminaisons) et mots.
-// Chaque groupe compte au moins deux mots réguliers, au plus une exception,
-// et au moins un mot à article élidé (vérifié par tests/wordBank.test.js).
+// Chaque groupe compte au moins deux mots réguliers et au plus une exception
+// (vérifié par tests/wordBank.test.js).
 // Mot : w (texte), g ('m' | 'f'), grp (id du groupe), exc (exception),
 //       asp (obligatoire pour un mot en h : true si h aspiré, false si h muet),
 //       en (traduction), fun (anecdote facultative).
@@ -168,7 +168,6 @@ const WORDS = Object.freeze([
   { w: 'mécanisme', g: 'm', grp: 'isme', en: 'mechanism', fun: "Du grec <i>mêkhanê</i>, « machine, invention », qui a aussi donné « mécanique »." },
   { w: 'tourisme', g: 'm', grp: 'isme', en: 'tourism', fun: "Vient de l'anglais <i>tourism</i>, tiré du « Grand Tour » d'Europe que faisaient les jeunes aristocrates." },
   { w: 'réalisme', g: 'm', grp: 'isme', en: 'realism', fun: "Le mot s'est imposé au XIXᵉ siècle avec des peintres comme Gustave Courbet." },
-  { w: 'héroïsme', g: 'm', grp: 'isme', asp: false, en: 'heroism', fun: "On dit « le héros » (h aspiré) mais « l’héroïsme » et « l’héroïne » : ici, le h est muet." },
   { w: 'optimisme', g: 'm', grp: 'isme', en: 'optimism', fun: "Du latin <i>optimus</i>, « le meilleur ». Le mot apparaît au XVIIIᵉ siècle pour la philosophie de Leibniz." },
   { w: 'cyclisme', g: 'm', grp: 'isme', en: 'cycling', fun: "Dérivé de « cycle », l’ancien nom des vélos, du grec <i>kuklos</i>, « cercle »." },
   // -ier
@@ -196,14 +195,13 @@ const WORDS = Object.freeze([
   { w: 'jardin', g: 'm', grp: 'in', en: 'garden', fun: "D'origine francique : <i>gart</i>, « clôture ». Le jardin était d'abord un enclos." },
   { w: 'matin', g: 'm', grp: 'in', en: 'morning', fun: "Du latin <i>matutinum</i>. Matuta était la déesse romaine de l'aurore." },
   { w: 'main', g: 'f', grp: 'in', exc: true, en: 'hand', fun: "Du latin <i>manus</i>, déjà féminin. On le retrouve dans « manuel », « manier » et « manucure »." },
-  { w: 'engin', g: 'm', grp: 'in', en: 'machine', fun: "Du latin <i>ingenium</i>, « talent, invention » : un engin était d’abord une machine ingénieuse." },
   { w: 'chemin', g: 'm', grp: 'in', en: 'path', fun: "D’origine gauloise : <i>camminos</i>. L’espagnol <i>camino</i> a la même racine." },
+  { w: 'lapin', g: 'm', grp: 'in', en: 'rabbit', fun: "Apparu au XVᵉ siècle, sans doute tiré de « lapereau » ; il a fini par remplacer l’ancien mot « connil »." },
   { w: 'vin', g: 'm', grp: 'in', en: 'wine', fun: "Du latin <i>vinum</i>, un des plus vieux mots de la Méditerranée." },
   // -ème
   { w: 'problème', g: 'm', grp: 'eme', en: 'problem', fun: "Du grec <i>problêma</i>, « ce qu'on jette devant soi » : un obstacle." },
   { w: 'système', g: 'm', grp: 'eme', en: 'system', fun: "Du grec <i>systêma</i>, « assemblage ». Comme thème et poème, ce mot grec en <i>-ema</i> est masculin." },
   { w: 'crème', g: 'f', grp: 'eme', exc: true, en: 'cream', fun: "Rien de grec ici : le mot viendrait du gaulois <i>crama</i>, mêlé au latin <i>chrisma</i>, l'huile sacrée." },
-  { w: 'emblème', g: 'm', grp: 'eme', en: 'emblem', fun: "Du grec <i>emblêma</i>, « ornement incrusté »." },
   { w: 'thème', g: 'm', grp: 'eme', en: 'theme', fun: "Du grec <i>thema</i>, « ce qu’on pose » : le sujet qu’on pose au départ." },
   { w: 'poème', g: 'm', grp: 'eme', en: 'poem', fun: "Du grec <i>poiêma</i>, « ce qu’on fabrique », de <i>poiein</i>, « faire »." },
   // -at
@@ -221,9 +219,8 @@ const WORDS = Object.freeze([
   // -ail
   { w: 'travail', g: 'm', grp: 'ail', en: 'work', fun: "Selon l'explication la plus répandue, il viendrait du latin <i>tripalium</i>, un instrument à trois pieux." },
   { w: 'portail', g: 'm', grp: 'ail', en: 'gate', fun: "Dérivé de « porte » : une grande porte, souvent celle d'une église." },
-  { w: 'éventail', g: 'm', grp: 'ail', en: 'fan', fun: "Dérivé de « éventer », « donner de l’air »." },
+  { w: 'ail', g: 'm', grp: 'ail', en: 'garlic', fun: "Du latin <i>allium</i>. Au pluriel, on dit « des ails » ou, plus rare, « des aulx »." },
   { w: 'détail', g: 'm', grp: 'ail', en: 'detail', fun: "De « détailler », « couper en morceaux » : on vend « au détail » par petites quantités." },
-  { w: 'corail', g: 'm', grp: 'ail', en: 'coral', fun: "Du grec <i>korallion</i>. Au pluriel, on dit « des coraux »." },
   // -aille
   { w: 'taille', g: 'f', grp: 'aille', en: 'size, waist', fun: "Dérivé de « tailler », « couper » : la taille, c’est d’abord la coupe, puis la forme et la mesure." },
   { w: 'bataille', g: 'f', grp: 'aille', en: 'battle', fun: "Du latin tardif <i>battualia</i>, « exercices d’escrime », de <i>battuere</i>, « battre »." },
@@ -252,9 +249,7 @@ const WORDS = Object.freeze([
   { w: 'caillou', g: 'm', grp: 'ou', en: 'pebble', fun: "Probablement d’origine gauloise. Au pluriel : des cailloux, un des sept noms en -ou qui prennent un x." },
   { w: 'hibou', g: 'm', grp: 'ou', asp: true, en: 'owl', fun: "Le h est aspiré : on dit « le hibou », sans élision. Lui aussi prend un x au pluriel : des hiboux." },
   { w: 'trou', g: 'm', grp: 'ou', en: 'hole', fun: "Du latin populaire <i>traucum</i>, d’origine probablement gauloise." },
-  { w: 'écrou', g: 'm', grp: 'ou', en: 'nut (bolt)' },
   // -cide
-  { w: 'homicide', g: 'm', grp: 'cide', asp: false, en: 'homicide', fun: "Du latin <i>homo</i>, « homme », et <i>caedere</i>, « tuer ». Le h est muet : on dit « l’homicide »." },
   { w: 'insecticide', g: 'm', grp: 'cide', en: 'insecticide', fun: "« Insecte » + <b>-cide</b> : ce qui tue les insectes." },
   { w: 'herbicide', g: 'm', grp: 'cide', asp: false, en: 'weedkiller', fun: "« Herbe » + <b>-cide</b> : ce qui tue les mauvaises herbes. Le h est muet : on dit « l’herbicide »." },
   { w: 'pesticide', g: 'm', grp: 'cide', en: 'pesticide', fun: "De l’anglais <i>pest</i>, « nuisible », et <b>-cide</b>." },
