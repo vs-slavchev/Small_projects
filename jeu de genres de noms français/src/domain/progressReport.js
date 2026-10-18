@@ -60,9 +60,8 @@ class ProgressReport {
       return { delta: Math.round(meanAccuracy(recent) - meanAccuracy(older)), window: TrendWindow.TWO_WEEKS };
     }
     const half = Math.floor(this.#games.length / 2);
-    const first = this.#games.slice(0, half).map(g => g.accuracy);
-    const second = this.#games.slice(half).map(g => g.accuracy);
-    return { delta: first.length ? Math.round(mean(second) - mean(first)) : 0, window: TrendWindow.SINCE_START };
+    const delta = half ? Math.round(meanAccuracy(this.#games.slice(half)) - meanAccuracy(this.#games.slice(0, half))) : 0;
+    return { delta, window: TrendWindow.SINCE_START };
   }
 
   /** Dernières parties pour la chronologie, de la plus ancienne à la plus récente. */
