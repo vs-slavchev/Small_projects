@@ -86,6 +86,12 @@ test('commentaire de la chronologie : le constat le plus parlant l’emporte', (
   assert.equal(trap.word, words[9].text);
   assert.equal(trap.misses, 4);
   assert.equal(trap.gender, words[9].gender);
+  const noChoice = [0, 1].map(i => new GameRecord({
+    endedAt: day(1 + i), durationMs: 40_000, difficultyStart: 0, difficultyEnd: 0, maxCombo: 0,
+    answers: [{ word: words[0].text, chosen: undefined, correct: false, timeMs: 1000 }],
+  }));
+  assert.notEqual(new ProgressReport([...noChoice, noChoice[1]], day(18)).insight.kind, InsightKind.TRAP_WORD,
+    'une réponse archivée sans choix ne fait pas planter le commentaire');
 
   // Sans piège (un mot raté différent à chaque partie), la vitesse ressort.
   const faster = Array.from({ length: 6 }, (_, i) => new GameRecord({

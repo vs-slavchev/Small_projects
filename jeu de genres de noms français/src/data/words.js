@@ -1,7 +1,6 @@
 // Banque de mots brute : groupes (terminaisons) et mots.
 // Chaque groupe compte au moins deux mots réguliers et au plus une exception
 // (vérifié par tests/wordBank.test.js).
-// Groupe : id, label (étiquette affichée), g, rule, subject (facultatif, « noms en <label> » par défaut).
 // Mot : w (texte), g ('m' | 'f'), grp (id du groupe), exc (exception),
 //       asp (obligatoire pour un mot en h : true si h aspiré, false si h muet),
 //       en (traduction), fun (anecdote facultative).
@@ -28,7 +27,7 @@ const GROUPS = Object.freeze([
   { id: 'oire', label: '-oire', g: 'f', rule: "Les noms en <b>-oire</b> sont généralement féminins." },
   { id: 'aille', label: '-aille', g: 'f', rule: "Les noms en <b>-aille</b> sont féminins : le suffixe désigne souvent une action ou un ensemble (la volaille, la ferraille)." },
   { id: 'eur', label: '-eur', g: 'f', rule: "Les noms en <b>-eur</b> qui désignent une sensation, une qualité ou une couleur sont féminins. Attention : les métiers et machines en <b>-teur</b> sont masculins." },
-  { id: 'paysF', label: 'pays en -e', subject: 'pays en -e', g: 'f', rule: "Les noms de pays qui finissent par <b>-e</b> sont féminins : la France, l’Italie." },
+  { id: 'paysF', label: 'pays en -e', g: 'f', rule: "Les noms de pays qui finissent par <b>-e</b> sont féminins : la France, l’Italie." },
   // Masculins
   { id: 'age', label: '-age', g: 'm', rule: "Les noms en <b>-age</b> sont masculins quand <b>-age</b> est un suffixe ajouté à un verbe ou à un nom." },
   { id: 'ment', label: '-ment', g: 'm', rule: "Les noms en <b>-ment</b> sont masculins : le suffixe forme des noms d'action à partir de verbes." },
@@ -47,7 +46,7 @@ const GROUPS = Object.freeze([
   { id: 'cide', label: '-cide', g: 'm', rule: "Les noms en <b>-cide</b> sont masculins : le suffixe vient du latin <i>caedere</i>, « tuer »." },
   { id: 'phone', label: '-phone', g: 'm', rule: "Les noms en <b>-phone</b> sont masculins : le suffixe vient du grec <i>phônê</i>, « voix, son »." },
   { id: 'teur', label: '-teur', g: 'm', rule: "Les noms en <b>-teur</b> qui désignent une personne ou une machine sont masculins : le moteur, l’acteur." },
-  { id: 'paysM', label: 'pays sans -e', subject: 'pays sans -e', g: 'm', rule: "Les noms de pays qui ne finissent pas par <b>-e</b> sont masculins : le Canada, le Japon." },
+  { id: 'paysM', label: 'pays sans -e', g: 'm', rule: "Les noms de pays qui ne finissent pas par <b>-e</b> sont masculins : le Canada, le Japon." },
 ]);
 
 const WORDS = Object.freeze([

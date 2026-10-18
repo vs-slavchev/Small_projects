@@ -92,8 +92,9 @@ class ProgressReport {
 
   /** La dernière partie bat strictement toutes les précédentes. */
   #record(last) {
+    if (this.#games.length < 2) return null;
     const best = GameRecord.bestAccuracy(this.#games.slice(0, -1));
-    return this.#games.length >= 2 && last > best ? { kind: InsightKind.RECORD, accuracy: last, previous: best } : null;
+    return last > best ? { kind: InsightKind.RECORD, accuracy: last, previous: best } : null;
   }
 
   /** Série de parties consécutives au-dessus du seuil de régularité. */
@@ -122,12 +123,13 @@ function trapWord(timeline) {
   const wrongChoice = new Map();
   for (const a of timeline.flatMap(g => g.answers)) {
     book.record(a.word, a.correct);
-    if (!a.correct) wrongChoice.set(a.word, a.chosen);
+    // Une réponse archivée sans choix valide (ancien format) ne permet pas de retrouver le genre.
+    if (!a.correct && (a.chosen === 'm' || a.chosen === 'f')) wrongChoice.set(a.word, a.chosen);
   }
   let trap = null;
   for (const [word, stat] of book.entries()) {
     const misses = stat.seen - stat.correct;
-    if (misses < TRAP_MISSES || stat.lastCorrect) continue;
+    if (misses < TRAP_MISSES || stat.lastCorrect || !wrongChoice.has(word)) continue;
     if (!trap || misses > trap.misses || (misses === trap.misses && word.localeCompare(trap.word) < 0)) trap = { word, misses };
   }
   return trap && { kind: InsightKind.TRAP_WORD, ...trap, gender: Gender.fromCode(wrongChoice.get(trap.word)).opposite };
