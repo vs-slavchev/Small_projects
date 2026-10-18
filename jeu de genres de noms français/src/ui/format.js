@@ -52,6 +52,16 @@ function trendText({ delta, window }) {
 
 function insightText(insight) {
   switch (insight.kind) {
+    case InsightKind.RECORD:
+      return `Nouveau record : ${insight.accuracy} %, contre ${insight.previous} % au mieux jusqu’ici.`;
+    case InsightKind.RISING:
+      return `Ça monte : tes ${insight.count} dernières parties (${insight.accuracy} % en moyenne) font ${insight.delta} pts de mieux que les précédentes.`;
+    case InsightKind.DIP:
+      return `Petit creux (${insight.accuracy} %), mais ta moyenne tient à ${insight.average} %. Les mots ratés vont revenir.`;
+    case InsightKind.TRAP_WORD:
+      return `« ${escapeHtml(insight.word)} » t’a piégé ${insight.misses} fois : ce mot est ${insight.gender.label}. Il reviendra vite.`;
+    case InsightKind.FASTER:
+      return `Tu réponds plus vite : ${formatSeconds(insight.nowMs)} par mot, contre ${formatSeconds(insight.beforeMs)} au début.`;
     case InsightKind.STEADY:
       return insight.all
         ? `Toutes tes parties sont à ${insight.threshold} % ou plus. Belle régularité.`

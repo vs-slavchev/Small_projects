@@ -14,7 +14,7 @@ Les dépendances vont toujours vers le centre : l'interface connaît l'applicati
 
 ```
 src/
-├── data/words.js              Données brutes : 25 groupes, 141 mots
+├── data/words.js              Données brutes : 34 groupes, 196 mots
 ├── domain/                    Règles du jeu, sans DOM ni stockage
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception

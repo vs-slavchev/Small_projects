@@ -18,8 +18,11 @@ const BALANCE_WINDOW_GAMES = 10;
 const PRECISE_ACCURACY = 90;
 /** Sans hâte : une partie compte si chaque anecdote reste au moins ce temps à l'écran. */
 const READ_MIN_MS = 5000;
-/** Intouchable : difficulté de départ à dépasser. Sans erreur, elle ne fait que monter pendant la partie. */
-const EXTREME_DIFFICULTY = 80;
+/**
+ * Intouchable : difficulté de départ à dépasser. Sans erreur, elle ne fait que monter pendant la partie.
+ * La difficulté est une mesure cachée : les textes affichés n'en parlent jamais.
+ */
+const EXTREME_DIFFICULTY = 95;
 const EXTREME_PERFECT_GAMES = 7;
 
 /** Faits mesurables tirés du profil, calculés une fois pour tous les succès. */
@@ -170,8 +173,8 @@ const ACHIEVEMENTS = Object.freeze([
     measure: f => f.hWordsFound, thresholds: f => [f.hWordCount], goal: () => 'Tous les mots en h réussis' },
   { id: 'precision', emoji: '🏹', name: 'Précision', description: `Enchaîner des parties à ${PRECISE_ACCURACY} % ou plus.`,
     measure: f => f.longestPreciseRun, thresholds: [3, 7, 15], goal: n => `${n} parties d’affilée à ${PRECISE_ACCURACY} % ou plus` },
-  { id: 'untouchable', emoji: '💎', name: 'Intouchable', description: `Terminer ${EXTREME_PERFECT_GAMES} parties extrêmement difficiles sans une seule erreur.`,
-    measure: f => f.extremePerfectGames, thresholds: [EXTREME_PERFECT_GAMES], goal: n => `${n} parties sans faute au-dessus de ${EXTREME_DIFFICULTY}` },
+  { id: 'untouchable', emoji: '💎', name: 'Intouchable', description: `Terminer ${EXTREME_PERFECT_GAMES} parties sans une seule erreur face aux mots les plus coriaces.`,
+    measure: f => f.extremePerfectGames, thresholds: [EXTREME_PERFECT_GAMES], goal: n => `${n} parties sans faute face aux mots les plus coriaces` },
 ].map(Object.freeze));
 
 /** Avancement du joueur sur un succès. */

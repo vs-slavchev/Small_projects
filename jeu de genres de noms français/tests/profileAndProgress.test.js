@@ -65,9 +65,45 @@ test('rapport de progression : moyenne, tendance et message', () => {
   assert.ok(report.isUnlocked);
   assert.equal(report.averageAccuracy, 70);
   assert.deepEqual(report.trend, { delta: 45, window: TrendWindow.TWO_WEEKS });
-  assert.deepEqual(report.insight, { kind: InsightKind.STEADY, count: 2, threshold: 70, all: false });
+  assert.deepEqual(report.insight, { kind: InsightKind.RECORD, accuracy: 90, previous: 80 });
   assert.equal(report.recent[0].accuracy, 90);
   assert.equal(report.wordsSeen, 30);
+});
+
+test('commentaire de la chronologie : le constat le plus parlant l’emporte', () => {
+  const words = bank.words.slice(0, 10);
+  // Mots différents à chaque partie, pour qu'aucun piège ne ressorte.
+  const fresh = i => bank.words.slice(10 * i, 10 * i + 10);
+  const insight = (scores, wordsOf = fresh) => new ProgressReport(scores.map((correct, i) => game({ endedAt: day(1 + i), correct, words: wordsOf(i) })), day(18)).insight;
+
+  assert.deepEqual(insight([5, 5, 5, 8, 8, 8]), { kind: InsightKind.RISING, count: 3, accuracy: 80, delta: 30 },
+    'égaler son meilleur score n’est pas un record');
+  assert.deepEqual(insight([9, 9, 9, 6]), { kind: InsightKind.DIP, accuracy: 60, average: 83 });
+
+  // Le mot 10 est raté à chaque partie : c'est un piège, et son genre est rappelé.
+  const trap = insight([9, 8, 9, 8], () => words);
+  assert.equal(trap.kind, InsightKind.TRAP_WORD);
+  assert.equal(trap.word, words[9].text);
+  assert.equal(trap.misses, 4);
+  assert.equal(trap.gender, words[9].gender);
+  const noChoice = [0, 1].map(i => new GameRecord({
+    endedAt: day(1 + i), durationMs: 40_000, difficultyStart: 0, difficultyEnd: 0, maxCombo: 0,
+    answers: [{ word: words[0].text, chosen: undefined, correct: false, timeMs: 1000 }],
+  }));
+  assert.notEqual(new ProgressReport([...noChoice, noChoice[1]], day(18)).insight.kind, InsightKind.TRAP_WORD,
+    'une réponse archivée sans choix ne fait pas planter le commentaire');
+
+  // Sans piège (un mot raté différent à chaque partie), la vitesse ressort.
+  const faster = Array.from({ length: 6 }, (_, i) => new GameRecord({
+    endedAt: day(1 + i), durationMs: 40_000, difficultyStart: 0, difficultyEnd: 0, maxCombo: 9,
+    answers: words.map((w, k) => ({ word: w.text, chosen: k === i ? w.gender.opposite.code : w.gender.code, correct: k !== i, timeMs: i < 3 ? 3000 : 2000 })),
+  }));
+  assert.deepEqual(new ProgressReport(faster, day(18)).insight, { kind: InsightKind.FASTER, beforeMs: 3000, nowMs: 2000 });
+
+  assert.deepEqual(insight([8, 8, 8]), { kind: InsightKind.STEADY, count: 3, threshold: 70, all: true });
+  assert.equal(insight([8, 8, 8], () => words).kind, InsightKind.TRAP_WORD, 'un piège passe avant la régularité');
+  assert.deepEqual(insight([5, 4, 5]), { kind: InsightKind.ABOVE_AVERAGE, accuracy: 50 });
+  assert.deepEqual(insight([5, 5, 5]), { kind: InsightKind.KEEP_PRACTICING });
 });
 
 test('verdict de fin de partie', () => {
@@ -166,10 +202,10 @@ test('Le h muet : réussir chaque mot en h', () => {
   assert.ok(p.isComplete);
 });
 
-test('Intouchable : 7 parties sans faute commencées au-dessus de 80, en dernier dans la liste', () => {
-  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 84 })).reached, 1);
-  assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 84 })).reached, 0);
-  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 80 })).value, 0, 'il faut dépasser 80');
-  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 90, correct: 9 })).value, 0, 'une erreur suffit');
+test('Intouchable : 7 parties sans faute commencées au-dessus de 95, en dernier dans la liste', () => {
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 96 })).reached, 1);
+  assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 96 })).reached, 0);
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 95 })).value, 0, 'il faut dépasser 95');
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 100, correct: 9 })).value, 0, 'une erreur suffit');
   assert.equal(LeOuLa.ACHIEVEMENTS.at(-1).id, 'untouchable');
 });

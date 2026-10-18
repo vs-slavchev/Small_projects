@@ -68,6 +68,11 @@ class GameRecord {
     return new GameRecord({ ...snapshot, endedAt: new Date(snapshot.endedAt) });
   }
 
+  /** Meilleur pourcentage de réussite parmi `games` (-Infinity si aucune). @param {GameRecord[]} games */
+  static bestAccuracy(games) {
+    return games.reduce((best, g) => Math.max(best, g.accuracy), -Infinity);
+  }
+
   /**
    * Pour chaque partie, longueur de la série de parties consécutives à `threshold` % ou plus qui s'y termine.
    * @param {GameRecord[]} games dans l'ordre chronologique @param {number} threshold @returns {number[]}

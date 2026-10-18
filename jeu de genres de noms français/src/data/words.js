@@ -1,6 +1,6 @@
 // Banque de mots brute : groupes (terminaisons) et mots.
-// Chaque groupe compte au moins deux mots réguliers, au plus une exception,
-// et au moins un mot à article élidé (vérifié par tests/wordBank.test.js).
+// Chaque groupe compte au moins deux mots réguliers et au plus une exception
+// (vérifié par tests/wordBank.test.js).
 // Mot : w (texte), g ('m' | 'f'), grp (id du groupe), exc (exception),
 //       asp (obligatoire pour un mot en h : true si h aspiré, false si h muet),
 //       en (traduction), fun (anecdote facultative).
@@ -14,7 +14,7 @@ const GROUPS = Object.freeze([
   // Féminins
   { id: 'ette', label: '-ette', g: 'f', rule: "Les noms en <b>-ette</b> sont presque toujours féminins : c'est un suffixe diminutif féminin." },
   { id: 'tion', label: '-tion', g: 'f', rule: "Les noms en <b>-tion</b> sont féminins : ils viennent des noms latins en <i>-tio</i>." },
-  { id: 'te', label: '-té', g: 'f', rule: "Les noms en <b>-té</b> qui désignent une qualité ou un état sont féminins." },
+  { id: 'te', label: '-té', g: 'f', rule: "Les noms en <b>-té</b> (et <b>-tié</b>) qui désignent une qualité ou un état sont féminins." },
   { id: 'ure', label: '-ure', g: 'f', rule: "Les noms en <b>-ure</b> sont généralement féminins." },
   { id: 'ance', label: '-ance', g: 'f', rule: "Les noms en <b>-ance</b> sont féminins : le suffixe désigne une action ou un état." },
   { id: 'ence', label: '-ence', g: 'f', rule: "Les noms en <b>-ence</b> sont féminins, à une exception près, très courante." },
@@ -25,6 +25,9 @@ const GROUPS = Object.freeze([
   { id: 'esse', label: '-esse', g: 'f', rule: "Les noms en <b>-esse</b> sont féminins : le suffixe transforme un adjectif en nom de qualité." },
   { id: 'ise', label: '-ise', g: 'f', rule: "Les noms en <b>-ise</b> sont généralement féminins." },
   { id: 'oire', label: '-oire', g: 'f', rule: "Les noms en <b>-oire</b> sont généralement féminins." },
+  { id: 'aille', label: '-aille', g: 'f', rule: "Les noms en <b>-aille</b> sont féminins : le suffixe désigne souvent une action ou un ensemble (la volaille, la ferraille)." },
+  { id: 'eur', label: '-eur', g: 'f', rule: "Les noms en <b>-eur</b> qui désignent une sensation, une qualité ou une couleur sont féminins. Attention : les métiers et machines en <b>-teur</b> sont masculins." },
+  { id: 'paysF', label: 'pays en -e', g: 'f', rule: "Les noms de pays qui finissent par <b>-e</b> sont féminins : la France, l’Italie." },
   // Masculins
   { id: 'age', label: '-age', g: 'm', rule: "Les noms en <b>-age</b> sont masculins quand <b>-age</b> est un suffixe ajouté à un verbe ou à un nom." },
   { id: 'ment', label: '-ment', g: 'm', rule: "Les noms en <b>-ment</b> sont masculins : le suffixe forme des noms d'action à partir de verbes." },
@@ -38,6 +41,12 @@ const GROUPS = Object.freeze([
   { id: 'at', label: '-at', g: 'm', rule: "Les noms en <b>-at</b> sont masculins." },
   { id: 'oir', label: '-oir', g: 'm', rule: "Les noms en <b>-oir</b> sont masculins : souvent un objet ou un lieu lié à une action." },
   { id: 'ail', label: '-ail', g: 'm', rule: "Les noms en <b>-ail</b> sont masculins." },
+  { id: 'al', label: '-al', g: 'm', rule: "Les noms en <b>-al</b> sont masculins ; au pluriel, ils font souvent <b>-aux</b> : un cheval, des chevaux." },
+  { id: 'ou', label: '-ou', g: 'm', rule: "Les noms en <b>-ou</b> sont masculins." },
+  { id: 'cide', label: '-cide', g: 'm', rule: "Les noms en <b>-cide</b> sont masculins : le suffixe vient du latin <i>caedere</i>, « tuer »." },
+  { id: 'phone', label: '-phone', g: 'm', rule: "Les noms en <b>-phone</b> sont masculins : le suffixe vient du grec <i>phônê</i>, « voix, son »." },
+  { id: 'teur', label: '-teur', g: 'm', rule: "Les noms en <b>-teur</b> qui désignent une personne ou une machine sont masculins : le moteur, l’acteur." },
+  { id: 'paysM', label: 'pays sans -e', g: 'm', rule: "Les noms de pays qui ne finissent pas par <b>-e</b> sont masculins : le Canada, le Japon." },
 ]);
 
 const WORDS = Object.freeze([
@@ -49,12 +58,14 @@ const WORDS = Object.freeze([
   { w: 'fourchette', g: 'f', grp: 'ette', en: 'fork', fun: "Diminutif de « fourche » : une petite fourche pour la table." },
   { w: 'recette', g: 'f', grp: 'ette', en: 'recipe', fun: "Du latin <i>recepta</i>, « choses reçues » : d’abord l’argent encaissé, puis la façon de préparer un plat." },
   // -tion
+  { w: 'réalisation', g: 'f', grp: 'tion', en: 'achievement, making', fun: "De « réaliser », « rendre réel », du latin <i>res</i>, « chose »." },
   { w: 'nation', g: 'f', grp: 'tion', en: 'nation', fun: "Du latin <i>natio</i>, de <i>nasci</i>, « naître » : à l'origine, un groupe de personnes nées au même endroit." },
   { w: 'potion', g: 'f', grp: 'tion', en: 'potion', fun: "Même origine que « poison » : les deux viennent du latin <i>potio</i>, « boisson »." },
   { w: 'émotion', g: 'f', grp: 'tion', en: 'emotion', fun: "Du latin <i>emovere</i>, « mettre en mouvement » : une émotion, c’est ce qui nous remue." },
   { w: 'question', g: 'f', grp: 'tion', en: 'question', fun: "Du latin <i>quaestio</i>, « recherche », de <i>quaerere</i>, « chercher »." },
   { w: 'information', g: 'f', grp: 'tion', en: 'information', fun: "Du latin <i>informare</i>, « donner une forme » : informer, c’est d’abord façonner l’esprit." },
   // -té
+  { w: 'amitié', g: 'f', grp: 'te', en: 'friendship', fun: "Du latin populaire <i>amicitatem</i>, de <i>amicus</i>, « ami ». Même famille que « pitié » et « moitié », eux aussi féminins." },
   { w: 'liberté', g: 'f', grp: 'te', en: 'freedom', fun: "Du latin <i>libertas</i>. Elle ouvre la devise « Liberté, Égalité, Fraternité », inscrite dans la Constitution de 1848." },
   { w: 'beauté', g: 'f', grp: 'te', en: 'beauty', fun: "Construit sur « beau » + <b>-té</b>, comme « bonté » sur « bon »." },
   { w: 'côté', g: 'm', grp: 'te', exc: true, en: 'side', fun: "Ce n'est pas une qualité : il vient du latin <i>costa</i>, « côte », comme les côtes du corps." },
@@ -88,6 +99,7 @@ const WORDS = Object.freeze([
   { w: 'limonade', g: 'f', grp: 'ade', en: 'lemonade', fun: "De « limon », un ancien nom du citron, venu de l’arabe <i>laymūn</i>." },
   { w: 'balade', g: 'f', grp: 'ade', en: 'stroll', fun: "De « se balader », qui viendrait de « ballade », la chanson des musiciens ambulants." },
   // -ée
+  { w: 'soirée', g: 'f', grp: 'ee', en: 'evening, party', fun: "Dérivé de « soir », comme « journée » de « jour » : la soirée insiste sur la durée, ou sur la fête qu’on y donne." },
   { w: 'journée', g: 'f', grp: 'ee', en: 'day', fun: "Dérivé de « jour » : la journée insiste sur la durée, sur ce qu'on y vit." },
   { w: 'purée', g: 'f', grp: 'ee', en: 'mash', fun: "Du vieux verbe « purer », « purifier, filtrer » : on passait les légumes pour les rendre lisses." },
   { w: 'musée', g: 'm', grp: 'ee', exc: true, en: 'museum', fun: "Du grec <i>mouseion</i>, le temple des Muses. Le « -ée » vient du grec, pas du suffixe féminin." },
@@ -95,6 +107,7 @@ const WORDS = Object.freeze([
   { w: 'année', g: 'f', grp: 'ee', en: 'year', fun: "Dérivé de « an » : comme pour journée, l’année insiste sur la durée vécue." },
   { w: 'entrée', g: 'f', grp: 'ee', en: 'entrance, starter', fun: "Le participe passé féminin du verbe « entrer », devenu un nom." },
   // -ie
+  { w: 'sociologie', g: 'f', grp: 'ie', en: 'sociology', fun: "Mot forgé par Auguste Comte au XIXᵉ siècle, du latin <i>socius</i>, « compagnon », et du grec <i>logos</i>, « discours, étude »." },
   { w: 'boulangerie', g: 'f', grp: 'ie', en: 'bakery', fun: "Le boulanger viendrait du picard <i>boulenc</i>, celui qui façonne des pains ronds, en boule." },
   { w: 'magie', g: 'f', grp: 'ie', en: 'magic', fun: "Elle doit son nom aux mages, les prêtres savants de l'ancienne Perse." },
   { w: 'parapluie', g: 'm', grp: 'ie', exc: true, en: 'umbrella', fun: "Un mot composé de « parer » + « pluie » : c'est l'objet qui pare la pluie. Les composés verbe + nom sont masculins." },
@@ -109,6 +122,7 @@ const WORDS = Object.freeze([
   { w: 'nouvelle', g: 'f', grp: 'elle', en: 'news, short story', fun: "L’adjectif « nouvelle » devenu nom : une nouvelle, c’est une chose nouvelle qu’on raconte." },
   { w: 'ficelle', g: 'f', grp: 'elle', en: 'string', fun: "Du latin populaire <i>filicella</i>, « petit fil »." },
   // -esse
+  { w: 'richesse', g: 'f', grp: 'esse', en: 'wealth', fun: "Construit sur « riche » + <b>-esse</b>, comme « tristesse » sur « triste »." },
   { w: 'jeunesse', g: 'f', grp: 'esse', en: 'youth', fun: "Le suffixe <b>-esse</b> transforme un adjectif en nom : jeune → jeunesse, sage → sagesse." },
   { w: 'politesse', g: 'f', grp: 'esse', en: 'politeness', fun: "De l'italien <i>pulitezza</i>, « propreté, netteté » : être poli, c'était d'abord être « poli » comme une pierre lisse." },
   { w: 'adresse', g: 'f', grp: 'esse', en: 'address', fun: "Du verbe « adresser », « diriger vers » : l’adresse indique où diriger une lettre." },
@@ -150,9 +164,10 @@ const WORDS = Object.freeze([
   { w: 'gâteau', g: 'm', grp: 'eau', en: 'cake', fun: "De l’ancien francique <i>wastil</i>, « nourriture »." },
   { w: 'couteau', g: 'm', grp: 'eau', en: 'knife', fun: "Du latin <i>cultellus</i>, « petit couteau »." },
   // -isme
+  { w: 'enthousiasme', g: 'm', grp: 'isme', en: 'enthusiasm', fun: "Du grec <i>enthousiasmos</i>, « transport divin » : être enthousiaste, c’était avoir un dieu en soi." },
+  { w: 'mécanisme', g: 'm', grp: 'isme', en: 'mechanism', fun: "Du grec <i>mêkhanê</i>, « machine, invention », qui a aussi donné « mécanique »." },
   { w: 'tourisme', g: 'm', grp: 'isme', en: 'tourism', fun: "Vient de l'anglais <i>tourism</i>, tiré du « Grand Tour » d'Europe que faisaient les jeunes aristocrates." },
   { w: 'réalisme', g: 'm', grp: 'isme', en: 'realism', fun: "Le mot s'est imposé au XIXᵉ siècle avec des peintres comme Gustave Courbet." },
-  { w: 'héroïsme', g: 'm', grp: 'isme', asp: false, en: 'heroism', fun: "On dit « le héros » (h aspiré) mais « l’héroïsme » et « l’héroïne » : ici, le h est muet." },
   { w: 'optimisme', g: 'm', grp: 'isme', en: 'optimism', fun: "Du latin <i>optimus</i>, « le meilleur ». Le mot apparaît au XVIIIᵉ siècle pour la philosophie de Leibniz." },
   { w: 'cyclisme', g: 'm', grp: 'isme', en: 'cycling', fun: "Dérivé de « cycle », l’ancien nom des vélos, du grec <i>kuklos</i>, « cercle »." },
   // -ier
@@ -162,6 +177,7 @@ const WORDS = Object.freeze([
   { w: 'papier', g: 'm', grp: 'ier', en: 'paper', fun: "Du latin <i>papyrus</i>, la plante d’Égypte dont on tirait les premières feuilles." },
   { w: 'quartier', g: 'm', grp: 'ier', en: 'neighbourhood', fun: "Au départ, un quart d’une chose ; puis une partie d’une ville." },
   // -et
+  { w: 'projet', g: 'm', grp: 'et', en: 'project', fun: "Du verbe « projeter », « jeter en avant » : un projet, c’est une idée lancée vers l’avenir." },
   { w: 'jouet', g: 'm', grp: 'et', en: 'toy' },
   { w: 'billet', g: 'm', grp: 'et', en: 'ticket', fun: "De l'ancien « bullette », un petit document scellé : la « bulle » était le sceau." },
   { w: 'objet', g: 'm', grp: 'et', en: 'object', fun: "Du latin <i>objectum</i>, « ce qui est placé devant »." },
@@ -179,14 +195,13 @@ const WORDS = Object.freeze([
   { w: 'jardin', g: 'm', grp: 'in', en: 'garden', fun: "D'origine francique : <i>gart</i>, « clôture ». Le jardin était d'abord un enclos." },
   { w: 'matin', g: 'm', grp: 'in', en: 'morning', fun: "Du latin <i>matutinum</i>. Matuta était la déesse romaine de l'aurore." },
   { w: 'main', g: 'f', grp: 'in', exc: true, en: 'hand', fun: "Du latin <i>manus</i>, déjà féminin. On le retrouve dans « manuel », « manier » et « manucure »." },
-  { w: 'engin', g: 'm', grp: 'in', en: 'machine', fun: "Du latin <i>ingenium</i>, « talent, invention » : un engin était d’abord une machine ingénieuse." },
   { w: 'chemin', g: 'm', grp: 'in', en: 'path', fun: "D’origine gauloise : <i>camminos</i>. L’espagnol <i>camino</i> a la même racine." },
+  { w: 'lapin', g: 'm', grp: 'in', en: 'rabbit', fun: "Apparu au XVᵉ siècle, sans doute tiré de « lapereau » ; il a fini par remplacer l’ancien mot « connil »." },
   { w: 'vin', g: 'm', grp: 'in', en: 'wine', fun: "Du latin <i>vinum</i>, un des plus vieux mots de la Méditerranée." },
   // -ème
   { w: 'problème', g: 'm', grp: 'eme', en: 'problem', fun: "Du grec <i>problêma</i>, « ce qu'on jette devant soi » : un obstacle." },
   { w: 'système', g: 'm', grp: 'eme', en: 'system', fun: "Du grec <i>systêma</i>, « assemblage ». Comme thème et poème, ce mot grec en <i>-ema</i> est masculin." },
   { w: 'crème', g: 'f', grp: 'eme', exc: true, en: 'cream', fun: "Rien de grec ici : le mot viendrait du gaulois <i>crama</i>, mêlé au latin <i>chrisma</i>, l'huile sacrée." },
-  { w: 'emblème', g: 'm', grp: 'eme', en: 'emblem', fun: "Du grec <i>emblêma</i>, « ornement incrusté »." },
   { w: 'thème', g: 'm', grp: 'eme', en: 'theme', fun: "Du grec <i>thema</i>, « ce qu’on pose » : le sujet qu’on pose au départ." },
   { w: 'poème', g: 'm', grp: 'eme', en: 'poem', fun: "Du grec <i>poiêma</i>, « ce qu’on fabrique », de <i>poiein</i>, « faire »." },
   // -at
@@ -204,9 +219,67 @@ const WORDS = Object.freeze([
   // -ail
   { w: 'travail', g: 'm', grp: 'ail', en: 'work', fun: "Selon l'explication la plus répandue, il viendrait du latin <i>tripalium</i>, un instrument à trois pieux." },
   { w: 'portail', g: 'm', grp: 'ail', en: 'gate', fun: "Dérivé de « porte » : une grande porte, souvent celle d'une église." },
-  { w: 'éventail', g: 'm', grp: 'ail', en: 'fan', fun: "Dérivé de « éventer », « donner de l’air »." },
+  { w: 'ail', g: 'm', grp: 'ail', en: 'garlic', fun: "Du latin <i>allium</i>. Au pluriel, on dit « des ails » ou, plus rare, « des aulx »." },
   { w: 'détail', g: 'm', grp: 'ail', en: 'detail', fun: "De « détailler », « couper en morceaux » : on vend « au détail » par petites quantités." },
-  { w: 'corail', g: 'm', grp: 'ail', en: 'coral', fun: "Du grec <i>korallion</i>. Au pluriel, on dit « des coraux »." },
+  // -aille
+  { w: 'taille', g: 'f', grp: 'aille', en: 'size, waist', fun: "Dérivé de « tailler », « couper » : la taille, c’est d’abord la coupe, puis la forme et la mesure." },
+  { w: 'bataille', g: 'f', grp: 'aille', en: 'battle', fun: "Du latin tardif <i>battualia</i>, « exercices d’escrime », de <i>battuere</i>, « battre »." },
+  { w: 'médaille', g: 'f', grp: 'aille', en: 'medal', fun: "De l’italien <i>medaglia</i>, à l’origine une petite pièce de monnaie." },
+  { w: 'paille', g: 'f', grp: 'aille', en: 'straw', fun: "Du latin <i>palea</i>, « balle du grain »." },
+  { w: 'volaille', g: 'f', grp: 'aille', en: 'poultry', fun: "Du latin <i>volatilia</i>, « les oiseaux », de <i>volare</i>, « voler » : le suffixe désigne ici un ensemble." },
+  { w: 'écaille', g: 'f', grp: 'aille', en: 'scale (fish)' },
+  // -eur
+  { w: 'fleur', g: 'f', grp: 'eur', en: 'flower', fun: "Du latin <i>flos</i>, qui était masculin ! Comme <i>color</i> (couleur) ou <i>calor</i> (chaleur), il est devenu féminin en français." },
+  { w: 'peur', g: 'f', grp: 'eur', en: 'fear', fun: "Du latin <i>pavor</i>, « effroi », masculin en latin." },
+  { w: 'couleur', g: 'f', grp: 'eur', en: 'colour', fun: "Du latin <i>color</i>, masculin en latin, comme en italien (<i>il colore</i>)." },
+  { w: 'chaleur', g: 'f', grp: 'eur', en: 'heat', fun: "Du latin <i>calor</i> : on le retrouve dans « calorie »." },
+  { w: 'odeur', g: 'f', grp: 'eur', en: 'smell', fun: "Du latin <i>odor</i>, qu’on retrouve dans « odorat »." },
+  { w: 'erreur', g: 'f', grp: 'eur', en: 'mistake', fun: "Du latin <i>error</i>, « action d’errer » : se tromper, c’est s’égarer." },
+  { w: 'bonheur', g: 'm', grp: 'eur', exc: true, en: 'happiness', fun: "C’est « bon » + « heur », un ancien mot pour « chance », du latin <i>augurium</i>, « présage ». Ce n’est pas le suffixe <b>-eur</b> : d’où le masculin, comme « malheur »." },
+  // -al
+  { w: 'cheval', g: 'm', grp: 'al', en: 'horse', fun: "Du latin populaire <i>caballus</i>, « cheval de trait ». Le latin classique disait <i>equus</i>, d’où « équitation »." },
+  { w: 'journal', g: 'm', grp: 'al', en: 'newspaper', fun: "Du latin <i>diurnalis</i>, « de chaque jour »." },
+  { w: 'animal', g: 'm', grp: 'al', en: 'animal', fun: "Du latin <i>anima</i>, « souffle, âme » : l’animal, c’est l’être qui respire." },
+  { w: 'hôpital', g: 'm', grp: 'al', asp: false, en: 'hospital', fun: "Du latin <i>hospitalis</i>, « hospitalier », comme « hôtel » et « hospice ». Le h est muet : on dit « l’hôpital »." },
+  { w: 'canal', g: 'm', grp: 'al', en: 'canal', fun: "Du latin <i>canalis</i>, « conduit d’eau »." },
+  // -ou
+  { w: 'bijou', g: 'm', grp: 'ou', en: 'jewel', fun: "Du breton <i>bizou</i>, « anneau », de <i>biz</i>, « doigt ». Au pluriel : des bijoux, avec un x." },
+  { w: 'genou', g: 'm', grp: 'ou', en: 'knee', fun: "Du latin <i>genuculum</i>, « petit genou ». Au pluriel : des genoux." },
+  { w: 'chou', g: 'm', grp: 'ou', en: 'cabbage', fun: "Du latin <i>caulis</i>, « tige ». « Mon chou » est un mot tendre depuis le XIXᵉ siècle." },
+  { w: 'caillou', g: 'm', grp: 'ou', en: 'pebble', fun: "Probablement d’origine gauloise. Au pluriel : des cailloux, un des sept noms en -ou qui prennent un x." },
+  { w: 'hibou', g: 'm', grp: 'ou', asp: true, en: 'owl', fun: "Le h est aspiré : on dit « le hibou », sans élision. Lui aussi prend un x au pluriel : des hiboux." },
+  { w: 'trou', g: 'm', grp: 'ou', en: 'hole', fun: "Du latin populaire <i>traucum</i>, d’origine probablement gauloise." },
+  // -cide
+  { w: 'insecticide', g: 'm', grp: 'cide', en: 'insecticide', fun: "« Insecte » + <b>-cide</b> : ce qui tue les insectes." },
+  { w: 'herbicide', g: 'm', grp: 'cide', asp: false, en: 'weedkiller', fun: "« Herbe » + <b>-cide</b> : ce qui tue les mauvaises herbes. Le h est muet : on dit « l’herbicide »." },
+  { w: 'pesticide', g: 'm', grp: 'cide', en: 'pesticide', fun: "De l’anglais <i>pest</i>, « nuisible », et <b>-cide</b>." },
+  // -phone
+  { w: 'téléphone', g: 'm', grp: 'phone', en: 'telephone', fun: "Du grec <i>têle</i>, « loin », et <i>phônê</i>, « voix » : la voix qui vient de loin." },
+  { w: 'microphone', g: 'm', grp: 'phone', en: 'microphone', fun: "Du grec <i>mikros</i>, « petit », et <i>phônê</i>, « son » : il capte les petits sons." },
+  { w: 'saxophone', g: 'm', grp: 'phone', en: 'saxophone', fun: "Inventé vers 1840 par le Belge Adolphe Sax, qui lui a donné son nom." },
+  { w: 'interphone', g: 'm', grp: 'phone', en: 'intercom' },
+  { w: 'smartphone', g: 'm', grp: 'phone', en: 'smartphone', fun: "Emprunté à l’anglais au début des années 2000 ; on entend aussi « téléphone intelligent », surtout au Québec." },
+  // -teur
+  { w: 'moteur', g: 'm', grp: 'teur', en: 'engine', fun: "Du latin <i>motor</i>, « celui qui met en mouvement »." },
+  { w: 'ordinateur', g: 'm', grp: 'teur', en: 'computer', fun: "Mot proposé en 1955 par le latiniste Jacques Perret, à la demande d’IBM France : « Dieu qui met de l’ordre dans le monde »." },
+  { w: 'acteur', g: 'm', grp: 'teur', en: 'actor', fun: "Du latin <i>actor</i>, « celui qui agit »." },
+  { w: 'facteur', g: 'm', grp: 'teur', en: 'postman', fun: "Du latin <i>factor</i>, « celui qui fait » : d’abord un agent chargé d’une affaire, puis le porteur de lettres." },
+  { w: 'aspirateur', g: 'm', grp: 'teur', en: 'vacuum cleaner' },
+  { w: 'hauteur', g: 'f', grp: 'teur', exc: true, asp: true, en: 'height', fun: "« Haut » + <b>-eur</b> : c’est une qualité, pas une personne ni une machine, donc féminin, comme « largeur » et « longueur ». Le h est aspiré : « la hauteur »." },
+  // pays en -e
+  { w: 'France', g: 'f', grp: 'paysF', en: 'France', fun: "Du latin <i>Francia</i>, « le pays des Francs »." },
+  { w: 'Italie', g: 'f', grp: 'paysF', en: 'Italy' },
+  { w: 'Espagne', g: 'f', grp: 'paysF', en: 'Spain', fun: "Du latin <i>Hispania</i>, le nom romain de toute la péninsule." },
+  { w: 'Belgique', g: 'f', grp: 'paysF', en: 'Belgium', fun: "Du nom des <i>Belgae</i>, un peuple gaulois décrit par Jules César." },
+  { w: 'Chine', g: 'f', grp: 'paysF', en: 'China', fun: "Viendrait de la dynastie Qin, qui unifia le pays en 221 av. J.-C." },
+  { w: 'Mexique', g: 'm', grp: 'paysF', exc: true, en: 'Mexico', fun: "Il finit par -e mais il est masculin, comme le Cambodge, le Mozambique et le Zimbabwe : les quatre exceptions à retenir." },
+  // pays sans -e
+  { w: 'Canada', g: 'm', grp: 'paysM', en: 'Canada', fun: "Viendrait du mot iroquoien <i>kanata</i>, « village »." },
+  { w: 'Japon', g: 'm', grp: 'paysM', en: 'Japan' },
+  { w: 'Portugal', g: 'm', grp: 'paysM', en: 'Portugal', fun: "Du latin <i>Portus Cale</i>, le port à l’embouchure du Douro, l’actuelle Porto." },
+  { w: 'Brésil', g: 'm', grp: 'paysM', en: 'Brazil', fun: "Il doit son nom au bois de braise (<i>pau-brasil</i>), un arbre au bois rouge exporté vers l’Europe." },
+  { w: 'Danemark', g: 'm', grp: 'paysM', en: 'Denmark' },
+  { w: 'Iran', g: 'm', grp: 'paysM', en: 'Iran', fun: "Du persan ancien : « le pays des Aryens »." },
 ]);
 
 const WORD_DATA = Object.freeze({ groups: GROUPS, words: WORDS });

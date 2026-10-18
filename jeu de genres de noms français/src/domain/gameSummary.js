@@ -1,7 +1,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { addDays } = LeOuLa;
+const { addDays, GameRecord } = LeOuLa;
 
 /** Appréciation d'une partie, du meilleur au moins bon. */
 const Verdict = Object.freeze({
@@ -19,8 +19,8 @@ const Verdict = Object.freeze({
 function rateGame(record, earlierGames) {
   if (record.isPerfect) return Verdict.PERFECT;
   const weekAgo = addDays(record.endedAt, -7);
-  const thisWeek = earlierGames.filter(g => g.endedAt >= weekAgo).map(g => g.accuracy);
-  if (thisWeek.length && record.accuracy > Math.max(...thisWeek)) return Verdict.WEEK_BEST;
+  const thisWeek = earlierGames.filter(g => g.endedAt >= weekAgo);
+  if (thisWeek.length && record.accuracy > GameRecord.bestAccuracy(thisWeek)) return Verdict.WEEK_BEST;
   if (record.accuracy >= 80) return Verdict.STRONG;
   if (record.accuracy >= 50) return Verdict.FAIR;
   return Verdict.KEEP_GOING;

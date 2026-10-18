@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, MAX_TIER, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
+  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
   escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
   trendText, insightText, achievementStatus, unlockedLabel,
 } = LeOuLa;
@@ -214,7 +214,7 @@ const feedback = {
       ? `<span class="chip ${group.gender.code} strike">${esc(group.suffix)}</span><span class="chip exc">EXCEPTION</span>`
       : `<span class="chip ${group.gender.code}">${esc(group.suffix)}</span><span class="to ${group.gender.code}">→ ${group.gender.label}</span>`;
     const rule = word.isException
-      ? `Les noms en <b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`
+      ? `Les ${group.isEnding ? 'noms en ' : ''}<b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`
       : group.rule;
     return `<div class="screen play fb">
       <div class="top-safe"></div>
@@ -399,7 +399,9 @@ function syncPopover(root, { context }) {
   const host = root.querySelector('#pop');
   if (!host) return;
   root.querySelectorAll('.badge').forEach(el => el.classList.toggle('sel', Number(el.dataset.index) === context.selectedBadge));
-  host.innerHTML = context.selectedBadge === null ? '' : popover(context.achievements.list[context.selectedBadge]);
+  const open = context.selectedBadge !== null;
+  root.querySelector('.page')?.classList.toggle('pop-open', open);
+  host.innerHTML = open ? popover(context.achievements.list[context.selectedBadge]) : '';
 }
 
 const achievements = {
@@ -408,7 +410,7 @@ const achievements = {
     const { list, earned, total } = context.achievements;
     const grid = list.map((p, i) => {
       const [bg, rim] = TIER_COLORS[p.tier];
-      const ticks = Array.from({ length: MAX_TIER }, (_, k) => `<i class="${p.tier > k ? 'on' : ''}"></i>`).join('');
+      const ticks = p.thresholds.map((_, k) => `<i class="${p.reached > k ? 'on' : ''}"></i>`).join('');
       return `<button class="badge${p.tier ? '' : ' off'}" data-event="${AppEvent.SELECT_BADGE}" data-index="${i}" style="animation-delay:${i * 35}ms" aria-label="${esc(p.name)}">
         <div class="em" style="background:${bg};box-shadow:inset 0 -4px 0 ${rim}">${p.emoji}</div>
         <div class="n">${esc(p.name)}</div>
@@ -420,7 +422,7 @@ const achievements = {
       <div class="page">
         <div class="ach-head"><div class="page-title">Succès</div><span>${earned} / ${total}</span></div>
         <div class="badges">${grid}</div>
-        <div style="height:220px;flex:none"></div>
+        <div class="pop-room"></div>
       </div>
       <div id="pop"></div>
       ${tabbar(Destination.ACHIEVEMENTS)}

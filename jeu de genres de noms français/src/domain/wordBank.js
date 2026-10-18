@@ -21,6 +21,11 @@ class WordGroup {
     this.rule = rule;
     Object.freeze(this);
   }
+
+  /** Vrai si le libellé est une terminaison (« -té ») ; faux s'il se lit tel quel (« pays en -e »). */
+  get isEnding() {
+    return this.suffix.startsWith('-');
+  }
 }
 
 /**

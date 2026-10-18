@@ -263,9 +263,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .badge .em { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 30px; }
 .badge.off .em { filter: grayscale(1); }
 .badge .n { font-size: 12px; font-weight: 800; text-align: center; line-height: 1.2; }
-.ticks { display: flex; gap: 3px; }
-.ticks i { width: 14px; height: 4px; border-radius: 2px; background: var(--line); }
+.ticks { display: flex; gap: 3px; width: 48px; }
+.ticks i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
 .ticks i.on { background: var(--ink); }
+/* Place sous la grille pour que la fenêtre du badge ne masque pas la dernière rangée. */
+.pop-room { display: none; height: 220px; flex: none; }
+.pop-open .pop-room { display: block; }
 .pop {
   position: absolute; left: 12px; right: 12px; bottom: calc(84px + var(--safe-bottom)); background: var(--night); color: #fff; border-radius: 22px; padding: 18px;
   display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 40px -10px rgba(0,0,0,.4); animation: popUp .3s cubic-bezier(.2,1.2,.4,1) both; z-index: 5;
