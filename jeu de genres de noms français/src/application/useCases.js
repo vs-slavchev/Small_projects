@@ -21,7 +21,10 @@ export function createUseCases({ bank, profiles, preferences, clock, random = Ma
   const profile = profiles.load();
   let prefs = preferences.load();
   const today = () => new Date(clock.now());
-  const achievements = () => evaluateAchievements(AchievementFacts.collect(profile, bank));
+  // Évaluation des succès mise en cache : le profil ne change qu'à la fin d'une partie,
+  // où le cache est invalidé. L'état « avant » d'une partie est donc déjà calculé.
+  let achievementsCache = null;
+  const achievements = () => (achievementsCache ??= evaluateAchievements(AchievementFacts.collect(profile, bank)));
 
   return Object.freeze({
     /** Série quotidienne et activité de la semaine, pour l'accueil. */
@@ -66,6 +69,7 @@ export function createUseCases({ bank, profiles, preferences, clock, random = Ma
       const earlierGames = profile.games;
       const before = achievements();
       profile.recordGame(record, bank);
+      achievementsCache = null;
       profiles.save(profile);
       return new GameSummary({
         record,

@@ -1,8 +1,10 @@
 // Banque de mots brute : groupes (terminaisons) et mots.
-// Deux exemples réguliers par groupe, plus une exception quand elle existe.
-// Mot : w (texte), g ('m' | 'f'), grp (id du groupe), exc (exception), asp (h aspiré : pas d'élision),
+// Chaque groupe compte au moins deux mots réguliers, au plus une exception,
+// et au moins un mot à article élidé (vérifié par tests/wordBank.test.js).
+// Mot : w (texte), g ('m' | 'f'), grp (id du groupe), exc (exception),
+//       asp (obligatoire pour un mot en h : true si h aspiré, false si h muet),
 //       en (traduction), fun (anecdote facultative).
-// Les mots commençant par une voyelle ou un h muet prennent l'article élidé « l’ ».
+// Les mots commençant par une voyelle ou un h muet prennent l'article élidé « l’ » ; un mot en y- ne s'élide pas.
 // Ce fichier ne contient que des données ; WordBank.fromData() les valide et les transforme en objets du domaine.
 
 export const GROUPS = Object.freeze([
@@ -78,7 +80,7 @@ export const WORDS = Object.freeze([
   { w: 'boulangerie', g: 'f', grp: 'ie', en: 'bakery', fun: "Le boulanger viendrait du picard <i>boulenc</i>, celui qui façonne des pains ronds, en boule." },
   { w: 'magie', g: 'f', grp: 'ie', en: 'magic', fun: "Elle doit son nom aux mages, les prêtres savants de l'ancienne Perse." },
   { w: 'parapluie', g: 'm', grp: 'ie', exc: true, en: 'umbrella', fun: "Un mot composé de « parer » + « pluie » : c'est l'objet qui pare la pluie. Les composés verbe + nom sont masculins." },
-  { w: 'harmonie', g: 'f', grp: 'ie', en: 'harmony', fun: "Du grec <i>harmonia</i>, « assemblage, ajustement ». Le h est muet : on dit « l’harmonie »." },
+  { w: 'harmonie', g: 'f', grp: 'ie', asp: false, en: 'harmony', fun: "Du grec <i>harmonia</i>, « assemblage, ajustement ». Le h est muet : on dit « l’harmonie »." },
   // -elle
   { w: 'poubelle', g: 'f', grp: 'elle', en: 'bin', fun: "Elle doit son nom au préfet Eugène Poubelle, qui l'imposa aux Parisiens en 1884." },
   { w: 'vaisselle', g: 'f', grp: 'elle', en: 'dishes', fun: "Du latin <i>vascella</i>, « petits vases »." },
@@ -97,7 +99,7 @@ export const WORDS = Object.freeze([
   { w: 'victoire', g: 'f', grp: 'oire', en: 'victory', fun: "Du latin <i>victoria</i>, qui était aussi le nom de la déesse de la victoire chez les Romains." },
   { w: 'gloire', g: 'f', grp: 'oire', en: 'glory', fun: "Du latin <i>gloria</i>, « renommée »." },
   { w: 'pourboire', g: 'm', grp: 'oire', exc: true, en: 'tip', fun: "Littéralement « pour boire » : l'argent donné pour aller boire un verre. Un mot composé, donc masculin." },
-  { w: 'histoire', g: 'f', grp: 'oire', en: 'history, story', fun: "Du grec <i>historia</i>, « enquête » : l’historien était d’abord un enquêteur." },
+  { w: 'histoire', g: 'f', grp: 'oire', asp: false, en: 'history, story', fun: "Du grec <i>historia</i>, « enquête » : l’historien était d’abord un enquêteur." },
   // -age
   { w: 'fromage', g: 'm', grp: 'age', en: 'cheese', fun: "Du latin <i>formaticus</i>, « fait dans une forme » : le fromage était moulé. L'italien a gardé <i>formaggio</i>." },
   { w: 'voyage', g: 'm', grp: 'age', en: 'journey', fun: "Du latin <i>viaticum</i>, les provisions pour la route : le voyage, c'était d'abord ce qu'on emportait." },
@@ -116,7 +118,7 @@ export const WORDS = Object.freeze([
   // -isme
   { w: 'tourisme', g: 'm', grp: 'isme', en: 'tourism', fun: "Vient de l'anglais <i>tourism</i>, tiré du « Grand Tour » d'Europe que faisaient les jeunes aristocrates." },
   { w: 'réalisme', g: 'm', grp: 'isme', en: 'realism', fun: "Le mot s'est imposé au XIXᵉ siècle avec des peintres comme Gustave Courbet." },
-  { w: 'héroïsme', g: 'm', grp: 'isme', en: 'heroism', fun: "On dit « le héros » (h aspiré) mais « l’héroïsme » et « l’héroïne » : ici, le h est muet." },
+  { w: 'héroïsme', g: 'm', grp: 'isme', asp: false, en: 'heroism', fun: "On dit « le héros » (h aspiré) mais « l’héroïsme » et « l’héroïne » : ici, le h est muet." },
   // -ier
   { w: 'cahier', g: 'm', grp: 'ier', en: 'notebook', fun: "Du latin <i>quaterni</i>, « par quatre » : un cahier était un assemblage de feuilles pliées en quatre." },
   { w: 'panier', g: 'm', grp: 'ier', en: 'basket', fun: "Du latin <i>panarium</i>, « corbeille à pain »." },
@@ -130,7 +132,7 @@ export const WORDS = Object.freeze([
   { w: 'bouton', g: 'm', grp: 'on', en: 'button', fun: "De « bouter », « pousser » : d'abord le bourgeon qui pousse sur la plante, puis le petit objet rond qui lui ressemble." },
   { w: 'maison', g: 'f', grp: 'on', exc: true, en: 'house', fun: "Du latin <i>mansio</i>, « séjour » (de <i>manere</i>, « rester »), un mot féminin. Même famille que « manoir »." },
   { w: 'hérisson', g: 'm', grp: 'on', asp: true, en: 'hedgehog', fun: "Le h est aspiré : on dit « le hérisson », sans élision. Du latin <i>ericius</i>." },
-  { w: 'horizon', g: 'm', grp: 'on', en: 'horizon', fun: "Du grec <i>horizôn</i>, « qui délimite ». Le h est muet : on dit « l’horizon »." },
+  { w: 'horizon', g: 'm', grp: 'on', asp: false, en: 'horizon', fun: "Du grec <i>horizôn</i>, « qui délimite ». Le h est muet : on dit « l’horizon »." },
   // -in
   { w: 'jardin', g: 'm', grp: 'in', en: 'garden', fun: "D'origine francique : <i>gart</i>, « clôture ». Le jardin était d'abord un enclos." },
   { w: 'matin', g: 'm', grp: 'in', en: 'morning', fun: "Du latin <i>matutinum</i>. Matuta était la déesse romaine de l'aurore." },

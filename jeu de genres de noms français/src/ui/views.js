@@ -42,6 +42,7 @@ function topBar(session, now, freshIndex) {
 }
 
 const GENDER_ABBR = Object.freeze({ m: 'masc.', f: 'fém.' });
+const GENDER_INITIAL = Object.freeze({ m: 'm.', f: 'f.' });
 
 /** « la baguette », « l’école » : l'article prend la couleur du genre. */
 function articled(word, tag = 'span') {
@@ -151,11 +152,13 @@ const question = {
     const blank = revealing && answer.correct
       ? `<div class="blank ${word.gender.code}">${word.article}</div>`
       : '<div class="blank">___</div>';
-    // Devant une voyelle ou un h muet, les deux boutons affichent « l’ » : seule la couleur les distingue.
+    // Devant une voyelle ou un h muet, l'article ne dit plus le genre : « l’ (m.) » / « l’ (f.) ».
+    // Le texte, et pas seulement la couleur, distingue les deux boutons.
     const button = (gender, cls) => {
       const chosen = revealing && answer.chosen === gender ? ' chosen' : '';
-      const label = word.articleFor(gender);
-      return `<button class="ans ${cls} press${chosen}" data-event="${AppEvent.ANSWER}" data-gender="${gender.code}" aria-label="${label} (${gender.label})">${label}</button>`;
+      const article = word.articleFor(gender);
+      const text = word.elides ? `${article} <span class="ans-g">(${GENDER_INITIAL[gender.code]})</span>` : article;
+      return `<button class="ans ${cls} press${chosen}" data-event="${AppEvent.ANSWER}" data-gender="${gender.code}" aria-label="${article} (${gender.label})">${text}</button>`;
     };
     return `<div class="screen play">
       <div class="top-safe"></div>

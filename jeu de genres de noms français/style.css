@@ -132,6 +132,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 
 .answers { padding: 0 20px calc(28px + var(--safe-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: none; margin-top: 16px; }
 .ans { height: 96px; border-radius: 24px; color: #fff; font-family: var(--serif); font-size: 40px; }
+.ans .ans-g { font-family: var(--sans); font-size: 20px; font-weight: 800; opacity: .85; vertical-align: middle; }
 .ans.le { background: var(--blue); box-shadow: 0 6px 0 var(--blue-d); --sh: var(--blue-d); }
 .ans.la { background: var(--red); box-shadow: 0 6px 0 var(--red-d); --sh: var(--red-d); }
 .answers.locked .ans { pointer-events: none; }

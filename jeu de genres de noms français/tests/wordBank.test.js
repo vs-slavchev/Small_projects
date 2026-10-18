@@ -33,6 +33,20 @@ test('un h aspiré empêche l’élision', () => {
   assert.throws(() => new Word({ text: 'baguette', gender: Gender.FEMININE, group: ette, aspiratedH: true }), /h aspiré/);
 });
 
+test('un mot en y- ne s\u2019élide pas (le yaourt, le yoga)', () => {
+  const t = new WordGroup({ id: 't', suffix: '-t', gender: Gender.MASCULINE, rule: '' });
+  const yaourt = new Word({ text: 'yaourt', gender: Gender.MASCULINE, group: t });
+  assert.equal(yaourt.elides, false);
+  assert.equal(yaourt.withArticle, 'le yaourt');
+});
+
+test('un mot en h doit déclarer si son h est aspiré ou muet', () => {
+  const on = new WordGroup({ id: 'on', suffix: '-on', gender: Gender.MASCULINE, rule: '' });
+  assert.throws(() => new Word({ text: 'haricot', gender: Gender.MASCULINE, group: on }), /aspiré \(asp: true\) ou muet/);
+  assert.equal(new Word({ text: 'hameçon', gender: Gender.MASCULINE, group: on, aspiratedH: true }).withArticle, 'le hameçon');
+  assert.equal(new Word({ text: 'horizon', gender: Gender.MASCULINE, group: on, aspiratedH: false }).withArticle, 'l\u2019horizon');
+});
+
 test('chaque groupe propose au moins un mot à article élidé', () => {
   const bank = realBank();
   for (const group of bank.groups) {

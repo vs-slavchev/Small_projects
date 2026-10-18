@@ -74,6 +74,8 @@ test('verdict de fin de partie', () => {
   const earlier = [game({ endedAt: day(16), correct: 6 })];
   assert.equal(rateGame(game({ correct: 10 }), earlier), Verdict.PERFECT);
   assert.equal(rateGame(game({ correct: 7 }), earlier), Verdict.WEEK_BEST);
+  assert.equal(rateGame(game({ correct: 6 }), earlier), Verdict.FAIR, 'égaler son score n\u2019est pas un record');
+  assert.equal(rateGame(game({ correct: 3 }), [game({ endedAt: day(17), correct: 3 })]), Verdict.KEEP_GOING);
   assert.equal(rateGame(game({ correct: 5 }), earlier), Verdict.FAIR);
   assert.equal(rateGame(game({ correct: 2 }), []), Verdict.KEEP_GOING);
 });

@@ -117,6 +117,16 @@ test('la progression se déverrouille à la 3ᵉ partie', () => {
   assert.equal(env.machine.context.progress.gameCount, 3);
 });
 
+test('les succès reflètent la partie qui vient de se terminer', () => {
+  const env = setup();
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.ACHIEVEMENTS });
+  assert.equal(env.machine.context.achievements.earned, 0);
+  playGame(env);
+  assert.ok(env.machine.context.summary.unlocked.some(p => p.id === 'flawless'));
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.ACHIEVEMENTS });
+  assert.ok(env.machine.context.achievements.earned > 0);
+});
+
 test('succès : sélection et fermeture d’un badge, index hors limites refusé', () => {
   const env = setup();
   env.machine.send(AppEvent.NAVIGATE, { to: Destination.ACHIEVEMENTS });

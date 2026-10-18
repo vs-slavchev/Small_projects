@@ -3,7 +3,9 @@ import { Gender } from './gender.js';
 
 /** Article élidé : « l’école », « l’horizon ». */
 export const ELIDED_ARTICLE = 'l\u2019';
-const STARTS_WITH_VOWEL_OR_H = /^[aeiouyhàâäéèêëîïôöùûüÿæœ]/i;
+// Pas de « y » : la plupart des noms en y- ne s'élident pas (le yaourt, le yoga).
+const STARTS_WITH_VOWEL = /^[aeiouàâäéèêëîïôöùûüæœ]/i;
+const STARTS_WITH_H = /^h/i;
 
 /** Groupe de noms partageant une terminaison et, en règle générale, un genre. */
 export class WordGroup {
@@ -24,14 +26,15 @@ export class WordGroup {
  * une exception a le genre opposé.
  *
  * Devant une voyelle ou un h muet, l'article s'élide (« l’école ») et ne révèle plus le genre.
- * Un h aspiré (« le hérisson ») empêche l'élision : il est indiqué par `aspiratedH`.
+ * Pour un mot en h, `aspiratedH` est obligatoire : true pour un h aspiré (« le hérisson »),
+ * false pour un h muet (« l’horizon »). Aucun h n'est supposé muet par défaut.
  */
 export class Word {
   /**
    * @param {{ text: string, gender: Gender, group: WordGroup, isException?: boolean,
    *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
    */
-  constructor({ text, gender, group, isException = false, aspiratedH = false, translation = '', anecdote = null }) {
+  constructor({ text, gender, group, isException = false, aspiratedH, translation = '', anecdote = null }) {
     if (!text) throw new DomainError('Un mot doit avoir un texte.');
     if (!(gender instanceof Gender)) throw new DomainError(`« ${text} » : genre invalide.`);
     if (!(group instanceof WordGroup)) throw new DomainError(`« ${text} » : groupe invalide.`);
@@ -40,12 +43,16 @@ export class Word {
         ? `« ${text} » est marqué comme exception mais a le genre de son groupe ${group.suffix}.`
         : `« ${text} » n'a pas le genre de son groupe ${group.suffix} : c'est une exception.`);
     }
-    if (aspiratedH && !/^h/i.test(text)) throw new DomainError(`« ${text} » ne commence pas par un h : il ne peut pas avoir de h aspiré.`);
+    if (STARTS_WITH_H.test(text)) {
+      if (typeof aspiratedH !== 'boolean') throw new DomainError(`« ${text} » commence par un h : indique s'il est aspiré (asp: true) ou muet (asp: false).`);
+    } else if (aspiratedH !== undefined) {
+      throw new DomainError(`« ${text} » ne commence pas par un h : il ne peut pas avoir de h aspiré ou muet.`);
+    }
     this.text = text;
     this.gender = gender;
     this.group = group;
     this.isException = isException;
-    this.aspiratedH = aspiratedH;
+    this.aspiratedH = aspiratedH === true;
     this.translation = translation;
     this.anecdote = anecdote || null;
     Object.freeze(this);
@@ -53,7 +60,7 @@ export class Word {
 
   /** Vrai si l'article s'élide : le genre ne s'entend plus, seule la réponse le dit. */
   get elides() {
-    return !this.aspiratedH && STARTS_WITH_VOWEL_OR_H.test(this.text);
+    return STARTS_WITH_VOWEL.test(this.text) || (STARTS_WITH_H.test(this.text) && !this.aspiratedH);
   }
 
   /** Article que prendrait ce mot avec le genre donné : « le », « la » ou « l’ ». */
@@ -116,7 +123,7 @@ export class WordBank {
       if (!group) throw new DomainError(`« ${w.w} » : groupe inconnu ${w.grp}.`);
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
-        isException: Boolean(w.exc), aspiratedH: Boolean(w.asp), translation: w.en, anecdote: w.fun,
+        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdote: w.fun,
       });
     });
     return new WordBank(groupList, wordList);

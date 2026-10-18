@@ -78,7 +78,9 @@ stateDiagram-v2
 |---|---|
 | Un mot régulier a le genre de son groupe, une exception le genre opposé | `Word` (constructeur) |
 | Devant une voyelle ou un h muet, l'article s'élide (« l’ ») ; un h aspiré l'empêche (« le hérisson ») | `Word.elides`, champ `asp` des données |
-| Mot élidé : les deux boutons affichent « l’ », seule la couleur les distingue ; l'explication dit « masculin » ou « féminin » | `ui/views.js` (question, explication, bilan) |
+| Mot élidé : les boutons affichent « l’ (m.) » / « l’ (f.) » ; l'explication dit « masculin » ou « féminin » | `ui/views.js` (question, explication, bilan) |
+| Un mot en h doit déclarer son h aspiré ou muet ; un mot en y- ne s'élide pas | `Word` (constructeur), champ `asp` |
+| Un enregistrement invalide est ignoré au chargement, le reste de l'historique est conservé | `PlayerProfile.fromSnapshot` |
 | 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots à 100 %) · 50 % difficulté | `WordSelectionPolicy.pick` |
 | Tirage 0-100 > difficulté → mot régulier, sinon exception | `Difficulty.callsForException` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
@@ -90,4 +92,4 @@ stateDiagram-v2
 
 ## Ajouter des mots
 
-Ajouter une entrée dans `src/data/words.js` (avec `asp: true` si le mot commence par un h aspiré). Au chargement, `WordBank.fromData` vérifie les doublons, les groupes inconnus et la cohérence régulier / exception, et le test `wordBank.test.js` vérifie que chaque groupe garde au moins deux mots réguliers et au plus une exception.
+Ajouter une entrée dans `src/data/words.js` (un mot en h doit préciser `asp: true` pour un h aspiré ou `asp: false` pour un h muet). Au chargement, `WordBank.fromData` vérifie les doublons, les groupes inconnus et la cohérence régulier / exception, et le test `wordBank.test.js` vérifie que chaque groupe garde au moins deux mots réguliers et au plus une exception.

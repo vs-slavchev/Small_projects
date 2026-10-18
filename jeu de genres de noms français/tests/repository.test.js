@@ -51,6 +51,43 @@ test('des données illisibles donnent un profil vide, sans planter', () => {
   assert.equal(errors.length, 1);
 });
 
+test('un enregistrement invalide est ignoré, le reste de l\u2019historique est conservé', () => {
+  const storage = memoryStorage();
+  const repo = new LocalStorageProfileRepository({ storage });
+  const profile = PlayerProfile.empty();
+  profile.recordGame(new GameRecord({
+    endedAt: new Date(2026, 9, 17, 9), durationMs: 30_000, difficultyStart: 0, difficultyEnd: 8, maxCombo: 1,
+    answers: [{ word: 'baguette', chosen: 'f', correct: true, timeMs: 900 }],
+  }), bank);
+  repo.save(profile);
+
+  const stored = JSON.parse(storage.getItem(PROFILE_KEY));
+  stored.profile.games.push({ endedAt: '2026-10-18T09:00:00.000Z', answers: [] }); // partie vide : invalide
+  stored.profile.wordStats.squelette = { seen: 1, correct: 5 };                  // plus de réussites que de passages
+  stored.profile.difficulty = 'beaucoup';
+  storage.setItem(PROFILE_KEY, JSON.stringify(stored));
+
+  const errors = [];
+  const loaded = new LocalStorageProfileRepository({ storage, onError: e => errors.push(e) }).load();
+  assert.equal(loaded.gameCount, 1);
+  assert.equal(loaded.wordStats.get('baguette').seen, 1);
+  assert.equal(loaded.wordStats.get('squelette').seen, 0);
+  assert.equal(loaded.difficulty.value, 0);
+  assert.equal(errors.length, 3);
+});
+
+test('une entrée v1 malformée n\u2019empêche pas la migration du reste', () => {
+  const storage = memoryStorage();
+  storage.setItem(LEGACY_KEY, JSON.stringify({
+    games: [null, { end: '2026-10-17T10:00:00.000Z', dur: 1000, diff: 0, combo: 1, answers: [null, { w: 'baguette', ok: true, ms: 1000, choice: 'f' }] }],
+    words: { baguette: { seen: 1, ok: 1, last: true }, squelette: null },
+  }));
+  const profile = new LocalStorageProfileRepository({ storage }).load();
+  assert.equal(profile.gameCount, 1);
+  assert.equal(profile.games[0].total, 1);
+  assert.equal(profile.wordStats.get('baguette').seen, 1);
+});
+
 test('un stockage plein n’empêche pas de jouer', () => {
   const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem() {} };
   assert.doesNotThrow(() => new LocalStorageProfileRepository({ storage: full }).save(PlayerProfile.empty()));

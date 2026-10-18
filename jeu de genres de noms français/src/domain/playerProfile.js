@@ -74,14 +74,28 @@ export class PlayerProfile {
     };
   }
 
-  static fromSnapshot(snapshot) {
+  /**
+   * Reconstruit un profil. Un enregistrement invalide (partie, statistique, difficulté)
+   * est ignoré et signalé à `onInvalid` : il ne fait pas perdre le reste de l'historique.
+   */
+  static fromSnapshot(snapshot, { onInvalid = () => {} } = {}) {
+    const valid = (items, build) => items.flatMap(item => {
+      try {
+        return [build(item)];
+      } catch (error) {
+        onInvalid(error);
+        return [];
+      }
+    });
+    const count = value => (Number.isInteger(value) && value >= 0 ? value : 0);
+    const [difficulty = Difficulty.initial()] = valid([snapshot.difficulty ?? Difficulty.MIN], Difficulty.of);
     return new PlayerProfile({
-      games: (snapshot.games ?? []).map(GameRecord.fromSnapshot),
-      wordStats: new WordStatsBook(Object.entries(snapshot.wordStats ?? {})
-        .map(([text, s]) => [text, new WordStat(s.seen, s.correct, s.lastCorrect ?? null)])),
-      difficulty: Difficulty.of(snapshot.difficulty ?? Difficulty.MIN),
-      anecdotesRead: snapshot.anecdotesRead ?? 0,
-      recoveries: snapshot.recoveries ?? 0,
+      games: valid(Array.isArray(snapshot.games) ? snapshot.games : [], GameRecord.fromSnapshot),
+      wordStats: new WordStatsBook(valid(Object.entries(snapshot.wordStats ?? {}),
+        ([text, s]) => [text, new WordStat(s.seen, s.correct, s.lastCorrect ?? null)])),
+      difficulty,
+      anecdotesRead: count(snapshot.anecdotesRead),
+      recoveries: count(snapshot.recoveries),
     });
   }
 }
