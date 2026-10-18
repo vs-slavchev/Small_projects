@@ -131,11 +131,12 @@ test('Précision : la plus longue série de parties à 90 % ou plus', () => {
   assert.equal(progressAfter('precision', [at(1, 9), at(2, 10), at(3, 9)]).reached, 1);
 });
 
-test('Persévérant : faire mieux juste après une partie sous 70 %', () => {
-  const failed = game({ endedAt: day(18, 14), correct: 5 });
-  assert.equal(progressAfter('persistent', [failed, game({ endedAt: day(18, 14, 10), correct: 8 })]).value, 1);
-  assert.equal(progressAfter('persistent', [failed, game({ endedAt: day(18, 14, 30), correct: 8 })]).value, 0, 'trop tard');
-  assert.equal(progressAfter('persistent', [failed, game({ endedAt: day(18, 14, 10), correct: 5 })]).value, 0, 'pas mieux');
+test('Persévérant : le plus grand nombre de parties jouées en une journée', () => {
+  const sameDay = n => Array.from({ length: n }, (_, i) => game({ endedAt: day(18, 8, i) }));
+  const p = progressAfter('persistent', [...sameDay(20), ...series(5)]);
+  assert.equal(p.value, 20);
+  assert.equal(p.tierName, 'Bronze');
+  assert.equal(progressAfter('persistent', [...sameDay(19), game({ endedAt: day(19, 8) })]).reached, 0);
 });
 
 test('Équilibriste : 90 % sur chaque genre, sur 10 parties d’affilée', () => {

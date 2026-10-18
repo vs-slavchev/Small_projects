@@ -67,6 +67,15 @@ class GameRecord {
   static fromSnapshot(snapshot) {
     return new GameRecord({ ...snapshot, endedAt: new Date(snapshot.endedAt) });
   }
+
+  /**
+   * Pour chaque partie, longueur de la série de parties consécutives à `threshold` % ou plus qui s'y termine.
+   * @param {GameRecord[]} games dans l'ordre chronologique @param {number} threshold @returns {number[]}
+   */
+  static accuracyRuns(games, threshold) {
+    let run = 0;
+    return games.map(g => (run = g.accuracy >= threshold ? run + 1 : 0));
+  }
 }
 
 Object.assign(LeOuLa, { GameRecord });
