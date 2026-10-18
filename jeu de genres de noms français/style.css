@@ -266,6 +266,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .ticks { display: flex; gap: 3px; }
 .ticks i { width: 14px; height: 4px; border-radius: 2px; background: var(--line); }
 .ticks i.on { background: var(--ink); }
+/* Succès en une seule étape : un seul trait, aussi large que les trois paliers. */
+.ticks i:only-child { width: 48px; }
 /* Place sous la grille pour que la fenêtre du badge ne masque pas la dernière rangée. */
 .pop-room { display: none; height: 220px; flex: none; }
 .pop-open .pop-room { display: block; }

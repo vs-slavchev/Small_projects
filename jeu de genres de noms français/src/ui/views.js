@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, MAX_TIER, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
+  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
   escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
   trendText, insightText, achievementStatus, unlockedLabel,
 } = LeOuLa;
@@ -410,7 +410,7 @@ const achievements = {
     const { list, earned, total } = context.achievements;
     const grid = list.map((p, i) => {
       const [bg, rim] = TIER_COLORS[p.tier];
-      const ticks = Array.from({ length: MAX_TIER }, (_, k) => `<i class="${p.tier > k ? 'on' : ''}"></i>`).join('');
+      const ticks = p.thresholds.map((_, k) => `<i class="${p.reached > k ? 'on' : ''}"></i>`).join('');
       return `<button class="badge${p.tier ? '' : ' off'}" data-event="${AppEvent.SELECT_BADGE}" data-index="${i}" style="animation-delay:${i * 35}ms" aria-label="${esc(p.name)}">
         <div class="em" style="background:${bg};box-shadow:inset 0 -4px 0 ${rim}">${p.emoji}</div>
         <div class="n">${esc(p.name)}</div>
