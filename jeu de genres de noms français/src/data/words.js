@@ -251,19 +251,19 @@ const WORDS = Object.freeze([
   { w: 'chou', g: 'm', grp: 'ou', en: 'cabbage', fun: "Du latin <i>caulis</i>, « tige ». « Mon chou » est un mot tendre depuis le XIXᵉ siècle." },
   { w: 'caillou', g: 'm', grp: 'ou', en: 'pebble', fun: "Probablement d’origine gauloise. Au pluriel : des cailloux, un des sept noms en -ou qui prennent un x." },
   { w: 'hibou', g: 'm', grp: 'ou', asp: true, en: 'owl', fun: "Le h est aspiré : on dit « le hibou », sans élision. Lui aussi prend un x au pluriel : des hiboux." },
+  { w: 'trou', g: 'm', grp: 'ou', en: 'hole', fun: "Du latin populaire <i>traucum</i>, d’origine probablement gauloise." },
   { w: 'écrou', g: 'm', grp: 'ou', en: 'nut (bolt)' },
   // -cide
   { w: 'homicide', g: 'm', grp: 'cide', asp: false, en: 'homicide', fun: "Du latin <i>homo</i>, « homme », et <i>caedere</i>, « tuer ». Le h est muet : on dit « l’homicide »." },
-  { w: 'suicide', g: 'm', grp: 'cide', en: 'suicide', fun: "Formé au XVIIIᵉ siècle sur le latin <i>sui</i>, « de soi », et <b>-cide</b>, « qui tue »." },
   { w: 'insecticide', g: 'm', grp: 'cide', en: 'insecticide', fun: "« Insecte » + <b>-cide</b> : ce qui tue les insectes." },
+  { w: 'herbicide', g: 'm', grp: 'cide', asp: false, en: 'weedkiller', fun: "« Herbe » + <b>-cide</b> : ce qui tue les mauvaises herbes. Le h est muet : on dit « l’herbicide »." },
   { w: 'pesticide', g: 'm', grp: 'cide', en: 'pesticide', fun: "De l’anglais <i>pest</i>, « nuisible », et <b>-cide</b>." },
-  { w: 'génocide', g: 'm', grp: 'cide', en: 'genocide', fun: "Mot créé en 1944 par le juriste Raphael Lemkin, du grec <i>genos</i>, « peuple, race »." },
   // -phone
   { w: 'téléphone', g: 'm', grp: 'phone', en: 'telephone', fun: "Du grec <i>têle</i>, « loin », et <i>phônê</i>, « voix » : la voix qui vient de loin." },
   { w: 'microphone', g: 'm', grp: 'phone', en: 'microphone', fun: "Du grec <i>mikros</i>, « petit », et <i>phônê</i>, « son » : il capte les petits sons." },
   { w: 'saxophone', g: 'm', grp: 'phone', en: 'saxophone', fun: "Inventé vers 1840 par le Belge Adolphe Sax, qui lui a donné son nom." },
   { w: 'interphone', g: 'm', grp: 'phone', en: 'intercom' },
-  { w: 'magnétophone', g: 'm', grp: 'phone', en: 'tape recorder' },
+  { w: 'smartphone', g: 'm', grp: 'phone', en: 'smartphone', fun: "Emprunté à l’anglais au début des années 2000 ; on entend aussi « téléphone intelligent », surtout au Québec." },
   // -teur
   { w: 'moteur', g: 'm', grp: 'teur', en: 'engine', fun: "Du latin <i>motor</i>, « celui qui met en mouvement »." },
   { w: 'ordinateur', g: 'm', grp: 'teur', en: 'computer', fun: "Mot proposé en 1955 par le latiniste Jacques Perret, à la demande d’IBM France : « Dieu qui met de l’ordre dans le monde »." },
