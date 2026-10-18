@@ -9,7 +9,7 @@ const ette = new WordGroup({ id: 'ette', suffix: '-ette', gender: Gender.FEMININ
 
 test('la banque réelle respecte les invariants du domaine', () => {
   const bank = realBank();
-  assert.equal(bank.groups.length, 25);
+  assert.equal(bank.groups.length, 34);
   for (const group of bank.groups) {
     const words = bank.words.filter(w => w.group === group);
     assert.ok(words.filter(w => !w.isException).length >= 2, `${group.suffix} : au moins 2 mots réguliers`);

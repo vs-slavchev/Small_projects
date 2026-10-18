@@ -214,7 +214,8 @@ const feedback = {
       ? `<span class="chip ${group.gender.code} strike">${esc(group.suffix)}</span><span class="chip exc">EXCEPTION</span>`
       : `<span class="chip ${group.gender.code}">${esc(group.suffix)}</span><span class="to ${group.gender.code}">→ ${group.gender.label}</span>`;
     const rule = word.isException
-      ? `Les noms en <b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`
+      // Un libellé qui n'est pas une terminaison (« pays en -e ») se lit tel quel : « Les pays en -e… ».
+      ? `Les ${group.suffix.startsWith('-') ? 'noms en ' : ''}<b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`
       : group.rule;
     return `<div class="screen play fb">
       <div class="top-safe"></div>
