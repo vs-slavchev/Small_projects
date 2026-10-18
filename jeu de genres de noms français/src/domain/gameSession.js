@@ -5,15 +5,21 @@ const { DomainError, Gender, Difficulty, GameRecord } = LeOuLa;
 
 const DEFAULT_GAME_LENGTH = 10;
 
-/** Réponse donnée à un mot. */
+/** Réponse donnée à un mot. `readMs`, temps passé sur l'explication, est connu une fois l'explication quittée. */
 class Answer {
-  /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number }} props */
-  constructor({ word, chosen, timeMs }) {
+  /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number, readMs?: number | null }} props */
+  constructor({ word, chosen, timeMs, readMs = null }) {
     this.word = word;
     this.chosen = chosen;
     this.timeMs = timeMs;
+    this.readMs = readMs;
     this.correct = word.isCorrect(chosen);
     Object.freeze(this);
+  }
+
+  /** @param {number} readMs @returns {Answer} */
+  withReadMs(readMs) {
+    return new Answer({ word: this.word, chosen: this.chosen, timeMs: this.timeMs, readMs });
   }
 }
 
@@ -38,7 +44,6 @@ class GameSession {
   #thinkingMs = 0;
   #presentedAt = 0;
   #answeredAt = 0;
-  #readMs = [];
 
   /**
    * @param {{ length?: number, difficulty: Difficulty,
@@ -100,22 +105,28 @@ class GameSession {
   next(now) {
     if (this.isComplete) throw new DomainError('La partie est terminée.');
     if (this.isAwaitingAnswer) throw new DomainError('Réponds au mot en cours avant de passer au suivant.');
-    this.#readMs.push(Math.max(0, now - this.#answeredAt));
+    this.#endReading(now);
     this.#present(now);
   }
 
   /** Clôt la partie et produit l'enregistrement à archiver. */
   finish(now) {
     if (!this.isComplete) throw new DomainError('La partie n’est pas terminée.');
-    const readMs = [...this.#readMs, Math.max(0, now - this.#answeredAt)];
+    this.#endReading(now);
     return new GameRecord({
       endedAt: new Date(now),
       durationMs: this.#thinkingMs,
       difficultyStart: this.#difficultyStart.value,
       difficultyEnd: this.#difficulty.value,
       maxCombo: this.#maxCombo,
-      answers: this.#answers.map((a, i) => ({ word: a.word.text, chosen: a.chosen.code, correct: a.correct, timeMs: a.timeMs, readMs: readMs[i] })),
+      answers: this.#answers.map(a => ({ word: a.word.text, chosen: a.chosen.code, correct: a.correct, timeMs: a.timeMs, readMs: a.readMs })),
     });
+  }
+
+  /** Note le temps passé sur l'explication de la dernière réponse. */
+  #endReading(now) {
+    const last = this.#answers.length - 1;
+    this.#answers[last] = this.#answers[last].withReadMs(Math.max(0, now - this.#answeredAt));
   }
 
   #present(now) {

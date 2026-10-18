@@ -9,7 +9,7 @@ const {
 } = LeOuLa;
 
 const bank = realBank();
-const day = (d, h = 14) => new Date(2026, 9, d, h, 0);
+const day = (d, h = 14, m = 0) => new Date(2026, 9, d, h, m);
 
 /** Partie de 10 mots dont `correct` justes. */
 function game({ endedAt = day(18), correct = 10, words = bank.words.slice(0, 10), durationMs = 40_000, maxCombo = correct, readMs, difficultyStart = 0 } = {}) {
@@ -103,6 +103,9 @@ test('succès à palier unique : obtenu → affiché en Or', () => {
   assert.ok(owl.isComplete);
 });
 
+/** `n` parties identiques, une par jour. */
+const series = (n, props) => Array.from({ length: n }, (_, i) => game({ endedAt: day(1 + i), ...props }));
+
 /** Succès `id` après avoir archivé `games` dans un profil vide. */
 function progressAfter(id, games) {
   const profile = PlayerProfile.empty();
@@ -117,7 +120,7 @@ test('Lève-tôt : une partie finie entre 5 h et 8 h', () => {
 });
 
 test('Habitué : nombre de parties jouées', () => {
-  const p = progressAfter('regular', Array.from({ length: 10 }, (_, i) => game({ endedAt: day(1 + i) })));
+  const p = progressAfter('regular', series(10));
   assert.equal(p.value, 10);
   assert.equal(p.tierName, 'Bronze');
 });
@@ -130,16 +133,15 @@ test('Précision : la plus longue série de parties à 90 % ou plus', () => {
 
 test('Persévérant : faire mieux juste après une partie sous 70 %', () => {
   const failed = game({ endedAt: day(18, 14), correct: 5 });
-  assert.equal(progressAfter('persistent', [failed, game({ endedAt: new Date(2026, 9, 18, 14, 10), correct: 8 })]).value, 1);
-  assert.equal(progressAfter('persistent', [failed, game({ endedAt: new Date(2026, 9, 18, 14, 30), correct: 8 })]).value, 0, 'trop tard');
-  assert.equal(progressAfter('persistent', [failed, game({ endedAt: new Date(2026, 9, 18, 14, 10), correct: 5 })]).value, 0, 'pas mieux');
+  assert.equal(progressAfter('persistent', [failed, game({ endedAt: day(18, 14, 10), correct: 8 })]).value, 1);
+  assert.equal(progressAfter('persistent', [failed, game({ endedAt: day(18, 14, 30), correct: 8 })]).value, 0, 'trop tard');
+  assert.equal(progressAfter('persistent', [failed, game({ endedAt: day(18, 14, 10), correct: 5 })]).value, 0, 'pas mieux');
 });
 
 test('Équilibriste : 90 % sur chaque genre, sur 10 parties d’affilée', () => {
-  const games = correct => Array.from({ length: 10 }, (_, i) => game({ endedAt: day(1 + i), correct }));
-  assert.equal(progressAfter('balanced', games(10).slice(0, 9)).value, 0, 'moins de 10 parties');
-  assert.equal(progressAfter('balanced', games(10)).reached, 1);
-  assert.equal(progressAfter('balanced', games(8)).reached, 0);
+  assert.equal(progressAfter('balanced', series(9)).value, 0, 'moins de 10 parties');
+  assert.equal(progressAfter('balanced', series(10)).reached, 1);
+  assert.equal(progressAfter('balanced', series(10, { correct: 8 })).reached, 0);
 });
 
 test('Sans hâte : chaque anecdote affichée au moins 5 s', () => {
@@ -157,18 +159,16 @@ test('Maître du groupe : la dernière réponse à chaque mot du groupe est just
 });
 
 test('Le h muet : réussir chaque mot en h', () => {
-  const hWords = bank.words.filter(w => /^h/.test(w.text));
+  const hWords = bank.words.filter(w => w.startsWithH);
   const p = progressAfter('silentH', [game({ words: hWords, correct: hWords.length })]);
   assert.equal(p.value, hWords.length);
   assert.ok(p.isComplete);
 });
 
 test('Intouchable : 7 parties sans faute commencées au-dessus de 80, en dernier dans la liste', () => {
-  const games = (n, props) => Array.from({ length: n }, (_, i) => game({ endedAt: day(1 + i), ...props }));
-  const p = progressAfter('untouchable', games(7, { difficultyStart: 84 }));
-  assert.equal(p.reached, 1);
-  assert.equal(progressAfter('untouchable', games(6, { difficultyStart: 84 })).reached, 0);
-  assert.equal(progressAfter('untouchable', games(7, { difficultyStart: 80 })).value, 0, 'il faut dépasser 80');
-  assert.equal(progressAfter('untouchable', games(7, { difficultyStart: 90, correct: 9 })).value, 0, 'une erreur suffit');
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 84 })).reached, 1);
+  assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 84 })).reached, 0);
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 80 })).value, 0, 'il faut dépasser 80');
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 90, correct: 9 })).value, 0, 'une erreur suffit');
   assert.equal(LeOuLa.ACHIEVEMENTS.at(-1).id, 'untouchable');
 });

@@ -9,65 +9,18 @@ const MAX_TIER = TIER_NAMES.length;
 
 const NIGHT_END_HOUR = 5;
 const MORNING_END_HOUR = 8;
-/** Équilibriste : réussite mesurée sur chaque série de parties consécutives de cette taille. */
+/** Équilibriste : meilleure réussite sur le genre le moins bien réussi, sur cette taille de série de parties consécutives. */
 const BALANCE_WINDOW_GAMES = 10;
 /** Précision : une partie compte si sa réussite atteint ce pourcentage. */
 const PRECISE_ACCURACY = 90;
 /** Persévérant : une partie est ratée sous ce pourcentage ; la suivante doit finir peu après. */
 const FAILED_ACCURACY = 70;
 const RETRY_WINDOW_MS = 15 * 60_000;
-/** Sans hâte : temps minimal passé sur une explication pour considérer l'anecdote lue. */
+/** Sans hâte : une partie compte si chaque anecdote reste au moins ce temps à l'écran. */
 const READ_MIN_MS = 5000;
-const STARTS_WITH_H = /^h/i;
 /** Intouchable : difficulté de départ à dépasser. Sans erreur, elle ne fait que monter pendant la partie. */
 const EXTREME_DIFFICULTY = 80;
 const EXTREME_PERFECT_GAMES = 7;
-
-/** Meilleure réussite (en %) sur le genre le moins bien réussi, parmi toutes les séries de parties consécutives. */
-function bestBalance(games, bank) {
-  let best = null;
-  for (let end = BALANCE_WINDOW_GAMES; end <= games.length; end++) {
-    const tally = { m: [0, 0], f: [0, 0] };
-    for (const game of games.slice(end - BALANCE_WINDOW_GAMES, end)) {
-      for (const a of game.answers) {
-        const word = bank.word(a.word);
-        if (!word) continue;
-        const t = tally[word.gender.code];
-        t[0] += a.correct ? 1 : 0;
-        t[1]++;
-      }
-    }
-    if (!tally.m[1] || !tally.f[1]) continue;
-    const worst = Math.floor(Math.min(tally.m[0] / tally.m[1], tally.f[0] / tally.f[1]) * 100);
-    best = Math.max(best ?? 0, worst);
-  }
-  return best;
-}
-
-/**
- * Groupes maîtrisés : un groupe l'est dès que la dernière réponse à chacun de ses mots est juste.
- * L'historique est rejoué dans l'ordre ; un groupe maîtrisé une fois reste acquis.
- */
-function groupsMastered(games, bank) {
-  const lastCorrect = new Map();
-  const mastered = new Set();
-  for (const game of games) {
-    for (const a of game.answers) {
-      const word = bank.word(a.word);
-      if (!word) continue;
-      lastCorrect.set(word.text, a.correct);
-      if (a.correct && !mastered.has(word.group.id)
-        && bank.words.every(w => w.group !== word.group || lastCorrect.get(w.text) === true)) mastered.add(word.group.id);
-    }
-  }
-  return mastered.size;
-}
-
-/** Une partie où chaque anecdote affichée est restée au moins READ_MIN_MS à l'écran. */
-function isUnhurried(game, bank) {
-  const withAnecdote = game.answers.filter(a => bank.word(a.word)?.anecdote);
-  return withAnecdote.length > 0 && withAnecdote.every(a => a.readMs !== null && a.readMs >= READ_MIN_MS);
-}
 
 /** Faits mesurables tirés du profil, calculés une fois pour tous les succès. */
 class AchievementFacts {
@@ -92,11 +45,21 @@ class AchievementFacts {
     let longestPreciseRun = 0;
     const hWordsFound = new Set();
     let previous = null;
+    // Équilibriste : bilans par genre des dernières parties, sommés sur une fenêtre glissante.
+    const recentTallies = [];
+    const windowTally = { m: [0, 0], f: [0, 0] };
+    let balance = 0;
+    // Maître du groupe : dernière réponse juste ou non pour chaque mot, et nombre de mots « justes » par groupe.
+    const groupSizes = new Map();
+    for (const w of bank.words) bump(groupSizes, w.group.id);
+    const lastCorrect = new Map();
+    const lastCorrectByGroup = new Map();
+    const masteredGroups = new Set();
 
     for (const game of profile.games) {
       const hour = game.endedAt.getHours();
-      if (hour >= NIGHT_END_HOUR && hour < MORNING_END_HOUR) playedEarly = true;
-      if (isUnhurried(game, bank)) unhurriedGames++;
+      if (hour < NIGHT_END_HOUR) playedAtNight = true;
+      else if (hour < MORNING_END_HOUR) playedEarly = true;
       if (previous && previous.accuracy < FAILED_ACCURACY && game.accuracy > previous.accuracy
         && game.endedAt - previous.endedAt <= RETRY_WINDOW_MS) retries++;
       preciseRun = game.accuracy >= PRECISE_ACCURACY ? preciseRun + 1 : 0;
@@ -106,14 +69,42 @@ class AchievementFacts {
       if (game.isPerfect && game.difficultyStart > EXTREME_DIFFICULTY) extremePerfectGames++;
       maxCombo = Math.max(maxCombo, game.maxCombo);
       if (bestDurationMs === null || game.durationMs < bestDurationMs) bestDurationMs = game.durationMs;
-      if (game.endedAt.getHours() < NIGHT_END_HOUR) playedAtNight = true;
+
+      const tally = { m: [0, 0], f: [0, 0] };
+      let anecdotes = 0;
+      let allAnecdotesRead = true;
       for (const a of game.answers) {
         const word = bank.word(a.word);
-        if (!word || !a.correct) continue;
+        if (!word) continue;
+        const t = tally[word.gender.code];
+        t[0] += a.correct ? 1 : 0;
+        t[1]++;
+        if (word.anecdote) {
+          anecdotes++;
+          if (a.readMs === null || a.readMs < READ_MIN_MS) allAnecdotesRead = false;
+        }
+        const groupId = word.group.id;
+        if (a.correct !== (lastCorrect.get(word.text) === true)) {
+          lastCorrectByGroup.set(groupId, (lastCorrectByGroup.get(groupId) ?? 0) + (a.correct ? 1 : -1));
+        }
+        lastCorrect.set(word.text, a.correct);
+        if (lastCorrectByGroup.get(groupId) === groupSizes.get(groupId)) masteredGroups.add(groupId);
+        if (!a.correct) continue;
         totalCorrect++;
-        bump(correctByGroup, word.group.id);
-        if (STARTS_WITH_H.test(word.text)) hWordsFound.add(word.text);
-        if (word.isException) bump(exceptionsByGroup, word.group.id);
+        bump(correctByGroup, groupId);
+        if (word.startsWithH) hWordsFound.add(word.text);
+        if (word.isException) bump(exceptionsByGroup, groupId);
+      }
+      if (anecdotes && allAnecdotesRead) unhurriedGames++;
+
+      recentTallies.push(tally);
+      const leaving = recentTallies.length > BALANCE_WINDOW_GAMES ? recentTallies.shift() : null;
+      for (const g of ['m', 'f']) {
+        for (const k of [0, 1]) windowTally[g][k] += tally[g][k] - (leaving ? leaving[g][k] : 0);
+      }
+      const { m, f } = windowTally;
+      if (recentTallies.length === BALANCE_WINDOW_GAMES && m[1] && f[1]) {
+        balance = Math.max(balance, Math.floor(Math.min(m[0] / m[1], f[0] / f[1]) * 100));
       }
     }
 
@@ -127,10 +118,10 @@ class AchievementFacts {
       recoveries: profile.recoveries,
       playedEarly, unhurriedGames, retries, longestPreciseRun, extremePerfectGames,
       gameCount: profile.gameCount,
-      balance: bestBalance(profile.games, bank) ?? 0,
-      groupsMastered: groupsMastered(profile.games, bank),
+      balance,
+      groupsMastered: masteredGroups.size,
       hWordsFound: hWordsFound.size,
-      hWordCount: bank.words.filter(w => STARTS_WITH_H.test(w.text)).length,
+      hWordCount: bank.words.filter(w => w.startsWithH).length,
     });
   }
 }

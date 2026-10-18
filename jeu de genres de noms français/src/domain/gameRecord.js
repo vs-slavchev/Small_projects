@@ -28,7 +28,7 @@ class GameRecord {
       chosen: a.chosen,
       correct: Boolean(a.correct),
       timeMs: Math.max(0, Math.round(Number(a.timeMs) || 0)),
-      readMs: a.readMs === undefined || a.readMs === null ? null : Math.max(0, Math.round(Number(a.readMs) || 0)),
+      readMs: a.readMs == null ? null : Math.max(0, Math.round(Number(a.readMs) || 0)),
     })));
     this.correctCount = this.answers.filter(a => a.correct).length;
     Object.freeze(this);
