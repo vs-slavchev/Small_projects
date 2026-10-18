@@ -57,7 +57,7 @@ function insightText(insight) {
     case InsightKind.RISING:
       return `Ça monte : tes ${insight.count} dernières parties (${insight.accuracy} % en moyenne) font ${insight.delta} pts de mieux que les précédentes.`;
     case InsightKind.DIP:
-      return `Partie plus difficile (${insight.accuracy} %), mais ta moyenne tient à ${insight.average} %. Les mots ratés vont revenir.`;
+      return `Petit creux (${insight.accuracy} %), mais ta moyenne tient à ${insight.average} %. Les mots ratés vont revenir.`;
     case InsightKind.TRAP_WORD:
       return `« ${escapeHtml(insight.word)} » t’a piégé ${insight.misses} fois : ce mot est ${insight.gender.label}. Il reviendra vite.`;
     case InsightKind.FASTER:

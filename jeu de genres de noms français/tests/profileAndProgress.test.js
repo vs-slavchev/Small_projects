@@ -196,10 +196,10 @@ test('Le h muet : réussir chaque mot en h', () => {
   assert.ok(p.isComplete);
 });
 
-test('Intouchable : 7 parties sans faute commencées au-dessus de 80, en dernier dans la liste', () => {
-  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 84 })).reached, 1);
-  assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 84 })).reached, 0);
-  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 80 })).value, 0, 'il faut dépasser 80');
-  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 90, correct: 9 })).value, 0, 'une erreur suffit');
+test('Intouchable : 7 parties sans faute commencées au-dessus de 95, en dernier dans la liste', () => {
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 96 })).reached, 1);
+  assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 96 })).reached, 0);
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 95 })).value, 0, 'il faut dépasser 95');
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 100, correct: 9 })).value, 0, 'une erreur suffit');
   assert.equal(LeOuLa.ACHIEVEMENTS.at(-1).id, 'untouchable');
 });
