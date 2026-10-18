@@ -52,6 +52,14 @@ test('le chrono ne compte que le temps de réflexion', () => {
   assert.equal(s.finish(64_000).durationMs, 7000);
 });
 
+test('le temps passé sur chaque explication est noté, jusqu’à la fin de partie', () => {
+  const s = start(2);
+  s.answer(right(s.currentWord), 3000);
+  s.next(60_000);
+  s.answer(right(s.currentWord), 64_000);
+  assert.deepEqual(s.finish(70_000).answers.map(a => a.readMs), [57_000, 6000]);
+});
+
 test('la difficulté évolue à chaque réponse pendant la partie', () => {
   const s = start(2);
   s.answer(right(s.currentWord), 1); s.next(1);

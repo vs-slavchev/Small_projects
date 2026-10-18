@@ -80,7 +80,7 @@ function achievementStatus(p) {
   return {
     tierLabel, percent,
     nextLabel: p.isSingleStep ? "Pour l'obtenir" : `Prochain palier : ${p.nextTierName} (${p.nextThreshold})`,
-    progressLabel: `${p.value} / ${p.nextThreshold}`,
+    progressLabel: `${p.value} / ${p.nextThreshold}${p.unit ? ` ${p.unit}` : ''}`,
   };
 }
 

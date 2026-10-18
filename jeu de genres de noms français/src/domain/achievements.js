@@ -8,6 +8,63 @@ const TIER_NAMES = Object.freeze(['Bronze', 'Argent', 'Or']);
 const MAX_TIER = TIER_NAMES.length;
 
 const NIGHT_END_HOUR = 5;
+const MORNING_END_HOUR = 8;
+/** Équilibriste : réussite mesurée sur chaque série de parties consécutives de cette taille. */
+const BALANCE_WINDOW_GAMES = 10;
+/** Précision : une partie compte si sa réussite atteint ce pourcentage. */
+const PRECISE_ACCURACY = 90;
+/** Persévérant : une partie est ratée sous ce pourcentage ; la suivante doit finir peu après. */
+const FAILED_ACCURACY = 70;
+const RETRY_WINDOW_MS = 15 * 60_000;
+/** Sans hâte : temps minimal passé sur une explication pour considérer l'anecdote lue. */
+const READ_MIN_MS = 5000;
+const STARTS_WITH_H = /^h/i;
+
+/** Meilleure réussite (en %) sur le genre le moins bien réussi, parmi toutes les séries de parties consécutives. */
+function bestBalance(games, bank) {
+  let best = null;
+  for (let end = BALANCE_WINDOW_GAMES; end <= games.length; end++) {
+    const tally = { m: [0, 0], f: [0, 0] };
+    for (const game of games.slice(end - BALANCE_WINDOW_GAMES, end)) {
+      for (const a of game.answers) {
+        const word = bank.word(a.word);
+        if (!word) continue;
+        const t = tally[word.gender.code];
+        t[0] += a.correct ? 1 : 0;
+        t[1]++;
+      }
+    }
+    if (!tally.m[1] || !tally.f[1]) continue;
+    const worst = Math.floor(Math.min(tally.m[0] / tally.m[1], tally.f[0] / tally.f[1]) * 100);
+    best = Math.max(best ?? 0, worst);
+  }
+  return best;
+}
+
+/**
+ * Groupes maîtrisés : un groupe l'est dès que la dernière réponse à chacun de ses mots est juste.
+ * L'historique est rejoué dans l'ordre ; un groupe maîtrisé une fois reste acquis.
+ */
+function groupsMastered(games, bank) {
+  const lastCorrect = new Map();
+  const mastered = new Set();
+  for (const game of games) {
+    for (const a of game.answers) {
+      const word = bank.word(a.word);
+      if (!word) continue;
+      lastCorrect.set(word.text, a.correct);
+      if (a.correct && !mastered.has(word.group.id)
+        && bank.words.every(w => w.group !== word.group || lastCorrect.get(w.text) === true)) mastered.add(word.group.id);
+    }
+  }
+  return mastered.size;
+}
+
+/** Une partie où chaque anecdote affichée est restée au moins READ_MIN_MS à l'écran. */
+function isUnhurried(game, bank) {
+  const withAnecdote = game.answers.filter(a => bank.word(a.word)?.anecdote);
+  return withAnecdote.length > 0 && withAnecdote.every(a => a.readMs !== null && a.readMs >= READ_MIN_MS);
+}
 
 /** Faits mesurables tirés du profil, calculés une fois pour tous les succès. */
 class AchievementFacts {
@@ -24,8 +81,23 @@ class AchievementFacts {
     let perfectGames = 0;
     let maxCombo = 0;
     let playedAtNight = false;
+    let playedEarly = false;
+    let unhurriedGames = 0;
+    let retries = 0;
+    let preciseRun = 0;
+    let longestPreciseRun = 0;
+    const hWordsFound = new Set();
+    let previous = null;
 
     for (const game of profile.games) {
+      const hour = game.endedAt.getHours();
+      if (hour >= NIGHT_END_HOUR && hour < MORNING_END_HOUR) playedEarly = true;
+      if (isUnhurried(game, bank)) unhurriedGames++;
+      if (previous && previous.accuracy < FAILED_ACCURACY && game.accuracy > previous.accuracy
+        && game.endedAt - previous.endedAt <= RETRY_WINDOW_MS) retries++;
+      preciseRun = game.accuracy >= PRECISE_ACCURACY ? preciseRun + 1 : 0;
+      longestPreciseRun = Math.max(longestPreciseRun, preciseRun);
+      previous = game;
       if (game.isPerfect) perfectGames++;
       maxCombo = Math.max(maxCombo, game.maxCombo);
       if (bestDurationMs === null || game.durationMs < bestDurationMs) bestDurationMs = game.durationMs;
@@ -35,6 +107,7 @@ class AchievementFacts {
         if (!word || !a.correct) continue;
         totalCorrect++;
         bump(correctByGroup, word.group.id);
+        if (STARTS_WITH_H.test(word.text)) hWordsFound.add(word.text);
         if (word.isException) bump(exceptionsByGroup, word.group.id);
       }
     }
@@ -47,6 +120,12 @@ class AchievementFacts {
       longestStreak: profile.calendar.longestStreak(),
       anecdotesRead: profile.anecdotesRead,
       recoveries: profile.recoveries,
+      playedEarly, unhurriedGames, retries, longestPreciseRun,
+      gameCount: profile.gameCount,
+      balance: bestBalance(profile.games, bank) ?? 0,
+      groupsMastered: groupsMastered(profile.games, bank),
+      hWordsFound: hWordsFound.size,
+      hWordCount: bank.words.filter(w => STARTS_WITH_H.test(w.text)).length,
     });
   }
 }
@@ -83,6 +162,22 @@ const ACHIEVEMENTS = Object.freeze([
     measure: f => f.anecdotesRead, thresholds: [25, 75, 200], goal: n => `${n} anecdotes lues` },
   { id: 'comeback', emoji: '🧭', name: 'Retour', description: 'Réussir un mot raté auparavant.',
     measure: f => f.recoveries, thresholds: [5, 20, 50], goal: n => `${n} mots ratés puis réussis` },
+  { id: 'balanced', emoji: '⚖️', name: 'Équilibriste', description: `Atteindre ${PRECISE_ACCURACY} % de réussite à la fois sur les féminins et sur les masculins, sur ${BALANCE_WINDOW_GAMES} parties d’affilée.`,
+    measure: f => f.balance, thresholds: [PRECISE_ACCURACY], unit: '%', goal: () => `${PRECISE_ACCURACY} % sur les deux genres` },
+  { id: 'unhurried', emoji: '🐢', name: 'Sans hâte', description: 'Prendre le temps de lire chaque anecdote d’une partie (au moins 5 s par explication).',
+    measure: f => f.unhurriedGames, thresholds: [1, 10, 30], goal: n => (n === 1 ? 'Une partie sans hâte' : `${n} parties sans hâte`) },
+  { id: 'earlyBird', emoji: '🌅', name: 'Lève-tôt', description: 'Finir une partie entre 5 h et 8 h du matin.',
+    measure: f => (f.playedEarly ? 1 : 0), thresholds: [1], goal: () => 'Une partie finie avant 8 h' },
+  { id: 'regular', emoji: '📅', name: 'Habitué', description: 'Parties jouées au total.',
+    measure: f => f.gameCount, thresholds: [10, 50, 200], goal: n => `${n} parties jouées` },
+  { id: 'persistent', emoji: '🔁', name: 'Persévérant', description: `Après une partie sous ${FAILED_ACCURACY} %, rejouer dans le quart d’heure et faire mieux.`,
+    measure: f => f.retries, thresholds: [1, 10, 25], goal: n => (n === 1 ? 'Une revanche réussie' : `${n} revanches réussies`) },
+  { id: 'groupMaster', emoji: '🎓', name: 'Maître du groupe', description: 'Maîtriser un groupe : la dernière réponse à chacun de ses mots est juste.',
+    measure: f => f.groupsMastered, thresholds: f => [1, 5, f.groupCount], goal: n => (n === 1 ? 'Un groupe maîtrisé' : `${n} groupes maîtrisés`) },
+  { id: 'silentH', emoji: '🪶', name: 'Le h muet', description: 'Réussir chaque mot en h, qu’il soit muet ou aspiré.',
+    measure: f => f.hWordsFound, thresholds: f => [f.hWordCount], goal: () => 'Tous les mots en h réussis' },
+  { id: 'precision', emoji: '🏹', name: 'Précision', description: `Enchaîner des parties à ${PRECISE_ACCURACY} % ou plus.`,
+    measure: f => f.longestPreciseRun, thresholds: [3, 7, 15], goal: n => `${n} parties d’affilée à ${PRECISE_ACCURACY} % ou plus` },
 ].map(Object.freeze));
 
 /** Avancement du joueur sur un succès. */
