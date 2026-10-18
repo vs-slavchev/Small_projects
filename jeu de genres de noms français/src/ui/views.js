@@ -399,7 +399,9 @@ function syncPopover(root, { context }) {
   const host = root.querySelector('#pop');
   if (!host) return;
   root.querySelectorAll('.badge').forEach(el => el.classList.toggle('sel', Number(el.dataset.index) === context.selectedBadge));
-  host.innerHTML = context.selectedBadge === null ? '' : popover(context.achievements.list[context.selectedBadge]);
+  const open = context.selectedBadge !== null;
+  root.querySelector('.page')?.classList.toggle('pop-open', open);
+  host.innerHTML = open ? popover(context.achievements.list[context.selectedBadge]) : '';
 }
 
 const achievements = {
@@ -420,7 +422,7 @@ const achievements = {
       <div class="page">
         <div class="ach-head"><div class="page-title">Succès</div><span>${earned} / ${total}</span></div>
         <div class="badges">${grid}</div>
-        <div style="height:220px;flex:none"></div>
+        <div class="pop-room"></div>
       </div>
       <div id="pop"></div>
       ${tabbar(Destination.ACHIEVEMENTS)}
