@@ -60,9 +60,14 @@ class Word {
     Object.freeze(this);
   }
 
+  /** Vrai pour un mot en h, que ce h soit aspiré ou muet. */
+  get startsWithH() {
+    return STARTS_WITH_H.test(this.text);
+  }
+
   /** Vrai si l'article s'élide : le genre ne s'entend plus, seule la réponse le dit. */
   get elides() {
-    return STARTS_WITH_VOWEL.test(this.text) || (STARTS_WITH_H.test(this.text) && !this.aspiratedH);
+    return STARTS_WITH_VOWEL.test(this.text) || (this.startsWithH && !this.aspiratedH);
   }
 
   /** Article que prendrait ce mot avec le genre donné : « le », « la » ou « l’ ». */

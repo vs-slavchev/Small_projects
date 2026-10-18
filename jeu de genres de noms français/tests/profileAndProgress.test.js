@@ -9,13 +9,13 @@ const {
 } = LeOuLa;
 
 const bank = realBank();
-const day = (d, h = 14) => new Date(2026, 9, d, h, 0);
+const day = (d, h = 14, m = 0) => new Date(2026, 9, d, h, m);
 
 /** Partie de 10 mots dont `correct` justes. */
-function game({ endedAt = day(18), correct = 10, words = bank.words.slice(0, 10), durationMs = 40_000, maxCombo = correct } = {}) {
+function game({ endedAt = day(18), correct = 10, words = bank.words.slice(0, 10), durationMs = 40_000, maxCombo = correct, readMs, difficultyStart = 0 } = {}) {
   return new GameRecord({
-    endedAt, durationMs, difficultyStart: 0, difficultyEnd: correct * 4, maxCombo,
-    answers: words.map((w, i) => ({ word: w.text, chosen: i < correct ? w.gender.code : w.gender.opposite.code, correct: i < correct, timeMs: 1000 })),
+    endedAt, durationMs, difficultyStart, difficultyEnd: correct * 4, maxCombo,
+    answers: words.map((w, i) => ({ word: w.text, chosen: i < correct ? w.gender.code : w.gender.opposite.code, correct: i < correct, timeMs: 1000, readMs })),
   });
 }
 
@@ -80,15 +80,15 @@ test('verdict de fin de partie', () => {
   assert.equal(rateGame(game({ correct: 2 }), []), Verdict.KEEP_GOING);
 });
 
-test('succès : 32 paliers au total, paliers franchis détectés', () => {
+test('succès : 51 paliers au total, paliers franchis détectés', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
-  assert.equal(totalSteps(before), 32);
+  assert.equal(totalSteps(before), 51);
   assert.equal(earnedSteps(before), 0);
   profile.recordGame(game({ correct: 10, durationMs: 12_000 }), bank);
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
   const unlocked = newlyUnlocked(before, after).map(p => `${p.id}:${p.reached}`);
-  assert.deepEqual(unlocked.sort(), ['combo:3', 'flawless:1', 'lightning:2'].sort());
+  assert.deepEqual(unlocked.sort(), ['combo:3', 'flawless:1', 'groupMaster:1', 'lightning:2'].sort());
   const lightning = after.find(p => p.id === 'lightning');
   assert.equal(lightning.tierName, 'Argent');
   assert.equal(lightning.nextThreshold, 8);
@@ -101,4 +101,75 @@ test('succès à palier unique : obtenu → affiché en Or', () => {
   assert.equal(owl.reached, 1);
   assert.equal(owl.tier, 3);
   assert.ok(owl.isComplete);
+});
+
+/** `n` parties identiques, une par jour. */
+const series = (n, props) => Array.from({ length: n }, (_, i) => game({ endedAt: day(1 + i), ...props }));
+
+/** Succès `id` après avoir archivé `games` dans un profil vide. */
+function progressAfter(id, games) {
+  const profile = PlayerProfile.empty();
+  for (const g of games) profile.recordGame(g, bank);
+  return evaluateAchievements(AchievementFacts.collect(profile, bank)).find(p => p.id === id);
+}
+
+test('Lève-tôt : une partie finie entre 5 h et 8 h', () => {
+  assert.equal(progressAfter('earlyBird', [game({ endedAt: day(18, 6) })]).reached, 1);
+  assert.equal(progressAfter('earlyBird', [game({ endedAt: day(18, 8) })]).reached, 0);
+  assert.equal(progressAfter('earlyBird', [game({ endedAt: day(18, 4) })]).reached, 0, 'avant 5 h, c’est Noctambule');
+});
+
+test('Habitué : nombre de parties jouées', () => {
+  const p = progressAfter('regular', series(10));
+  assert.equal(p.value, 10);
+  assert.equal(p.tierName, 'Bronze');
+});
+
+test('Précision : la plus longue série de parties à 90 % ou plus', () => {
+  const at = (d, correct) => game({ endedAt: day(d), correct });
+  assert.equal(progressAfter('precision', [at(1, 9), at(2, 10), at(3, 8), at(4, 9), at(5, 9)]).value, 2);
+  assert.equal(progressAfter('precision', [at(1, 9), at(2, 10), at(3, 9)]).reached, 1);
+});
+
+test('Persévérant : le plus grand nombre de parties jouées en une journée', () => {
+  const sameDay = n => Array.from({ length: n }, (_, i) => game({ endedAt: day(18, 8, i) }));
+  const p = progressAfter('persistent', [...sameDay(20), ...series(5)]);
+  assert.equal(p.value, 20);
+  assert.equal(p.tierName, 'Bronze');
+  assert.equal(progressAfter('persistent', [...sameDay(19), game({ endedAt: day(19, 8) })]).reached, 0);
+});
+
+test('Équilibriste : 90 % sur chaque genre, sur 10 parties d’affilée', () => {
+  assert.equal(progressAfter('balanced', series(9)).value, 0, 'moins de 10 parties');
+  assert.equal(progressAfter('balanced', series(10)).reached, 1);
+  assert.equal(progressAfter('balanced', series(10, { correct: 8 })).reached, 0);
+});
+
+test('Sans hâte : chaque anecdote affichée au moins 5 s', () => {
+  assert.equal(progressAfter('unhurried', [game({ readMs: 6000 })]).value, 1);
+  assert.equal(progressAfter('unhurried', [game({ readMs: 1000 })]).value, 0);
+  assert.equal(progressAfter('unhurried', [game()]).value, 0, 'temps de lecture inconnu pour les anciennes parties');
+});
+
+test('Maître du groupe : la dernière réponse à chaque mot du groupe est juste', () => {
+  const ette = bank.words.filter(w => w.group.id === 'ette');
+  assert.equal(progressAfter('groupMaster', [game({ words: ette, correct: ette.length })]).value, 1);
+  assert.equal(progressAfter('groupMaster', [game({ words: ette, correct: ette.length - 1 })]).value, 0);
+  const p = progressAfter('groupMaster', [game({ words: ette, correct: ette.length }), game({ endedAt: day(19), words: ette, correct: 0 })]);
+  assert.equal(p.value, 1, 'un groupe maîtrisé reste acquis');
+});
+
+test('Le h muet : réussir chaque mot en h', () => {
+  const hWords = bank.words.filter(w => w.startsWithH);
+  const p = progressAfter('silentH', [game({ words: hWords, correct: hWords.length })]);
+  assert.equal(p.value, hWords.length);
+  assert.ok(p.isComplete);
+});
+
+test('Intouchable : 7 parties sans faute commencées au-dessus de 80, en dernier dans la liste', () => {
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 84 })).reached, 1);
+  assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 84 })).reached, 0);
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 80 })).value, 0, 'il faut dépasser 80');
+  assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 90, correct: 9 })).value, 0, 'une erreur suffit');
+  assert.equal(LeOuLa.ACHIEVEMENTS.at(-1).id, 'untouchable');
 });

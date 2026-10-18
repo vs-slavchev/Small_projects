@@ -7,11 +7,12 @@ const { DomainError } = LeOuLa;
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée,
  * réponses données et difficulté. Le pourcentage de réussite en est dérivé.
  * Les mots sont référencés par leur texte pour rester indépendants de la banque.
+ * `readMs` (temps passé sur l'explication) vaut null pour les parties archivées avant qu'il soit mesuré.
  */
 class GameRecord {
   /**
    * @param {{ endedAt: Date, durationMs: number, difficultyStart: number, difficultyEnd: number,
-   *           maxCombo: number, answers: { word: string, chosen: 'm'|'f', correct: boolean, timeMs: number }[] }} props
+   *           maxCombo: number, answers: { word: string, chosen: 'm'|'f', correct: boolean, timeMs: number, readMs?: number | null }[] }} props
    */
   constructor({ endedAt, durationMs, difficultyStart, difficultyEnd, maxCombo, answers }) {
     const date = new Date(endedAt);
@@ -27,6 +28,7 @@ class GameRecord {
       chosen: a.chosen,
       correct: Boolean(a.correct),
       timeMs: Math.max(0, Math.round(Number(a.timeMs) || 0)),
+      readMs: a.readMs == null ? null : Math.max(0, Math.round(Number(a.readMs) || 0)),
     })));
     this.correctCount = this.answers.filter(a => a.correct).length;
     Object.freeze(this);
@@ -64,6 +66,15 @@ class GameRecord {
 
   static fromSnapshot(snapshot) {
     return new GameRecord({ ...snapshot, endedAt: new Date(snapshot.endedAt) });
+  }
+
+  /**
+   * Pour chaque partie, longueur de la série de parties consécutives à `threshold` % ou plus qui s'y termine.
+   * @param {GameRecord[]} games dans l'ordre chronologique @param {number} threshold @returns {number[]}
+   */
+  static accuracyRuns(games, threshold) {
+    let run = 0;
+    return games.map(g => (run = g.accuracy >= threshold ? run + 1 : 0));
   }
 }
 

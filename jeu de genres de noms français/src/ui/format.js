@@ -65,6 +65,7 @@ function insightText(insight) {
 
 /** @param {import('../domain/achievements.js').AchievementProgress} p */
 function achievementStatus(p) {
+  const withUnit = n => (p.unit ? `${n} ${p.unit}` : `${n}`);
   const tierLabel = p.isSingleStep
     ? (p.reached ? 'Obtenu' : 'Pas encore obtenu')
     : (p.reached ? `Niveau ${p.tierName}${p.isComplete ? '' : ` · ${p.reached}/${p.thresholds.length}`}` : 'Pas encore obtenu');
@@ -73,14 +74,14 @@ function achievementStatus(p) {
   if (p.isBelowGoal) {
     return {
       tierLabel, percent,
-      nextLabel: `Prochain palier : ${p.nextTierName} (${p.nextThreshold} ${p.unit})`,
+      nextLabel: `Prochain palier : ${p.nextTierName} (${withUnit(p.nextThreshold)})`,
       progressLabel: p.value === null ? 'aucune partie' : `record ${formatSeconds(p.value * 1000)}`,
     };
   }
   return {
     tierLabel, percent,
-    nextLabel: p.isSingleStep ? "Pour l'obtenir" : `Prochain palier : ${p.nextTierName} (${p.nextThreshold})`,
-    progressLabel: `${p.value} / ${p.nextThreshold}`,
+    nextLabel: p.isSingleStep ? "Pour l'obtenir" : `Prochain palier : ${p.nextTierName} (${withUnit(p.nextThreshold)})`,
+    progressLabel: `${p.value} / ${withUnit(p.nextThreshold)}`,
   };
 }
 

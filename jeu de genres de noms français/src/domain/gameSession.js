@@ -5,15 +5,21 @@ const { DomainError, Gender, Difficulty, GameRecord } = LeOuLa;
 
 const DEFAULT_GAME_LENGTH = 10;
 
-/** Réponse donnée à un mot. */
+/** Réponse donnée à un mot. `readMs`, temps passé sur l'explication, est connu une fois l'explication quittée. */
 class Answer {
-  /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number }} props */
-  constructor({ word, chosen, timeMs }) {
+  /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number, readMs?: number | null }} props */
+  constructor({ word, chosen, timeMs, readMs = null }) {
     this.word = word;
     this.chosen = chosen;
     this.timeMs = timeMs;
+    this.readMs = readMs;
     this.correct = word.isCorrect(chosen);
     Object.freeze(this);
+  }
+
+  /** @param {number} readMs @returns {Answer} */
+  withReadMs(readMs) {
+    return new Answer({ word: this.word, chosen: this.chosen, timeMs: this.timeMs, readMs });
   }
 }
 
@@ -22,7 +28,8 @@ class Answer {
  * un mot attend une réponse → la réponse est donnée → mot suivant… jusqu'au dernier.
  *
  * Le chrono ne compte que le temps de réflexion : il s'arrête dès qu'une réponse
- * est donnée et ne reprend qu'au mot suivant.
+ * est donnée et ne reprend qu'au mot suivant. Le temps passé sur l'explication
+ * (de la réponse au mot suivant ou à la fin) est noté à part, mot par mot.
  * Les instants (`now`) sont des millisecondes fournies par l'appelant (horloge injectée).
  */
 class GameSession {
@@ -36,6 +43,7 @@ class GameSession {
   #maxCombo = 0;
   #thinkingMs = 0;
   #presentedAt = 0;
+  #answeredAt = 0;
 
   /**
    * @param {{ length?: number, difficulty: Difficulty,
@@ -86,6 +94,7 @@ class GameSession {
     const answer = new Answer({ word: this.currentWord, chosen: gender, timeMs });
     this.#answers.push(answer);
     this.#thinkingMs += timeMs;
+    this.#answeredAt = now;
     this.#combo = answer.correct ? this.#combo + 1 : 0;
     this.#maxCombo = Math.max(this.#maxCombo, this.#combo);
     this.#difficulty = this.#difficulty.afterAnswer(answer.correct);
@@ -96,20 +105,28 @@ class GameSession {
   next(now) {
     if (this.isComplete) throw new DomainError('La partie est terminée.');
     if (this.isAwaitingAnswer) throw new DomainError('Réponds au mot en cours avant de passer au suivant.');
+    this.#endReading(now);
     this.#present(now);
   }
 
   /** Clôt la partie et produit l'enregistrement à archiver. */
   finish(now) {
     if (!this.isComplete) throw new DomainError('La partie n’est pas terminée.');
+    this.#endReading(now);
     return new GameRecord({
       endedAt: new Date(now),
       durationMs: this.#thinkingMs,
       difficultyStart: this.#difficultyStart.value,
       difficultyEnd: this.#difficulty.value,
       maxCombo: this.#maxCombo,
-      answers: this.#answers.map(a => ({ word: a.word.text, chosen: a.chosen.code, correct: a.correct, timeMs: a.timeMs })),
+      answers: this.#answers.map(a => ({ word: a.word.text, chosen: a.chosen.code, correct: a.correct, timeMs: a.timeMs, readMs: a.readMs })),
     });
+  }
+
+  /** Note le temps passé sur l'explication de la dernière réponse. */
+  #endReading(now) {
+    const last = this.#answers.length - 1;
+    this.#answers[last] = this.#answers[last].withReadMs(Math.max(0, now - this.#answeredAt));
   }
 
   #present(now) {

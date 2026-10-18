@@ -1,7 +1,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { addDays } = LeOuLa;
+const { addDays, GameRecord } = LeOuLa;
 
 const PROGRESS_UNLOCK_GAMES = 3;
 const TIMELINE_SIZE = 12;
@@ -67,8 +67,7 @@ class ProgressReport {
   get insight() {
     const games = this.#games;
     if (!games.length) return { kind: InsightKind.KEEP_PRACTICING };
-    let steady = 0;
-    for (let i = games.length - 1; i >= 0 && games[i].accuracy >= STEADY_THRESHOLD; i--) steady++;
+    const steady = GameRecord.accuracyRuns(games, STEADY_THRESHOLD).at(-1);
     if (steady >= 2) return { kind: InsightKind.STEADY, count: steady, threshold: STEADY_THRESHOLD, all: steady === games.length };
     const last = games[games.length - 1].accuracy;
     if (last > this.averageAccuracy) return { kind: InsightKind.ABOVE_AVERAGE, accuracy: last };
