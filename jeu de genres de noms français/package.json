@@ -1,0 +1,12 @@
+{
+  "name": "le-ou-la",
+  "private": true,
+  "description": "Jeu mobile pour apprendre le genre des noms français.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
