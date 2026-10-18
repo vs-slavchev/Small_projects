@@ -55,7 +55,7 @@ test('un double appui sur une réponse est ignoré', () => {
   env.machine.send(AppEvent.ANSWER, { gender: word.gender });
   env.machine.send(AppEvent.ANSWER, { gender: word.gender.opposite });
   assert.equal(env.machine.context.session.answers.length, 1);
-  assert.ok(env.machine.context.outcome.answer.correct);
+  assert.ok(env.machine.context.session.lastAnswer.correct);
 });
 
 test('retour à l’accueil après une partie : compte à rebours de 5 s puis nouvelle partie', () => {

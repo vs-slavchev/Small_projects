@@ -10,6 +10,9 @@ import { ActivityCalendar } from './calendar.js';
  */
 export class PlayerProfile {
   #games;
+  /** Vue figée de #games, reconstruite seulement quand une partie est ajoutée. */
+  #gamesView;
+  #calendar;
   #wordStats;
   #difficulty;
   #anecdotesRead;
@@ -21,6 +24,8 @@ export class PlayerProfile {
    */
   constructor({ games = [], wordStats = new WordStatsBook(), difficulty = Difficulty.initial(), anecdotesRead = 0, recoveries = 0 } = {}) {
     this.#games = [...games].sort((a, b) => a.endedAt - b.endedAt);
+    this.#gamesView = Object.freeze([...this.#games]);
+    this.#calendar = new ActivityCalendar(this.#games.map(g => g.endedAt));
     this.#wordStats = wordStats;
     this.#difficulty = difficulty;
     this.#anecdotesRead = anecdotesRead;
@@ -32,7 +37,7 @@ export class PlayerProfile {
   }
 
   /** Parties terminées, de la plus ancienne à la plus récente. */
-  get games() { return Object.freeze([...this.#games]); }
+  get games() { return this.#gamesView; }
   get gameCount() { return this.#games.length; }
   get wordStats() { return this.#wordStats; }
   get difficulty() { return this.#difficulty; }
@@ -41,9 +46,7 @@ export class PlayerProfile {
   /** Mots réussis alors qu'ils avaient été ratés la fois précédente. */
   get recoveries() { return this.#recoveries; }
 
-  get calendar() {
-    return new ActivityCalendar(this.#games.map(g => g.endedAt));
-  }
+  get calendar() { return this.#calendar; }
 
   /**
    * Archive une partie terminée et met à jour les statistiques qui en découlent.
@@ -56,6 +59,8 @@ export class PlayerProfile {
       this.#wordStats.record(a.word, a.correct);
     }
     this.#games.push(record);
+    this.#gamesView = Object.freeze([...this.#games]);
+    this.#calendar.record(record.endedAt);
     this.#difficulty = Difficulty.of(record.difficultyEnd);
   }
 

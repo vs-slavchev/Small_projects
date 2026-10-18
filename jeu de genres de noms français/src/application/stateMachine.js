@@ -27,7 +27,7 @@
  * (sémantique « run-to-completion »).
  */
 
-export const INIT_EVENT = Object.freeze({ type: '@@init' });
+const INIT_EVENT = Object.freeze({ type: '@@init' });
 
 const defaultScheduler = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),

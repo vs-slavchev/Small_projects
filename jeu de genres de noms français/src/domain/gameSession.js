@@ -68,7 +68,6 @@ export class GameSession {
   get maxCombo() { return this.#maxCombo; }
   get difficulty() { return this.#difficulty; }
   get isAwaitingAnswer() { return this.#answers.length < this.#words.length; }
-  get isOnLastWord() { return this.#words.length === this.#length; }
   get isComplete() { return this.#answers.length === this.#length; }
 
   /** Temps de réflexion cumulé, mot courant compris s'il attend encore sa réponse. */
@@ -78,7 +77,7 @@ export class GameSession {
 
   /**
    * @param {Gender} gender @param {number} now
-   * @returns {{ answer: Answer, combo: number, isLastWord: boolean }}
+   * @returns {Answer} le combo et la difficulté à jour se lisent ensuite sur la partie
    */
   answer(gender, now) {
     if (!(gender instanceof Gender)) throw new DomainError('Réponse invalide.');
@@ -90,7 +89,7 @@ export class GameSession {
     this.#combo = answer.correct ? this.#combo + 1 : 0;
     this.#maxCombo = Math.max(this.#maxCombo, this.#combo);
     this.#difficulty = this.#difficulty.afterAnswer(answer.correct);
-    return Object.freeze({ answer, combo: this.#combo, isLastWord: this.isOnLastWord });
+    return answer;
   }
 
   /** Passe au mot suivant. */

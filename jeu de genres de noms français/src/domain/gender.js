@@ -30,8 +30,4 @@ export class Gender {
   equals(other) {
     return other === this;
   }
-
-  toString() {
-    return this.code;
-  }
 }

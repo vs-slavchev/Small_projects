@@ -15,7 +15,7 @@
   --red-d: #8E3B27;
   --blue: #3D5A98;
   --blue-d: #2A3F6E;
-  --night: #1F2430;
+  --night: var(--ink);
   --night-2: #2A303D;
   --night-t: #9AA0AE;
   --night-t2: #D8DCE4;
@@ -44,7 +44,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .screen.enter { animation: screenIn .32s cubic-bezier(.2,.8,.2,1) both; }
 .top-safe { height: var(--safe-top); flex: none; }
 .grow { flex: 1; }
-.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
 /* Boutons « autocollants » : ombre portée pleine qui s'écrase à l'appui */
 .press { border: none; transition: transform .08s ease, box-shadow .08s ease, filter .15s; }
@@ -219,6 +218,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .panel-head b { font-weight: 800; font-size: 15px; }
 .panel-head span { font-size: 12px; font-weight: 700; color: var(--muted); }
 .chart { display: block; width: 100%; height: auto; }
+.chart .grid { stroke: var(--line-2); stroke-width: 1; }
+.chart .axis { fill: var(--muted-2); font-family: var(--sans); font-size: 9px; font-weight: 700; }
+.chart .bars { fill: var(--ink); }
 .chart .bar { transform-box: fill-box; transform-origin: 50% 100%; animation: grow .6s cubic-bezier(.2,.8,.2,1) both; }
 .insight { background: var(--paper); border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.4; color: var(--ink-2); text-wrap: pretty; }
 .games { display: flex; flex-direction: column; gap: 8px; }

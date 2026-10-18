@@ -56,14 +56,24 @@ export class Word {
     return !this.aspiratedH && STARTS_WITH_VOWEL_OR_H.test(this.text);
   }
 
+  /** Article que prendrait ce mot avec le genre donné : « le », « la » ou « l’ ». */
+  articleFor(gender) {
+    return this.elides ? ELIDED_ARTICLE : gender.article;
+  }
+
   /** « la », « le » ou « l’ ». */
   get article() {
-    return this.elides ? ELIDED_ARTICLE : this.gender.article;
+    return this.articleFor(this.gender);
+  }
+
+  /** Ce qui sépare l'article du nom : rien après « l’ », une espace sinon. */
+  get separator() {
+    return this.elides ? '' : ' ';
   }
 
   /** « la baguette », « l’école » */
   get withArticle() {
-    return this.elides ? `${this.article}${this.text}` : `${this.article} ${this.text}`;
+    return `${this.article}${this.separator}${this.text}`;
   }
 
   /** @param {Gender} gender */
@@ -114,15 +124,9 @@ export class WordBank {
 
   get groups() { return this.#groups; }
   get words() { return this.#words; }
-  get size() { return this.#words.length; }
 
   /** @param {string} text @returns {Word | undefined} */
   word(text) {
     return this.#byText.get(text);
-  }
-
-  /** @param {string} id */
-  group(id) {
-    return this.#groups.find(g => g.id === id);
   }
 }

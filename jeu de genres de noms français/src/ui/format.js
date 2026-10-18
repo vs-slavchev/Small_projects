@@ -5,6 +5,7 @@ import { Verdict } from '../domain/gameSummary.js';
 import { dayKey, addDays } from '../domain/calendar.js';
 
 const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+const SECONDS_FORMAT = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
 /** Échappe du texte brut. Les règles et anecdotes de la banque contiennent du HTML voulu et ne passent pas par ici. */
@@ -19,10 +20,7 @@ export function formatClock(ms) {
 }
 
 /** 9 000 ms → « 9 s », 12 340 ms → « 12,3 s » */
-export function formatSeconds(ms) {
-  const tenths = Math.round(ms / 100) / 10;
-  return `${Number.isInteger(tenths) ? tenths : tenths.toFixed(1).replace('.', ',')} s`;
-}
+export const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
 
 export const shortDate = date => `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 

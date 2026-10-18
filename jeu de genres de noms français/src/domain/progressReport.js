@@ -52,7 +52,7 @@ export class ProgressReport {
 
   /** Dernières parties pour la chronologie, de la plus ancienne à la plus récente. */
   get timeline() {
-    return this.#games.slice(-TIMELINE_SIZE).map(g => ({ endedAt: g.endedAt, accuracy: g.accuracy }));
+    return this.#games.slice(-TIMELINE_SIZE);
   }
 
   /** Dernières parties, de la plus récente à la plus ancienne. */

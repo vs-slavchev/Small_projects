@@ -49,10 +49,6 @@ export class WordStatsBook {
     this.#stats.set(text, this.get(text).record(correct));
   }
 
-  get size() {
-    return this.#stats.size;
-  }
-
   entries() {
     return this.#stats.entries();
   }

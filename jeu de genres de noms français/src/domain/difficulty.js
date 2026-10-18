@@ -38,8 +38,4 @@ export class Difficulty {
   callsForException(roll) {
     return !(roll > this.value);
   }
-
-  equals(other) {
-    return other instanceof Difficulty && other.value === this.value;
-  }
 }

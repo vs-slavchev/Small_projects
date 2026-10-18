@@ -1,12 +1,15 @@
 // Vues : fonctions pures qui transforment un instantané de l'automate en HTML.
 // Chaque vue déclare l'écran auquel elle appartient et peut fournir :
-// - patch(root, snapshot)   : mise à jour ciblée lors d'une transition interne (retourne true si gérée) ;
-// - mounted(root, snapshot) : effets visuels après insertion dans le DOM.
+// - theme                   : variable CSS de la couleur du navigateur (par défaut --paper) ;
+// - patch(root, snapshot)   : mise à jour ciblée lors d'une transition interne (sans patch, rien n'est redessiné) ;
+// - mounted(root, snapshot) : effets après insertion dans le DOM ; peut retourner une fonction de nettoyage,
+//                             appelée avant le rendu suivant.
 
 import { AppState, AppEvent, Destination, COUNTDOWN_SECONDS } from '../application/appMachine.js';
 import { MAX_TIER } from '../domain/achievements.js';
 import { Gender } from '../domain/gender.js';
-import { ELIDED_ARTICLE } from '../domain/wordBank.js';
+import { dayKey } from '../domain/calendar.js';
+import { PROGRESS_UNLOCK_GAMES } from '../domain/progressReport.js';
 import {
   escapeHtml as esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize,
   VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel,
@@ -43,7 +46,7 @@ const GENDER_ABBR = Object.freeze({ m: 'masc.', f: 'fém.' });
 /** « la baguette », « l’école » : l'article prend la couleur du genre. */
 function articled(word, tag = 'span') {
   const article = `<${tag} class="art-${word.gender.code}">${word.article}</${tag}>`;
-  return `${article}${word.elides ? '' : ' '}${esc(word.text)}`;
+  return `${article}${word.separator}${esc(word.text)}`;
 }
 
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
@@ -109,7 +112,7 @@ const home = {
     if (state === AppState.COUNTDOWN) {
       const n = root.querySelector('#cd');
       const fill = root.querySelector('.cd-fill');
-      if (!n || !fill) return false;
+      if (!n || !fill) return;
       if (n.textContent !== String(context.countdown)) {
         n.textContent = context.countdown;
         n.classList.remove('tick');
@@ -118,7 +121,6 @@ const home = {
       }
       fill.style.width = countdownFill(context.countdown);
     }
-    return true;
   },
   mounted(root, { state, context }) {
     if (state !== AppState.COUNTDOWN) return;
@@ -132,19 +134,27 @@ const home = {
 
 const question = {
   screen: 'question',
+  /** Le chrono tourne tant que le mot attend sa réponse. */
+  mounted(root, { state, context }, env) {
+    if (state !== AppState.QUESTION) return undefined;
+    const el = root.querySelector('#timer');
+    const id = setInterval(() => { el.textContent = formatClock(context.session.thinkingTime(env.now())); }, 250);
+    return () => clearInterval(id);
+  },
   render({ state, context }, env) {
-    const { session, outcome } = context;
+    const { session } = context;
+    const answer = session.lastAnswer;
     const word = session.currentWord;
     const revealing = state === AppState.REVEALING;
     const combo = session.combo;
-    const cardState = revealing ? (outcome.answer.correct ? ' good' : ' bad') : '';
-    const blank = revealing && outcome.answer.correct
+    const cardState = revealing ? (answer.correct ? ' good' : ' bad') : '';
+    const blank = revealing && answer.correct
       ? `<div class="blank ${word.gender.code}">${word.article}</div>`
       : '<div class="blank">___</div>';
     // Devant une voyelle ou un h muet, les deux boutons affichent « l’ » : seule la couleur les distingue.
     const button = (gender, cls) => {
-      const chosen = revealing && outcome.answer.chosen === gender ? ' chosen' : '';
-      const label = word.elides ? ELIDED_ARTICLE : gender.article;
+      const chosen = revealing && answer.chosen === gender ? ' chosen' : '';
+      const label = word.articleFor(gender);
       return `<button class="ans ${cls} press${chosen}" data-event="${AppEvent.ANSWER}" data-gender="${gender.code}" aria-label="${label} (${gender.label})">${label}</button>`;
     };
     return `<div class="screen play">
@@ -182,8 +192,9 @@ function sparks(count = 10, radius = 34) {
 const feedback = {
   screen: 'feedback',
   render({ context }, env) {
-    const { session, outcome } = context;
-    const { answer, combo } = outcome;
+    const { session } = context;
+    const { combo } = session;
+    const answer = session.lastAnswer;
     const { word } = answer;
     const group = word.group;
     let title, subtitle;
@@ -232,6 +243,7 @@ const feedback = {
 
 const results = {
   screen: 'results',
+  theme: '--night',
   render({ context }) {
     const { record, verdict, unlocked, missedWords, streak } = context.summary;
     const unlockedHtml = unlocked.length
@@ -300,15 +312,15 @@ function chart(timeline, today) {
   }).join('');
   const mid = Math.floor((n - 1) / 2);
   const last = timeline[n - 1].endedAt;
-  const lastLabel = relativeDay(last, today) === "Aujourd'hui" ? 'auj.' : shortDate(last);
+  const lastLabel = dayKey(last) === dayKey(today) ? 'auj.' : shortDate(last);
   const labels = `<text x="${x(0)}" y="190">${shortDate(timeline[0].endedAt)}</text>`
     + (n >= 5 ? `<text x="${x(mid) + 7}" y="190" text-anchor="middle">${shortDate(timeline[mid].endedAt)}</text>` : '')
     + `<text x="${x(n - 1) + 14}" y="190" text-anchor="end">${lastLabel}</text>`;
   return `<svg class="chart" viewBox="0 0 320 200" role="img" aria-label="Pourcentage de réussite des dernières parties">
-    <g stroke="#ECE5D8" stroke-width="1"><line x1="24" y1="20" x2="316" y2="20"/><line x1="24" y1="70" x2="316" y2="70"/><line x1="24" y1="120" x2="316" y2="120"/><line x1="24" y1="170" x2="316" y2="170"/></g>
-    <g font-family="Manrope, sans-serif" font-size="9" fill="#9A958B" font-weight="700"><text x="0" y="23">100</text><text x="6" y="73">66</text><text x="6" y="123">33</text><text x="12" y="173">0</text></g>
-    <g fill="#1F2430">${bars}</g>
-    <g font-family="Manrope, sans-serif" font-size="9" fill="#9A958B" font-weight="700">${labels}</g>
+    <g class="grid"><line x1="24" y1="20" x2="316" y2="20"/><line x1="24" y1="70" x2="316" y2="70"/><line x1="24" y1="120" x2="316" y2="120"/><line x1="24" y1="170" x2="316" y2="170"/></g>
+    <g class="axis"><text x="0" y="23">100</text><text x="6" y="73">66</text><text x="6" y="123">33</text><text x="12" y="173">0</text></g>
+    <g class="bars">${bars}</g>
+    <g class="axis">${labels}</g>
   </svg>`;
 }
 
@@ -320,13 +332,13 @@ const progress = {
     let body;
     if (!report.isUnlocked) {
       const firsts = report.firstAccuracies;
-      const slots = [0, 1, 2].map(i => (i < firsts.length
+      const slots = Array.from({ length: PROGRESS_UNLOCK_GAMES }, (_, i) => (i < firsts.length
         ? `<div class="slot full" style="animation-delay:${i * 80}ms">${firsts[i]}%</div>`
         : `<div class="slot">${i + 1}</div>`)).join('');
       const left = report.gamesUntilUnlock;
       body = `<div class="locked">
           <div class="slots">${slots}</div>
-          <h2>${report.gameCount === 0 ? 'Joue 3 parties pour voir ta courbe.' : `Encore ${left} ${plural(left, 'partie')} pour voir ta courbe.`}</h2>
+          <h2>${report.gameCount === 0 ? `Joue ${PROGRESS_UNLOCK_GAMES} parties pour voir ta courbe.` : `Encore ${left} ${plural(left, 'partie')} pour voir ta courbe.`}</h2>
           <p>Chaque partie terminée apparaîtra sur la chronologie.</p>
           <button class="mid-btn press" data-event="${AppEvent.START}">Jouer la partie ${report.gameCount + 1}</button>
         </div>
@@ -360,7 +372,6 @@ const progress = {
       ${tabbar(Destination.PROGRESS)}
     </div>`;
   },
-  patch: () => true, // seule transition interne possible : le son, sans effet visible ici
 };
 
 /* ---------- Succès ---------- */
@@ -384,10 +395,9 @@ function popover(achievement) {
 
 function syncPopover(root, { context }) {
   const host = root.querySelector('#pop');
-  if (!host) return false;
+  if (!host) return;
   root.querySelectorAll('.badge').forEach(el => el.classList.toggle('sel', Number(el.dataset.index) === context.selectedBadge));
   host.innerHTML = context.selectedBadge === null ? '' : popover(context.achievements.list[context.selectedBadge]);
-  return true;
 }
 
 const achievements = {

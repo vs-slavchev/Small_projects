@@ -83,7 +83,7 @@ stateDiagram-v2
 | Tirage 0-100 > difficulté → mot régulier, sinon exception | `Difficulty.callsForException` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
 | Le chrono ne compte que le temps de réflexion | `GameSession.thinkingTime` |
-| Une partie abandonnée n'est pas enregistrée | `useCases.abandonGame`, `PlayerProfile` |
+| Une partie abandonnée n'est pas enregistrée | `appMachine` (`leaveGame`), `PlayerProfile` |
 | Chaque partie archive : date et heure de fin, durée, % de réussite, difficulté, réponses | `GameRecord.toSnapshot` |
 | La chronologie s'affiche à partir de 3 parties | `ProgressReport.isUnlocked` |
 | Après une partie, l'accueil lance la suivante dans 5 s | `appMachine` (`returningFromGame`, état `countdown`) |

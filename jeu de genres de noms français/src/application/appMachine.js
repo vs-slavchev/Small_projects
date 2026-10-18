@@ -23,6 +23,7 @@ export const AppEvent = Object.freeze({
   CONTINUE: 'CONTINUE',
   QUIT: 'QUIT',
   SELECT_BADGE: 'SELECT_BADGE', // { index: number }
+  PREVIEW_BADGE: 'PREVIEW_BADGE', // { index: number } — survol à la souris, même effet que SELECT_BADGE
   CLOSE_BADGE: 'CLOSE_BADGE',
   TOGGLE_SOUND: 'TOGGLE_SOUND',
 });
@@ -46,8 +47,6 @@ export function createAppMachine(useCases, options = {}) {
   const context = {
     /** @type {import('../domain/gameSession.js').GameSession | null} */
     session: null,
-    /** Résultat de la dernière réponse. */
-    outcome: null,
     /** @type {import('../domain/gameSummary.js').GameSummary | null} */
     summary: null,
     home: null,
@@ -64,25 +63,24 @@ export function createAppMachine(useCases, options = {}) {
   const loadHome = ctx => { ctx.home = useCases.getHomeOverview(); };
   const beginGame = ctx => {
     ctx.session = useCases.startGame();
-    ctx.outcome = null;
     ctx.summary = null;
     ctx.returningFromGame = false;
   };
-  const leaveGame = ctx => {
-    useCases.abandonGame(ctx.session);
-    ctx.session = null;
-    ctx.outcome = null;
-  };
+  // Abandon : la partie est simplement oubliée. Rien n'est enregistré, ni statistiques ni difficulté.
+  const leaveGame = ctx => { ctx.session = null; };
   const finishGame = ctx => {
     ctx.summary = useCases.finishGame(ctx.session);
     ctx.session = null;
-    ctx.outcome = null;
     ctx.returningFromGame = true;
   };
 
   // --- Transitions partagées ---
   const start = { target: QUESTION, actions: [beginGame] };
   const quit = { target: HOME, actions: [leaveGame] };
+  const selectBadge = {
+    guard: (ctx, e) => Number.isInteger(e.index) && e.index >= 0 && e.index < ctx.achievements.list.length && e.index !== ctx.selectedBadge,
+    actions: [(ctx, e) => { ctx.selectedBadge = e.index; }],
+  };
   const navigate = [
     { target: COUNTDOWN, guard: (ctx, e) => e.to === Destination.HOME && ctx.returningFromGame },
     { target: HOME, guard: (_, e) => e.to === Destination.HOME },
@@ -119,20 +117,20 @@ export function createAppMachine(useCases, options = {}) {
           [AppEvent.ANSWER]: {
             target: REVEALING,
             guard: (_, e) => e.gender instanceof Gender,
-            actions: [(ctx, e) => { ctx.outcome = useCases.submitAnswer(ctx.session, e.gender); }],
+            actions: [(ctx, e) => { useCases.submitAnswer(ctx.session, e.gender); }],
           },
           [AppEvent.QUIT]: quit,
         },
       },
       [REVEALING]: {
-        after: { delay: ctx => (ctx.outcome.answer.correct ? REVEAL_DELAY_MS.correct : REVEAL_DELAY_MS.wrong), event: AppEvent.REVEALED },
+        after: { delay: ctx => (ctx.session.lastAnswer.correct ? REVEAL_DELAY_MS.correct : REVEAL_DELAY_MS.wrong), event: AppEvent.REVEALED },
         on: { [AppEvent.REVEALED]: FEEDBACK, [AppEvent.QUIT]: quit },
       },
       [FEEDBACK]: {
         on: {
           [AppEvent.CONTINUE]: [
             { target: RESULTS, guard: ctx => ctx.session.isComplete, actions: [finishGame] },
-            { target: QUESTION, actions: [ctx => { useCases.nextWord(ctx.session); ctx.outcome = null; }] },
+            { target: QUESTION, actions: [ctx => { useCases.nextWord(ctx.session); }] },
           ],
           [AppEvent.QUIT]: quit,
         },
@@ -147,10 +145,8 @@ export function createAppMachine(useCases, options = {}) {
       [ACHIEVEMENTS]: {
         entry: [ctx => { ctx.achievements = useCases.getAchievements(); ctx.selectedBadge = null; }],
         on: {
-          [AppEvent.SELECT_BADGE]: {
-            guard: (ctx, e) => Number.isInteger(e.index) && e.index >= 0 && e.index < ctx.achievements.list.length && e.index !== ctx.selectedBadge,
-            actions: [(ctx, e) => { ctx.selectedBadge = e.index; }],
-          },
+          [AppEvent.SELECT_BADGE]: selectBadge,
+          [AppEvent.PREVIEW_BADGE]: selectBadge,
           [AppEvent.CLOSE_BADGE]: { guard: ctx => ctx.selectedBadge !== null, actions: [ctx => { ctx.selectedBadge = null; }] },
           [AppEvent.START]: start,
           [AppEvent.NAVIGATE]: navigate,

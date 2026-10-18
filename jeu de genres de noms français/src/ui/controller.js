@@ -1,4 +1,4 @@
-import { AppState, AppEvent } from '../application/appMachine.js';
+import { AppEvent } from '../application/appMachine.js';
 import { Gender } from '../domain/gender.js';
 
 /**
@@ -37,7 +37,7 @@ export function bindController(root, machine, { confirm = message => globalThis.
   if (globalThis.matchMedia?.('(hover: hover)').matches) {
     root.addEventListener('mouseover', event => {
       const badge = event.target.closest(`[data-event="${AppEvent.SELECT_BADGE}"]`);
-      if (badge) machine.send(AppEvent.SELECT_BADGE, { ...payloadOf(badge), viaHover: true });
+      if (badge) machine.send(AppEvent.PREVIEW_BADGE, payloadOf(badge));
     });
   }
 
@@ -49,7 +49,7 @@ export function bindController(root, machine, { confirm = message => globalThis.
       case 'Escape': machine.send(AppEvent.CLOSE_BADGE); break;
       case 'Enter':
       case ' ':
-        if (machine.matches(AppState.FEEDBACK)) {
+        if (machine.can(AppEvent.CONTINUE)) {
           event.preventDefault();
           machine.send(AppEvent.CONTINUE);
         }

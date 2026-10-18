@@ -17,10 +17,10 @@ test('une partie présente un mot, attend la réponse, puis passe au suivant', (
   const s = start();
   assert.equal(s.position, 1);
   assert.ok(s.isAwaitingAnswer);
-  const { answer, combo, isLastWord } = s.answer(right(s.currentWord), 1000);
+  const answer = s.answer(right(s.currentWord), 1000);
   assert.ok(answer.correct);
-  assert.equal(combo, 1);
-  assert.equal(isLastWord, false);
+  assert.equal(s.lastAnswer, answer);
+  assert.equal(s.combo, 1);
   s.next(5000);
   assert.equal(s.position, 2);
 });

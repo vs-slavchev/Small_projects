@@ -48,7 +48,7 @@ export function createUseCases({ bank, profiles, preferences, clock, random = Ma
 
     /** @param {GameSession} session @param {import('../domain/gender.js').Gender} gender */
     submitAnswer(session, gender) {
-      return session.answer(gender, clock.now());
+      session.answer(gender, clock.now());
     },
 
     /** @param {GameSession} session */
@@ -75,12 +75,6 @@ export function createUseCases({ bank, profiles, preferences, clock, random = Ma
         streak: profile.calendar.currentStreak(today()),
       });
     },
-
-    /**
-     * Abandon en cours de partie : rien n'est enregistré, ni statistiques ni difficulté.
-     * Explicite pour que la règle soit lisible à un seul endroit.
-     */
-    abandonGame(_session) {},
 
     getProgress() {
       return new ProgressReport(profile.games, today());

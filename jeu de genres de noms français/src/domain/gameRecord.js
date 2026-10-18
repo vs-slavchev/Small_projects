@@ -25,15 +25,12 @@ export class GameRecord {
       correct: Boolean(a.correct),
       timeMs: Math.max(0, Math.round(Number(a.timeMs) || 0)),
     })));
+    this.correctCount = this.answers.filter(a => a.correct).length;
     Object.freeze(this);
   }
 
   get total() {
     return this.answers.length;
-  }
-
-  get correctCount() {
-    return this.answers.filter(a => a.correct).length;
   }
 
   /** Pourcentage de réussite, entier de 0 à 100. */

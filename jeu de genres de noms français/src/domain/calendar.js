@@ -31,8 +31,13 @@ export class ActivityCalendar {
   #days;
 
   /** @param {Iterable<Date>} dates */
-  constructor(dates) {
+  constructor(dates = []) {
     this.#days = new Set([...dates].map(dayKey));
+  }
+
+  /** Ajoute un jour d'activité. */
+  record(date) {
+    this.#days.add(dayKey(date));
   }
 
   playedOn(date) {
