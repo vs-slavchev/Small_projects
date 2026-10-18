@@ -228,12 +228,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .game-row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; animation: fadeUp .35s ease both; }
 .game-row .p { font-family: var(--serif); font-size: 22px; width: 58px; flex: none; }
 .game-row .meta { flex: 1; display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-weight: 600; }
-.locked { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px 22px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; animation: fadeUp .4s ease both; }
+.locked-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px 22px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; animation: fadeUp .4s ease both; }
 .slots { display: flex; gap: 10px; }
 .slot { width: 56px; height: 56px; border-radius: 16px; border: 2px dashed #C9C1B2; display: grid; place-items: center; color: var(--muted-2); font-weight: 800; }
 .slot.full { border: none; background: var(--ink); color: #fff; font-family: var(--serif); font-size: 20px; font-weight: 400; animation: popIn .45s cubic-bezier(.3,1.6,.5,1) both; }
-.locked h2 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.2; text-wrap: pretty; }
-.locked p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink-3); text-wrap: pretty; }
+.locked-card h2 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.2; text-wrap: pretty; }
+.locked-card p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink-3); text-wrap: pretty; }
 .mid-btn { --sh: #000; height: 54px; width: 100%; border-radius: 16px; background: var(--ink); color: #fff; font-size: 16px; font-weight: 800; box-shadow: 0 5px 0 #000; }
 
 /* ---------- Succès ---------- */

@@ -338,7 +338,7 @@ const progress = {
         ? `<div class="slot full" style="animation-delay:${i * 80}ms">${firsts[i]}%</div>`
         : `<div class="slot">${i + 1}</div>`)).join('');
       const left = report.gamesUntilUnlock;
-      body = `<div class="locked">
+      body = `<div class="locked-card">
           <div class="slots">${slots}</div>
           <h2>${report.gameCount === 0 ? `Joue ${PROGRESS_UNLOCK_GAMES} parties pour voir ta courbe.` : `Encore ${left} ${plural(left, 'partie')} pour voir ta courbe.`}</h2>
           <p>Chaque partie terminée apparaîtra sur la chronologie.</p>
