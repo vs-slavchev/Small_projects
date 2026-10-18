@@ -199,31 +199,26 @@ const feedback = {
     const answer = session.lastAnswer;
     const { word } = answer;
     const group = word.group;
-    let title, subtitle;
-    if (answer.correct) {
-      title = 'Exact.';
-      subtitle = [word.isException && 'Exception déjouée', combo >= 2 && `${combo} d'affilée`, formatSeconds(answer.timeMs)].filter(Boolean).join(' · ');
-    } else if (word.isException) {
-      title = 'Piège classique.';
-      subtitle = "Tu l'auras la prochaine fois.";
-    } else if (!group) {
-      title = 'Pas cette fois.';
-      subtitle = 'Celui-là s’apprend par cœur.';
-    } else {
-      title = 'Pas cette fois.';
-      subtitle = 'La règle ci-dessous va t’aider.';
-    }
-    let tags, rule;
+    // Trois cas : mot sans règle, exception de son groupe, mot qui suit la règle de son groupe.
+    const toGender = `<span class="to ${word.gender.code}">→ ${word.gender.label}</span>`;
+    let tags, rule, missTitle, missSubtitle;
     if (!group) {
-      tags = `<span class="chip exc">SANS RÈGLE</span><span class="to ${word.gender.code}">→ ${word.gender.label}</span>`;
+      tags = `<span class="chip exc">SANS RÈGLE</span>${toGender}`;
       rule = `Aucune règle ici : le genre de <b>${esc(word.text)}</b> s’apprend par cœur. Retiens-le avec son article.`;
+      [missTitle, missSubtitle] = ['Pas cette fois.', 'Celui-là s’apprend par cœur.'];
     } else if (word.isException) {
       tags = `<span class="chip ${group.gender.code} strike">${esc(group.suffix)}</span><span class="chip exc">EXCEPTION</span>`;
       rule = `Les ${group.isEnding ? 'noms en ' : ''}<b>${esc(group.suffix)}</b> sont ${group.gender.label}s, mais <b>${esc(word.text)}</b> est ${word.gender.label}.`;
+      [missTitle, missSubtitle] = ['Piège classique.', "Tu l'auras la prochaine fois."];
     } else {
-      tags = `<span class="chip ${group.gender.code}">${esc(group.suffix)}</span><span class="to ${group.gender.code}">→ ${group.gender.label}</span>`;
+      tags = `<span class="chip ${group.gender.code}">${esc(group.suffix)}</span>${toGender}`;
       rule = group.rule;
+      [missTitle, missSubtitle] = ['Pas cette fois.', 'La règle ci-dessous va t’aider.'];
     }
+    const title = answer.correct ? 'Exact.' : missTitle;
+    const subtitle = answer.correct
+      ? [word.isException && 'Exception déjouée', combo >= 2 && `${combo} d'affilée`, formatSeconds(answer.timeMs)].filter(Boolean).join(' · ')
+      : missSubtitle;
     return `<div class="screen play fb">
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>

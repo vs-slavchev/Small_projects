@@ -25,7 +25,11 @@ class WordStat {
     return this.seen ? this.correct / this.seen : null;
   }
 
-  /** Vrai à partir de 80 % de réussite : une erreur ancienne suivie de bonnes réponses ne compte plus. */
+  /**
+   * Mot acquis : taux de réussite d'au moins MASTERY_ACCURACY. Une erreur ancienne,
+   * suivie d'assez de bonnes réponses, ne le fait plus revenir en révision.
+   * (À ne pas confondre avec « Maître du groupe », qui regarde la dernière réponse.)
+   */
   get isMastered() {
     return this.seen > 0 && this.accuracy >= WordStat.MASTERY_ACCURACY;
   }
@@ -60,7 +64,7 @@ class WordStatsBook {
   }
 
   /**
-   * Parmi `candidates`, les mots déjà vus et pas encore maîtrisés (moins de 80 % de réussite),
+   * Parmi `candidates`, les mots déjà vus et pas encore maîtrisés (voir `WordStat.isMastered`),
    * du plus faible taux de réussite au plus élevé.
    * @param {string[]} candidates @param {number} limit @returns {string[]}
    */

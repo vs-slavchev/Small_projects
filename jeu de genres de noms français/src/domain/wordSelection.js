@@ -13,7 +13,7 @@ const SelectionStrategy = Object.freeze({
  * Politique de choix du prochain mot :
  * - 20 % : un mot au hasard ;
  * - 30 % : un des 20 mots au plus faible taux de réussite
- *          (hors mots déjà proposés dans la partie et mots maîtrisés, à 80 % ou plus) ;
+ *          (hors mots déjà proposés dans la partie et mots maîtrisés, voir `WordStat.isMastered`) ;
  * - 50 % : tirage de 0 à 100 comparé à la difficulté → mot qui suit sa règle,
  *          ou mot difficile (exception ou mot sans règle).
  * Si une stratégie n'a aucun candidat, on se rabat sur le hasard.
@@ -52,8 +52,8 @@ class WordSelectionPolicy {
       const weak = this.#stats.weakest(candidates.map(w => w.text), weakestPoolSize);
       if (weak.length) return { word: this.#bank.word(this.#choose(weak)), strategy: SelectionStrategy.WEAKEST };
     } else if (roll >= randomShare + weakestShare) {
-      const wantException = difficulty.callsForException(this.#random() * 100);
-      const pool = candidates.filter(w => w.followsRule !== wantException);
+      const wantHard = difficulty.callsForException(this.#random() * 100);
+      const pool = candidates.filter(w => w.followsRule === !wantHard);
       if (pool.length) return { word: this.#choose(pool), strategy: SelectionStrategy.DIFFICULTY };
     }
     return { word: this.#choose(candidates), strategy: SelectionStrategy.RANDOM };
