@@ -6,6 +6,7 @@
 import { AppState, AppEvent, Destination, COUNTDOWN_SECONDS } from '../application/appMachine.js';
 import { MAX_TIER } from '../domain/achievements.js';
 import { Gender } from '../domain/gender.js';
+import { ELIDED_ARTICLE } from '../domain/wordBank.js';
 import {
   escapeHtml as esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize,
   VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel,
@@ -35,6 +36,14 @@ function topBar(session, now, freshIndex) {
     <div class="segs">${segments}</div>
     <div class="timer" id="timer">${formatClock(session.thinkingTime(now))}</div>
   </div>`;
+}
+
+const GENDER_ABBR = Object.freeze({ m: 'masc.', f: 'fém.' });
+
+/** « la baguette », « l’école » : l'article prend la couleur du genre. */
+function articled(word, tag = 'span') {
+  const article = `<${tag} class="art-${word.gender.code}">${word.article}</${tag}>`;
+  return `${article}${word.elides ? '' : ' '}${esc(word.text)}`;
 }
 
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
@@ -130,11 +139,13 @@ const question = {
     const combo = session.combo;
     const cardState = revealing ? (outcome.answer.correct ? ' good' : ' bad') : '';
     const blank = revealing && outcome.answer.correct
-      ? `<div class="blank ${word.article}">${word.article}</div>`
+      ? `<div class="blank ${word.gender.code}">${word.article}</div>`
       : '<div class="blank">___</div>';
+    // Devant une voyelle ou un h muet, les deux boutons affichent « l’ » : seule la couleur les distingue.
     const button = (gender, cls) => {
       const chosen = revealing && outcome.answer.chosen === gender ? ' chosen' : '';
-      return `<button class="ans ${cls} press${chosen}" data-event="${AppEvent.ANSWER}" data-gender="${gender.code}">${gender.article}</button>`;
+      const label = word.elides ? ELIDED_ARTICLE : gender.article;
+      return `<button class="ans ${cls} press${chosen}" data-event="${AppEvent.ANSWER}" data-gender="${gender.code}" aria-label="${label} (${gender.label})">${label}</button>`;
     };
     return `<div class="screen play">
       <div class="top-safe"></div>
@@ -196,8 +207,9 @@ const feedback = {
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
       <div class="fb-word">
-        <div class="big" style="font-size:${fitFontSize(word.withArticle, 52, 600)}px"><span class="art-${word.article}">${word.article}</span> ${esc(word.text)}</div>
-        ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${answer.chosen.article}</s></div>`}
+        <div class="big" style="font-size:${fitFontSize(word.withArticle, 52, 600)}px">${articled(word)}</div>
+        ${word.elides ? `<div class="gender-note ${word.gender.code}">nom ${word.gender.label}</div>` : ''}
+        ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${word.elides ? answer.chosen.label : answer.chosen.article}</s></div>`}
       </div>
       <div class="grow"></div>
       <div class="sheet">
@@ -235,7 +247,7 @@ const results = {
         </div>`
       : '';
     const review = missedWords.length
-      ? `<div class="review">${missedWords.map((w, i) => `<span style="animation-delay:${400 + i * 60}ms"><b class="${w.gender.code}">${w.article}</b> ${esc(w.text)}</span>`).join('')}</div>`
+      ? `<div class="review">${missedWords.map((w, i) => `<span style="animation-delay:${400 + i * 60}ms">${articled(w, 'b')}${w.elides ? ` <em class="g">${GENDER_ABBR[w.gender.code]}</em>` : ''}</span>`).join('')}</div>`
       : '<div class="review-none">Rien à revoir. Tout est juste.</div>';
     return `<div class="screen end">
       <div class="top-safe"></div>

@@ -4,7 +4,7 @@ Jeu mobile pour apprendre le genre des noms français. JavaScript pur (modules E
 
 ```sh
 npm start   # sert le dossier sur http://localhost:8000 (les modules ES ne se chargent pas en file://)
-npm test    # 52 tests, avec le lanceur intégré de Node (≥ 20)
+npm test    # 54 tests, avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture
@@ -13,7 +13,7 @@ Les dépendances vont toujours vers le centre : l'interface connaît l'applicati
 
 ```
 src/
-├── data/words.js              Données brutes : 25 groupes, 66 mots
+├── data/words.js              Données brutes : 25 groupes, 92 mots
 ├── domain/                    Règles du jeu, sans DOM ni stockage
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
@@ -77,6 +77,8 @@ stateDiagram-v2
 | Règle | Emplacement |
 |---|---|
 | Un mot régulier a le genre de son groupe, une exception le genre opposé | `Word` (constructeur) |
+| Devant une voyelle ou un h muet, l'article s'élide (« l’ ») ; un h aspiré l'empêche (« le hérisson ») | `Word.elides`, champ `asp` des données |
+| Mot élidé : les deux boutons affichent « l’ », seule la couleur les distingue ; l'explication dit « masculin » ou « féminin » | `ui/views.js` (question, explication, bilan) |
 | 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots à 100 %) · 50 % difficulté | `WordSelectionPolicy.pick` |
 | Tirage 0-100 > difficulté → mot régulier, sinon exception | `Difficulty.callsForException` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
@@ -88,4 +90,4 @@ stateDiagram-v2
 
 ## Ajouter des mots
 
-Ajouter une entrée dans `src/data/words.js`. Au chargement, `WordBank.fromData` vérifie les doublons, les groupes inconnus et la cohérence régulier / exception, et le test `wordBank.test.js` vérifie que chaque groupe garde au moins deux mots réguliers et au plus une exception.
+Ajouter une entrée dans `src/data/words.js` (avec `asp: true` si le mot commence par un h aspiré). Au chargement, `WordBank.fromData` vérifie les doublons, les groupes inconnus et la cohérence régulier / exception, et le test `wordBank.test.js` vérifie que chaque groupe garde au moins deux mots réguliers et au plus une exception.

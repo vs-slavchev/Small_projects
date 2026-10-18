@@ -128,8 +128,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .card .en { font-size: 14px; color: var(--muted-2); font-style: italic; }
 .card.good { border-color: var(--green); box-shadow: 0 0 0 4px rgba(47,143,91,.18), 0 18px 40px -20px rgba(31,36,48,.35); animation: good .4s cubic-bezier(.3,1.6,.5,1); }
 .card.bad { border-color: var(--red); box-shadow: 0 0 0 4px rgba(196,85,58,.15), 0 18px 40px -20px rgba(31,36,48,.35); animation: shake .42s ease; }
-.card .blank.le { color: var(--blue); }
-.card .blank.la { color: var(--red); }
+.card .blank.m { color: var(--blue); }
+.card .blank.f { color: var(--red); }
 
 .answers { padding: 0 20px calc(28px + var(--safe-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: none; margin-top: 16px; }
 .ans { height: 96px; border-radius: 24px; color: #fff; font-family: var(--serif); font-size: 40px; }
@@ -143,8 +143,11 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .fb { overflow-y: auto; }
 .fb-word { padding: 28px 20px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; flex: none; }
 .fb-word .big { font-family: var(--serif); line-height: 1.1; animation: popIn .45s cubic-bezier(.3,1.6,.5,1) both; }
-.art-le { color: var(--blue); }
-.art-la { color: var(--red); }
+.art-m { color: var(--blue); }
+.art-f { color: var(--red); }
+.gender-note { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.gender-note.m { color: var(--blue); }
+.gender-note.f { color: var(--red); }
 .you-said { font-size: 14px; color: var(--muted); }
 .you-said s { color: var(--red); font-weight: 700; }
 .sheet {
@@ -194,8 +197,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .unlock .d { font-size: 13px; color: var(--muted); }
 .review { display: flex; gap: 8px; flex-wrap: wrap; }
 .review span { background: var(--night-2); border-radius: 10px; padding: 8px 12px; font-size: 15px; animation: fadeUp .35s ease both; }
-.review b.m { color: #8FA8E0; }
-.review b.f { color: #F0A28C; }
+.review .art-m { color: #8FA8E0; }
+.review .art-f { color: #F0A28C; }
+.review em.g { font-style: normal; font-size: 12px; color: var(--night-t); }
 .review-none { font-size: 15px; color: var(--night-t2); }
 .end-actions { display: flex; flex-direction: column; gap: 10px; flex: none; }
 .replay { --sh: #A9A294; height: 60px; border-radius: 18px; background: var(--card); color: var(--ink); font-size: 17px; font-weight: 800; box-shadow: 0 5px 0 #A9A294; }

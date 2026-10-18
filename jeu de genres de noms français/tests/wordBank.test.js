@@ -17,8 +17,27 @@ test('la banque réelle respecte les invariants du domaine', () => {
   }
 });
 
-test('les mots ne commencent ni par une voyelle ni par un h muet (pas d’élision « l’ »)', () => {
-  for (const w of realBank().words) assert.doesNotMatch(w.text, /^[aeiouyàâéèêëîïôûh]/i, w.text);
+test('devant une voyelle ou un h muet, l’article s’élide et ne révèle plus le genre', () => {
+  const bank = realBank();
+  assert.equal(bank.word('idée').withArticle, 'l’idée');
+  assert.equal(bank.word('église').withArticle, 'l’église');
+  assert.equal(bank.word('horizon').withArticle, 'l’horizon');
+  assert.equal(bank.word('héroïsme').article, 'l’');
+  assert.equal(bank.word('baguette').elides, false);
+});
+
+test('un h aspiré empêche l’élision', () => {
+  const w = realBank().word('hérisson');
+  assert.equal(w.elides, false);
+  assert.equal(w.withArticle, 'le hérisson');
+  assert.throws(() => new Word({ text: 'baguette', gender: Gender.FEMININE, group: ette, aspiratedH: true }), /h aspiré/);
+});
+
+test('chaque groupe propose au moins un mot à article élidé', () => {
+  const bank = realBank();
+  for (const group of bank.groups) {
+    assert.ok(bank.words.some(w => w.group === group && w.elides), `${group.suffix} : aucun mot en l’`);
+  }
 });
 
 test('un mot régulier doit avoir le genre de son groupe', () => {

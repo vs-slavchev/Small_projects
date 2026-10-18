@@ -1,6 +1,10 @@
 import { DomainError } from './errors.js';
 import { Gender } from './gender.js';
 
+/** Article élidé : « l’école », « l’horizon ». */
+export const ELIDED_ARTICLE = 'l\u2019';
+const STARTS_WITH_VOWEL_OR_H = /^[aeiouyhàâäéèêëîïôöùûüÿæœ]/i;
+
 /** Groupe de noms partageant une terminaison et, en règle générale, un genre. */
 export class WordGroup {
   /** @param {{ id: string, suffix: string, gender: Gender, rule: string }} props */
@@ -18,13 +22,16 @@ export class WordGroup {
 /**
  * Nom à deviner. Invariant : un mot régulier a le genre de son groupe,
  * une exception a le genre opposé.
+ *
+ * Devant une voyelle ou un h muet, l'article s'élide (« l’école ») et ne révèle plus le genre.
+ * Un h aspiré (« le hérisson ») empêche l'élision : il est indiqué par `aspiratedH`.
  */
 export class Word {
   /**
    * @param {{ text: string, gender: Gender, group: WordGroup, isException?: boolean,
-   *           translation?: string, anecdote?: string | null }} props
+   *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
    */
-  constructor({ text, gender, group, isException = false, translation = '', anecdote = null }) {
+  constructor({ text, gender, group, isException = false, aspiratedH = false, translation = '', anecdote = null }) {
     if (!text) throw new DomainError('Un mot doit avoir un texte.');
     if (!(gender instanceof Gender)) throw new DomainError(`« ${text} » : genre invalide.`);
     if (!(group instanceof WordGroup)) throw new DomainError(`« ${text} » : groupe invalide.`);
@@ -33,22 +40,30 @@ export class Word {
         ? `« ${text} » est marqué comme exception mais a le genre de son groupe ${group.suffix}.`
         : `« ${text} » n'a pas le genre de son groupe ${group.suffix} : c'est une exception.`);
     }
+    if (aspiratedH && !/^h/i.test(text)) throw new DomainError(`« ${text} » ne commence pas par un h : il ne peut pas avoir de h aspiré.`);
     this.text = text;
     this.gender = gender;
     this.group = group;
     this.isException = isException;
+    this.aspiratedH = aspiratedH;
     this.translation = translation;
     this.anecdote = anecdote || null;
     Object.freeze(this);
   }
 
-  get article() {
-    return this.gender.article;
+  /** Vrai si l'article s'élide : le genre ne s'entend plus, seule la réponse le dit. */
+  get elides() {
+    return !this.aspiratedH && STARTS_WITH_VOWEL_OR_H.test(this.text);
   }
 
-  /** « la baguette » */
+  /** « la », « le » ou « l’ ». */
+  get article() {
+    return this.elides ? ELIDED_ARTICLE : this.gender.article;
+  }
+
+  /** « la baguette », « l’école » */
   get withArticle() {
-    return `${this.article} ${this.text}`;
+    return this.elides ? `${this.article}${this.text}` : `${this.article} ${this.text}`;
   }
 
   /** @param {Gender} gender */
@@ -91,7 +106,7 @@ export class WordBank {
       if (!group) throw new DomainError(`« ${w.w} » : groupe inconnu ${w.grp}.`);
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
-        isException: Boolean(w.exc), translation: w.en, anecdote: w.fun,
+        isException: Boolean(w.exc), aspiratedH: Boolean(w.asp), translation: w.en, anecdote: w.fun,
       });
     });
     return new WordBank(groupList, wordList);
