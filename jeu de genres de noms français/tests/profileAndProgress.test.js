@@ -12,9 +12,9 @@ const bank = realBank();
 const day = (d, h = 14) => new Date(2026, 9, d, h, 0);
 
 /** Partie de 10 mots dont `correct` justes. */
-function game({ endedAt = day(18), correct = 10, words = bank.words.slice(0, 10), durationMs = 40_000, maxCombo = correct, readMs } = {}) {
+function game({ endedAt = day(18), correct = 10, words = bank.words.slice(0, 10), durationMs = 40_000, maxCombo = correct, readMs, difficultyStart = 0 } = {}) {
   return new GameRecord({
-    endedAt, durationMs, difficultyStart: 0, difficultyEnd: correct * 4, maxCombo,
+    endedAt, durationMs, difficultyStart, difficultyEnd: correct * 4, maxCombo,
     answers: words.map((w, i) => ({ word: w.text, chosen: i < correct ? w.gender.code : w.gender.opposite.code, correct: i < correct, timeMs: 1000, readMs })),
   });
 }
@@ -80,10 +80,10 @@ test('verdict de fin de partie', () => {
   assert.equal(rateGame(game({ correct: 2 }), []), Verdict.KEEP_GOING);
 });
 
-test('succès : 50 paliers au total, paliers franchis détectés', () => {
+test('succès : 51 paliers au total, paliers franchis détectés', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
-  assert.equal(totalSteps(before), 50);
+  assert.equal(totalSteps(before), 51);
   assert.equal(earnedSteps(before), 0);
   profile.recordGame(game({ correct: 10, durationMs: 12_000 }), bank);
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
@@ -161,4 +161,14 @@ test('Le h muet : réussir chaque mot en h', () => {
   const p = progressAfter('silentH', [game({ words: hWords, correct: hWords.length })]);
   assert.equal(p.value, hWords.length);
   assert.ok(p.isComplete);
+});
+
+test('Intouchable : 7 parties sans faute commencées au-dessus de 80, en dernier dans la liste', () => {
+  const games = (n, props) => Array.from({ length: n }, (_, i) => game({ endedAt: day(1 + i), ...props }));
+  const p = progressAfter('untouchable', games(7, { difficultyStart: 84 }));
+  assert.equal(p.reached, 1);
+  assert.equal(progressAfter('untouchable', games(6, { difficultyStart: 84 })).reached, 0);
+  assert.equal(progressAfter('untouchable', games(7, { difficultyStart: 80 })).value, 0, 'il faut dépasser 80');
+  assert.equal(progressAfter('untouchable', games(7, { difficultyStart: 90, correct: 9 })).value, 0, 'une erreur suffit');
+  assert.equal(LeOuLa.ACHIEVEMENTS.at(-1).id, 'untouchable');
 });

@@ -19,6 +19,9 @@ const RETRY_WINDOW_MS = 15 * 60_000;
 /** Sans hâte : temps minimal passé sur une explication pour considérer l'anecdote lue. */
 const READ_MIN_MS = 5000;
 const STARTS_WITH_H = /^h/i;
+/** Intouchable : difficulté de départ à dépasser. Sans erreur, elle ne fait que monter pendant la partie. */
+const EXTREME_DIFFICULTY = 80;
+const EXTREME_PERFECT_GAMES = 7;
 
 /** Meilleure réussite (en %) sur le genre le moins bien réussi, parmi toutes les séries de parties consécutives. */
 function bestBalance(games, bank) {
@@ -79,6 +82,7 @@ class AchievementFacts {
     let totalCorrect = 0;
     let bestDurationMs = null;
     let perfectGames = 0;
+    let extremePerfectGames = 0;
     let maxCombo = 0;
     let playedAtNight = false;
     let playedEarly = false;
@@ -99,6 +103,7 @@ class AchievementFacts {
       longestPreciseRun = Math.max(longestPreciseRun, preciseRun);
       previous = game;
       if (game.isPerfect) perfectGames++;
+      if (game.isPerfect && game.difficultyStart > EXTREME_DIFFICULTY) extremePerfectGames++;
       maxCombo = Math.max(maxCombo, game.maxCombo);
       if (bestDurationMs === null || game.durationMs < bestDurationMs) bestDurationMs = game.durationMs;
       if (game.endedAt.getHours() < NIGHT_END_HOUR) playedAtNight = true;
@@ -120,7 +125,7 @@ class AchievementFacts {
       longestStreak: profile.calendar.longestStreak(),
       anecdotesRead: profile.anecdotesRead,
       recoveries: profile.recoveries,
-      playedEarly, unhurriedGames, retries, longestPreciseRun,
+      playedEarly, unhurriedGames, retries, longestPreciseRun, extremePerfectGames,
       gameCount: profile.gameCount,
       balance: bestBalance(profile.games, bank) ?? 0,
       groupsMastered: groupsMastered(profile.games, bank),
@@ -178,6 +183,8 @@ const ACHIEVEMENTS = Object.freeze([
     measure: f => f.hWordsFound, thresholds: f => [f.hWordCount], goal: () => 'Tous les mots en h réussis' },
   { id: 'precision', emoji: '🏹', name: 'Précision', description: `Enchaîner des parties à ${PRECISE_ACCURACY} % ou plus.`,
     measure: f => f.longestPreciseRun, thresholds: [3, 7, 15], goal: n => `${n} parties d’affilée à ${PRECISE_ACCURACY} % ou plus` },
+  { id: 'untouchable', emoji: '💎', name: 'Intouchable', description: `Terminer ${EXTREME_PERFECT_GAMES} parties extrêmement difficiles (difficulté au-dessus de ${EXTREME_DIFFICULTY}) sans une seule erreur.`,
+    measure: f => f.extremePerfectGames, thresholds: [EXTREME_PERFECT_GAMES], goal: n => `${n} parties sans faute au-dessus de ${EXTREME_DIFFICULTY}` },
 ].map(Object.freeze));
 
 /** Avancement du joueur sur un succès. */
