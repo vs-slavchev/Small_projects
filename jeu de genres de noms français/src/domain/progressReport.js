@@ -1,7 +1,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { addDays, GameRecord, Gender } = LeOuLa;
+const { addDays, GameRecord, Gender, WordStatsBook } = LeOuLa;
 
 const PROGRESS_UNLOCK_GAMES = 3;
 const TIMELINE_SIZE = 12;
@@ -24,6 +24,7 @@ const InsightKind = Object.freeze({
 });
 
 const mean = values => (values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0);
+const meanAccuracy = games => mean(games.map(g => g.accuracy));
 
 /**
  * Lecture de la progression du joueur : la chronologie s'affiche
@@ -45,7 +46,7 @@ class ProgressReport {
   /** Réussite des premières parties, pour l'écran verrouillé. */
   get firstAccuracies() { return this.#games.slice(0, PROGRESS_UNLOCK_GAMES).map(g => g.accuracy); }
   get wordsSeen() { return this.#games.reduce((sum, g) => sum + g.total, 0); }
-  get averageAccuracy() { return Math.round(mean(this.#games.map(g => g.accuracy))); }
+  get averageAccuracy() { return Math.round(meanAccuracy(this.#games)); }
 
   /**
    * Évolution de la réussite moyenne : les 2 dernières semaines contre les précédentes
@@ -56,7 +57,7 @@ class ProgressReport {
     const recent = this.#games.filter(g => g.endedAt >= cutoff);
     const older = this.#games.filter(g => g.endedAt < cutoff);
     if (recent.length && older.length) {
-      return { delta: Math.round(mean(recent.map(g => g.accuracy)) - mean(older.map(g => g.accuracy))), window: TrendWindow.TWO_WEEKS };
+      return { delta: Math.round(meanAccuracy(recent) - meanAccuracy(older)), window: TrendWindow.TWO_WEEKS };
     }
     const half = Math.floor(this.#games.length / 2);
     const first = this.#games.slice(0, half).map(g => g.accuracy);
@@ -81,66 +82,18 @@ class ProgressReport {
   get insight() {
     const games = this.#games;
     if (!games.length) return { kind: InsightKind.KEEP_PRACTICING };
-    return this.#record() ?? this.#rising() ?? this.#dip() ?? this.#trapWord() ?? this.#faster()
-      ?? this.#steady() ?? this.#aboveAverage() ?? { kind: InsightKind.KEEP_PRACTICING };
+    const timeline = this.timeline;
+    const last = games.at(-1).accuracy;
+    const average = this.averageAccuracy;
+    return this.#record(last) ?? rising(timeline) ?? dip(last, average) ?? trapWord(timeline) ?? faster(timeline)
+      ?? this.#steady() ?? (last > average ? { kind: InsightKind.ABOVE_AVERAGE, accuracy: last } : null)
+      ?? { kind: InsightKind.KEEP_PRACTICING };
   }
 
   /** La dernière partie bat strictement toutes les précédentes. */
-  #record() {
-    const games = this.#games;
-    if (games.length < 2) return null;
-    const last = games[games.length - 1].accuracy;
-    const best = Math.max(...games.slice(0, -1).map(g => g.accuracy));
-    return last > best ? { kind: InsightKind.RECORD, accuracy: last, previous: best } : null;
-  }
-
-  /** Les dernières parties de la chronologie dépassent nettement celles d'avant. */
-  #rising() {
-    const timeline = this.timeline;
-    if (timeline.length < INSIGHT_RECENT + 2) return null;
-    const recent = mean(timeline.slice(-INSIGHT_RECENT).map(g => g.accuracy));
-    const delta = Math.round(recent - mean(timeline.slice(0, -INSIGHT_RECENT).map(g => g.accuracy)));
-    return delta >= INSIGHT_SWING ? { kind: InsightKind.RISING, count: INSIGHT_RECENT, accuracy: Math.round(recent), delta } : null;
-  }
-
-  /** La dernière partie est nettement sous la moyenne. */
-  #dip() {
-    const last = this.#games[this.#games.length - 1].accuracy;
-    const average = this.averageAccuracy;
-    return average - last >= INSIGHT_SWING ? { kind: InsightKind.DIP, accuracy: last, average } : null;
-  }
-
-  /** Mot le plus souvent raté sur la chronologie, s'il l'a encore été à sa dernière apparition. */
-  #trapWord() {
-    const words = new Map();
-    for (const game of this.timeline) {
-      for (const a of game.answers) {
-        const w = words.get(a.word) ?? { misses: 0 };
-        if (!a.correct) {
-          w.misses += 1;
-          w.gender = Gender.fromCode(a.chosen).opposite;
-        }
-        w.lastCorrect = a.correct;
-        words.set(a.word, w);
-      }
-    }
-    const [word, trap] = [...words].filter(([, w]) => w.misses >= TRAP_MISSES && !w.lastCorrect)
-      .sort(([ta, a], [tb, b]) => b.misses - a.misses || ta.localeCompare(tb))[0] ?? [];
-    return word ? { kind: InsightKind.TRAP_WORD, word, misses: trap.misses, gender: trap.gender } : null;
-  }
-
-  /** Temps de réponse moyen des dernières parties nettement plus court qu'au début de la chronologie. */
-  #faster() {
-    const timeline = this.timeline;
-    if (timeline.length < 2 * INSIGHT_RECENT) return null;
-    const perWord = games => {
-      const times = games.flatMap(g => g.answers.map(a => a.timeMs));
-      return times.every(t => t > 0) ? mean(times) : null;
-    };
-    const before = perWord(timeline.slice(0, INSIGHT_RECENT));
-    const now = perWord(timeline.slice(-INSIGHT_RECENT));
-    if (!before || !now || now > before * (1 - SPEEDUP_RATIO)) return null;
-    return { kind: InsightKind.FASTER, beforeMs: Math.round(before), nowMs: Math.round(now) };
+  #record(last) {
+    const best = GameRecord.bestAccuracy(this.#games.slice(0, -1));
+    return this.#games.length >= 2 && last > best ? { kind: InsightKind.RECORD, accuracy: last, previous: best } : null;
   }
 
   /** Série de parties consécutives au-dessus du seuil de régularité. */
@@ -148,15 +101,53 @@ class ProgressReport {
     const steady = GameRecord.accuracyRuns(this.#games, STEADY_THRESHOLD).at(-1);
     return steady >= 2 ? { kind: InsightKind.STEADY, count: steady, threshold: STEADY_THRESHOLD, all: steady === this.#games.length } : null;
   }
+}
 
-  #aboveAverage() {
-    const last = this.#games[this.#games.length - 1].accuracy;
-    return last > this.averageAccuracy ? { kind: InsightKind.ABOVE_AVERAGE, accuracy: last } : null;
+/** Les dernières parties de la chronologie dépassent nettement celles d'avant. */
+function rising(timeline) {
+  if (timeline.length < INSIGHT_RECENT + 2) return null;
+  const recent = meanAccuracy(timeline.slice(-INSIGHT_RECENT));
+  const delta = Math.round(recent - meanAccuracy(timeline.slice(0, -INSIGHT_RECENT)));
+  return delta >= INSIGHT_SWING ? { kind: InsightKind.RISING, count: INSIGHT_RECENT, accuracy: Math.round(recent), delta } : null;
+}
+
+/** La dernière partie est nettement sous la moyenne. */
+function dip(last, average) {
+  return average - last >= INSIGHT_SWING ? { kind: InsightKind.DIP, accuracy: last, average } : null;
+}
+
+/** Mot le plus souvent raté sur la chronologie, s'il l'a encore été à sa dernière apparition. */
+function trapWord(timeline) {
+  const book = new WordStatsBook();
+  const wrongChoice = new Map();
+  for (const a of timeline.flatMap(g => g.answers)) {
+    book.record(a.word, a.correct);
+    if (!a.correct) wrongChoice.set(a.word, a.chosen);
   }
+  let trap = null;
+  for (const [word, stat] of book.entries()) {
+    const misses = stat.seen - stat.correct;
+    if (misses < TRAP_MISSES || stat.lastCorrect) continue;
+    if (!trap || misses > trap.misses || (misses === trap.misses && word.localeCompare(trap.word) < 0)) trap = { word, misses };
+  }
+  return trap && { kind: InsightKind.TRAP_WORD, ...trap, gender: Gender.fromCode(wrongChoice.get(trap.word)).opposite };
+}
+
+/** Temps de réponse moyen des dernières parties nettement plus court qu'au début de la chronologie. */
+function faster(timeline) {
+  if (timeline.length < 2 * INSIGHT_RECENT) return null;
+  const perWord = games => {
+    const times = games.flatMap(g => g.answers.map(a => a.timeMs));
+    return times.every(t => t > 0) ? mean(times) : null;
+  };
+  const before = perWord(timeline.slice(0, INSIGHT_RECENT));
+  const now = perWord(timeline.slice(-INSIGHT_RECENT));
+  if (!before || !now || now > before * (1 - SPEEDUP_RATIO)) return null;
+  return { kind: InsightKind.FASTER, beforeMs: Math.round(before), nowMs: Math.round(now) };
 }
 
 Object.assign(LeOuLa, {
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
-  INSIGHT_RECENT, INSIGHT_SWING, TRAP_MISSES, TrendWindow, InsightKind, ProgressReport,
+  TrendWindow, InsightKind, ProgressReport,
 });
 })(globalThis.LeOuLa ??= {});

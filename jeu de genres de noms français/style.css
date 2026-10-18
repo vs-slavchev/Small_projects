@@ -263,11 +263,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .badge .em { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 30px; }
 .badge.off .em { filter: grayscale(1); }
 .badge .n { font-size: 12px; font-weight: 800; text-align: center; line-height: 1.2; }
-.ticks { display: flex; gap: 3px; }
-.ticks i { width: 14px; height: 4px; border-radius: 2px; background: var(--line); }
+.ticks { display: flex; gap: 3px; width: 48px; }
+.ticks i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
 .ticks i.on { background: var(--ink); }
-/* Succès en une seule étape : un seul trait, aussi large que les trois paliers. */
-.ticks i:only-child { width: 48px; }
 /* Place sous la grille pour que la fenêtre du badge ne masque pas la dernière rangée. */
 .pop-room { display: none; height: 220px; flex: none; }
 .pop-open .pop-room { display: block; }

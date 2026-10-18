@@ -11,14 +11,18 @@ const STARTS_WITH_H = /^h/i;
 
 /** Groupe de noms partageant une terminaison et, en règle générale, un genre. */
 class WordGroup {
-  /** @param {{ id: string, suffix: string, gender: Gender, rule: string }} props */
-  constructor({ id, suffix, gender, rule }) {
+  /**
+   * @param {{ id: string, suffix: string, gender: Gender, rule: string, subject?: string }} props
+   * `subject` nomme les mots du groupe dans une phrase (« noms en -té », « pays en -e »).
+   */
+  constructor({ id, suffix, gender, rule, subject = `noms en ${suffix}` }) {
     if (!id) throw new DomainError('Un groupe doit avoir un identifiant.');
     if (!(gender instanceof Gender)) throw new DomainError(`Groupe « ${id} » : genre invalide.`);
     this.id = id;
     this.suffix = suffix;
     this.gender = gender;
     this.rule = rule;
+    this.subject = subject;
     Object.freeze(this);
   }
 }
@@ -123,7 +127,7 @@ class WordBank {
 
   /** Construit la banque depuis les données brutes de `data/words.js`. */
   static fromData({ groups, words }) {
-    const groupList = groups.map(g => new WordGroup({ id: g.id, suffix: g.label, gender: Gender.fromCode(g.g), rule: g.rule }));
+    const groupList = groups.map(g => new WordGroup({ id: g.id, suffix: g.label, gender: Gender.fromCode(g.g), rule: g.rule, subject: g.subject }));
     const byId = new Map(groupList.map(g => [g.id, g]));
     const wordList = words.map(w => {
       const group = byId.get(w.grp);
