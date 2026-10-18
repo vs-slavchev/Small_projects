@@ -5,15 +5,14 @@
 // - mounted(root, snapshot) : effets après insertion dans le DOM ; peut retourner une fonction de nettoyage,
 //                             appelée avant le rendu suivant.
 
-import { AppState, AppEvent, Destination, COUNTDOWN_SECONDS } from '../application/appMachine.js';
-import { MAX_TIER } from '../domain/achievements.js';
-import { Gender } from '../domain/gender.js';
-import { dayKey } from '../domain/calendar.js';
-import { PROGRESS_UNLOCK_GAMES } from '../domain/progressReport.js';
-import {
-  escapeHtml as esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize,
-  VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel,
-} from './format.js';
+(function (LeOuLa) {
+'use strict';
+
+const {
+  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, MAX_TIER, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
+  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
+  trendText, insightText, achievementStatus, unlockedLabel,
+} = LeOuLa;
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -432,7 +431,7 @@ const achievements = {
 };
 
 /** Vue de chaque état de l'automate. */
-export const VIEWS = Object.freeze({
+const VIEWS = Object.freeze({
   [AppState.HOME]: home,
   [AppState.COUNTDOWN]: home,
   [AppState.QUESTION]: question,
@@ -442,3 +441,6 @@ export const VIEWS = Object.freeze({
   [AppState.PROGRESS]: progress,
   [AppState.ACHIEVEMENTS]: achievements,
 });
+
+Object.assign(LeOuLa, { VIEWS });
+})(globalThis.LeOuLa ??= {});

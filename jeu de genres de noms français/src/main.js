@@ -1,15 +1,12 @@
 // Point d'assemblage : relie le domaine, les cas d'utilisation, l'automate et les adaptateurs.
 
-import { WORD_DATA } from './data/words.js';
-import { WordBank } from './domain/wordBank.js';
-import { createUseCases } from './application/useCases.js';
-import { createAppMachine } from './application/appMachine.js';
-import { LocalStorageProfileRepository, LocalStoragePreferences, browserStorage } from './infrastructure/localStorageRepository.js';
-import { WebAudioSound } from './infrastructure/webAudioSound.js';
-import { VIEWS } from './ui/views.js';
-import { createRenderer } from './ui/renderer.js';
-import { createEffects } from './ui/effects.js';
-import { bindController } from './ui/controller.js';
+(function (LeOuLa) {
+'use strict';
+
+const {
+  WORD_DATA, WordBank, createUseCases, createAppMachine, LocalStorageProfileRepository,
+  LocalStoragePreferences, browserStorage, WebAudioSound, VIEWS, createRenderer, createEffects, bindController,
+} = LeOuLa;
 
 const clock = { now: () => Date.now() };
 const storage = browserStorage();
@@ -31,3 +28,5 @@ machine.subscribe(createEffects({
 }));
 bindController(root, machine);
 machine.start();
+
+})(globalThis.LeOuLa ??= {});

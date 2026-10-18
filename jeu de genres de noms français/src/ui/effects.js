@@ -1,4 +1,7 @@
-import { AppState, AppEvent } from '../application/appMachine.js';
+(function (LeOuLa) {
+'use strict';
+
+const { AppState, AppEvent } = LeOuLa;
 
 const BADGE_SOUND_DELAY_S = 0.9;
 const TAP_EVENTS = new Set([
@@ -11,7 +14,7 @@ const TAP_EVENTS = new Set([
  * Le survol d'un badge (PREVIEW_BADGE) reste silencieux : il n'est pas dans TAP_EVENTS.
  * @param {{ sound: import('../infrastructure/webAudioSound.js').WebAudioSound, vibrate?: (ms: number) => void }} deps
  */
-export function createEffects({ sound, vibrate = () => {} }) {
+function createEffects({ sound, vibrate = () => {} }) {
   return ({ state, event, context, changed }) => {
     sound.enabled = context.soundEnabled;
 
@@ -29,3 +32,6 @@ export function createEffects({ sound, vibrate = () => {} }) {
     }
   };
 }
+
+Object.assign(LeOuLa, { createEffects });
+})(globalThis.LeOuLa ??= {});

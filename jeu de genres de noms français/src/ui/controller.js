@@ -1,5 +1,7 @@
-import { AppEvent } from '../application/appMachine.js';
-import { Gender } from '../domain/gender.js';
+(function (LeOuLa) {
+'use strict';
+
+const { AppEvent, Gender } = LeOuLa;
 
 /**
  * Traduit les gestes du joueur en événements de l'automate.
@@ -11,7 +13,7 @@ import { Gender } from '../domain/gender.js';
  * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
  * @param {{ confirm?: (message: string) => boolean }} [options]
  */
-export function bindController(root, machine, { confirm = message => globalThis.confirm(message) } = {}) {
+function bindController(root, machine, { confirm = message => globalThis.confirm(message) } = {}) {
   const payloadOf = el => {
     const { to, gender, index } = el.dataset;
     if (to) return { to };
@@ -57,3 +59,6 @@ export function bindController(root, machine, { confirm = message => globalThis.
     }
   });
 }
+
+Object.assign(LeOuLa, { bindController });
+})(globalThis.LeOuLa ??= {});

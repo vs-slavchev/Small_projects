@@ -1,11 +1,14 @@
-import { DomainError } from './errors.js';
+(function (LeOuLa) {
+'use strict';
+
+const { DomainError } = LeOuLa;
 
 /**
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée,
  * réponses données et difficulté. Le pourcentage de réussite en est dérivé.
  * Les mots sont référencés par leur texte pour rester indépendants de la banque.
  */
-export class GameRecord {
+class GameRecord {
   /**
    * @param {{ endedAt: Date, durationMs: number, difficultyStart: number, difficultyEnd: number,
    *           maxCombo: number, answers: { word: string, chosen: 'm'|'f', correct: boolean, timeMs: number }[] }} props
@@ -63,3 +66,6 @@ export class GameRecord {
     return new GameRecord({ ...snapshot, endedAt: new Date(snapshot.endedAt) });
   }
 }
+
+Object.assign(LeOuLa, { GameRecord });
+})(globalThis.LeOuLa ??= {});

@@ -1,10 +1,13 @@
-import { DomainError } from './errors.js';
+(function (LeOuLa) {
+'use strict';
+
+const { DomainError } = LeOuLa;
 
 /**
  * Genre grammatical d'un nom. Objet valeur : seules deux instances existent,
  * on peut donc les comparer par identité.
  */
-export class Gender {
+class Gender {
   /** @param {'m'|'f'} code @param {string} article @param {string} label */
   constructor(code, article, label) {
     this.code = code;
@@ -31,3 +34,6 @@ export class Gender {
     return other === this;
   }
 }
+
+Object.assign(LeOuLa, { Gender });
+})(globalThis.LeOuLa ??= {});

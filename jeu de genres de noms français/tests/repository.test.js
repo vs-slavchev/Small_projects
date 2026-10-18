@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  LocalStorageProfileRepository, LocalStoragePreferences, PROFILE_KEY, LEGACY_KEY,
-} from '../src/infrastructure/localStorageRepository.js';
-import { PlayerProfile } from '../src/domain/playerProfile.js';
-import { GameRecord } from '../src/domain/gameRecord.js';
 import { realBank, memoryStorage } from './helpers.js';
+import { LeOuLa } from './game.js';
+
+const {
+  LocalStorageProfileRepository, LocalStoragePreferences, PROFILE_KEY, LEGACY_KEY, PlayerProfile, GameRecord,
+} = LeOuLa;
 
 const bank = realBank();
 

@@ -1,30 +1,31 @@
 // Mise en forme des données du domaine en texte français pour l'interface.
 
-import { TrendWindow, InsightKind } from '../domain/progressReport.js';
-import { Verdict } from '../domain/gameSummary.js';
-import { dayKey, addDays } from '../domain/calendar.js';
+(function (LeOuLa) {
+'use strict';
+
+const { TrendWindow, InsightKind, Verdict, dayKey, addDays } = LeOuLa;
 
 const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
 const SECONDS_FORMAT = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
 /** Échappe du texte brut. Les règles et anecdotes de la banque contiennent du HTML voulu et ne passent pas par ici. */
-export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+const escapeHtml = value => String(value).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 
-export const plural = (n, singular, pluralForm = `${singular}s`) => (Math.abs(n) > 1 ? pluralForm : singular);
+const plural = (n, singular, pluralForm = `${singular}s`) => (Math.abs(n) > 1 ? pluralForm : singular);
 
 /** 41 000 ms → « 0:41 » */
-export function formatClock(ms) {
+function formatClock(ms) {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 /** 9 000 ms → « 9 s », 12 340 ms → « 12,3 s » */
-export const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
+const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
 
-export const shortDate = date => `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+const shortDate = date => `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 
-export function relativeDay(date, today) {
+function relativeDay(date, today) {
   const key = dayKey(date);
   if (key === dayKey(today)) return "Aujourd'hui";
   if (key === dayKey(addDays(today, -1))) return 'Hier';
@@ -32,9 +33,9 @@ export function relativeDay(date, today) {
 }
 
 /** Taille de police pour qu'un mot tienne sur une ligne de l'écran. */
-export const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
+const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
 
-export const VERDICT_TEXT = Object.freeze({
+const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Sans faute. Impeccable.',
   [Verdict.WEEK_BEST]: 'Ton meilleur score de la semaine.',
   [Verdict.STRONG]: 'Très solide. Les règles sont là.',
@@ -42,14 +43,14 @@ export const VERDICT_TEXT = Object.freeze({
   [Verdict.KEEP_GOING]: 'Chaque erreur, c’est une règle de plus en mémoire.',
 });
 
-export function trendText({ delta, window }) {
+function trendText({ delta, window }) {
   const span = window === TrendWindow.TWO_WEEKS ? 'en 2 semaines' : 'depuis tes débuts';
   if (delta > 0) return `+${delta} pts ${span}`;
   if (delta < 0) return `−${-delta} pts ${span}`;
   return `Stable ${span}`;
 }
 
-export function insightText(insight) {
+function insightText(insight) {
   switch (insight.kind) {
     case InsightKind.STEADY:
       return insight.all
@@ -63,7 +64,7 @@ export function insightText(insight) {
 }
 
 /** @param {import('../domain/achievements.js').AchievementProgress} p */
-export function achievementStatus(p) {
+function achievementStatus(p) {
   const tierLabel = p.isSingleStep
     ? (p.reached ? 'Obtenu' : 'Pas encore obtenu')
     : (p.reached ? `Niveau ${p.tierName}${p.isComplete ? '' : ` · ${p.reached}/${p.thresholds.length}`}` : 'Pas encore obtenu');
@@ -84,4 +85,7 @@ export function achievementStatus(p) {
 }
 
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
-export const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
+const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
+
+Object.assign(LeOuLa, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel });
+})(globalThis.LeOuLa ??= {});

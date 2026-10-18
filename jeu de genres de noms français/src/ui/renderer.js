@@ -1,3 +1,6 @@
+(function (LeOuLa) {
+'use strict';
+
 const DEFAULT_THEME = '--paper';
 
 /**
@@ -11,7 +14,7 @@ const DEFAULT_THEME = '--paper';
  * @param {HTMLElement} root
  * @param {{ views: Record<string, object>, now: () => number }} options
  */
-export function createRenderer(root, { views, now }) {
+function createRenderer(root, { views, now }) {
   const env = Object.freeze({ now });
   const doc = root.ownerDocument;
   const themeMeta = doc.querySelector('meta[name="theme-color"]');
@@ -35,3 +38,6 @@ export function createRenderer(root, { views, now }) {
     if (themeMeta) themeMeta.content = rootStyle.getPropertyValue(view.theme ?? DEFAULT_THEME).trim();
   };
 }
+
+Object.assign(LeOuLa, { createRenderer });
+})(globalThis.LeOuLa ??= {});

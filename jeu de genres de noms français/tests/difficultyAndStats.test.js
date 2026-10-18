@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Difficulty } from '../src/domain/difficulty.js';
-import { WordStat, WordStatsBook } from '../src/domain/wordStats.js';
+import { LeOuLa } from './game.js';
+
+const { Difficulty, WordStat, WordStatsBook } = LeOuLa;
 
 test('la difficulté démarre à 0, monte et baisse, sans sortir de [0, 100]', () => {
   const d = Difficulty.initial();

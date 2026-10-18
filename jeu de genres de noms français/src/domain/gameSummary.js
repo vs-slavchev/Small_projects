@@ -1,7 +1,10 @@
-import { addDays } from './calendar.js';
+(function (LeOuLa) {
+'use strict';
+
+const { addDays } = LeOuLa;
 
 /** Appréciation d'une partie, du meilleur au moins bon. */
-export const Verdict = Object.freeze({
+const Verdict = Object.freeze({
   PERFECT: 'perfect',
   WEEK_BEST: 'weekBest',
   STRONG: 'strong',
@@ -13,7 +16,7 @@ export const Verdict = Object.freeze({
  * @param {import('./gameRecord.js').GameRecord} record
  * @param {import('./gameRecord.js').GameRecord[]} earlierGames parties terminées avant celle-ci
  */
-export function rateGame(record, earlierGames) {
+function rateGame(record, earlierGames) {
   if (record.isPerfect) return Verdict.PERFECT;
   const weekAgo = addDays(record.endedAt, -7);
   const thisWeek = earlierGames.filter(g => g.endedAt >= weekAgo).map(g => g.accuracy);
@@ -24,7 +27,7 @@ export function rateGame(record, earlierGames) {
 }
 
 /** Bilan présenté au joueur à la fin d'une partie. */
-export class GameSummary {
+class GameSummary {
   /**
    * @param {{ record: import('./gameRecord.js').GameRecord, verdict: string,
    *           unlocked: import('./achievements.js').AchievementProgress[],
@@ -39,3 +42,6 @@ export class GameSummary {
     Object.freeze(this);
   }
 }
+
+Object.assign(LeOuLa, { Verdict, rateGame, GameSummary });
+})(globalThis.LeOuLa ??= {});

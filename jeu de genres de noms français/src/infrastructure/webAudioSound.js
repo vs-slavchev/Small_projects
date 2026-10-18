@@ -1,8 +1,11 @@
 // Sons synthétisés avec Web Audio : timbre doux de xylophone, aucun fichier à charger.
 
+(function (LeOuLa) {
+'use strict';
+
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760, 2093];
 
-export class WebAudioSound {
+class WebAudioSound {
   #context = null;
   enabled;
 
@@ -68,3 +71,6 @@ export class WebAudioSound {
     osc.stop(t + duration + 0.05);
   }
 }
+
+Object.assign(LeOuLa, { WebAudioSound });
+})(globalThis.LeOuLa ??= {});

@@ -1,14 +1,14 @@
-import { Difficulty } from './difficulty.js';
-import { GameRecord } from './gameRecord.js';
-import { WordStat, WordStatsBook } from './wordStats.js';
-import { ActivityCalendar } from './calendar.js';
+(function (LeOuLa) {
+'use strict';
+
+const { Difficulty, GameRecord, WordStat, WordStatsBook, ActivityCalendar } = LeOuLa;
 
 /**
  * Tout ce que le jeu sait du joueur (agrégat) : parties terminées, statistiques par mot,
  * difficulté courante et compteurs utilisés par les succès.
  * Une partie abandonnée ne laisse aucune trace : seul `recordGame` modifie le profil.
  */
-export class PlayerProfile {
+class PlayerProfile {
   #games;
   /** Vue figée de #games, reconstruite seulement quand une partie est ajoutée. */
   #gamesView;
@@ -99,3 +99,6 @@ export class PlayerProfile {
     });
   }
 }
+
+Object.assign(LeOuLa, { PlayerProfile });
+})(globalThis.LeOuLa ??= {});

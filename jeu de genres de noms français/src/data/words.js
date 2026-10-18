@@ -7,7 +7,10 @@
 // Les mots commençant par une voyelle ou un h muet prennent l'article élidé « l’ » ; un mot en y- ne s'élide pas.
 // Ce fichier ne contient que des données ; WordBank.fromData() les valide et les transforme en objets du domaine.
 
-export const GROUPS = Object.freeze([
+(function (LeOuLa) {
+'use strict';
+
+const GROUPS = Object.freeze([
   // Féminins
   { id: 'ette', label: '-ette', g: 'f', rule: "Les noms en <b>-ette</b> sont presque toujours féminins : c'est un suffixe diminutif féminin." },
   { id: 'tion', label: '-tion', g: 'f', rule: "Les noms en <b>-tion</b> sont féminins : ils viennent des noms latins en <i>-tio</i>." },
@@ -37,7 +40,7 @@ export const GROUPS = Object.freeze([
   { id: 'ail', label: '-ail', g: 'm', rule: "Les noms en <b>-ail</b> sont masculins." },
 ]);
 
-export const WORDS = Object.freeze([
+const WORDS = Object.freeze([
   // -ette
   { w: 'baguette', g: 'f', grp: 'ette', en: 'baguette', fun: "« Baguette » vient de l'italien <i>bacchetta</i>, « petit bâton ». Le pain n'a pris ce nom qu'au début du XXᵉ siècle." },
   { w: 'chaussette', g: 'f', grp: 'ette', en: 'sock', fun: "Diminutif de « chausse », le vêtement qui couvrait les jambes au Moyen Âge." },
@@ -157,4 +160,7 @@ export const WORDS = Object.freeze([
   { w: 'éventail', g: 'm', grp: 'ail', en: 'fan', fun: "Dérivé de « éventer », « donner de l’air »." },
 ]);
 
-export const WORD_DATA = Object.freeze({ groups: GROUPS, words: WORDS });
+const WORD_DATA = Object.freeze({ groups: GROUPS, words: WORDS });
+
+Object.assign(LeOuLa, { GROUPS, WORDS, WORD_DATA });
+})(globalThis.LeOuLa ??= {});

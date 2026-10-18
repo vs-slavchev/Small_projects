@@ -1,6 +1,9 @@
-import { DomainError } from './errors.js';
+(function (LeOuLa) {
+'use strict';
 
-export const SelectionStrategy = Object.freeze({
+const { DomainError } = LeOuLa;
+
+const SelectionStrategy = Object.freeze({
   RANDOM: 'random',
   WEAKEST: 'weakest',
   DIFFICULTY: 'difficulty',
@@ -14,7 +17,7 @@ export const SelectionStrategy = Object.freeze({
  * - 50 % : tirage de 0 à 100 comparé à la difficulté → mot régulier ou exception.
  * Si une stratégie n'a aucun candidat, on se rabat sur le hasard.
  */
-export class WordSelectionPolicy {
+class WordSelectionPolicy {
   static DEFAULTS = Object.freeze({ randomShare: 0.2, weakestShare: 0.3, weakestPoolSize: 20 });
 
   #bank;
@@ -59,3 +62,6 @@ export class WordSelectionPolicy {
     return list[Math.min(list.length - 1, Math.floor(this.#random() * list.length))];
   }
 }
+
+Object.assign(LeOuLa, { SelectionStrategy, WordSelectionPolicy });
+})(globalThis.LeOuLa ??= {});

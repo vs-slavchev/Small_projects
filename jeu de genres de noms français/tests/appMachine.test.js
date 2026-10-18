@@ -1,9 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS } from '../src/application/appMachine.js';
-import { createUseCases } from '../src/application/useCases.js';
-import { LocalStorageProfileRepository, LocalStoragePreferences } from '../src/infrastructure/localStorageRepository.js';
 import { realBank, seededRandom, fakeClock, fakeScheduler, memoryStorage } from './helpers.js';
+import { LeOuLa } from './game.js';
+
+const {
+  createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createUseCases,
+  LocalStorageProfileRepository, LocalStoragePreferences,
+} = LeOuLa;
 
 function setup({ storage = memoryStorage(), seed = 3 } = {}) {
   const clock = fakeClock();

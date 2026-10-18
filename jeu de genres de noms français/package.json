@@ -4,8 +4,7 @@
   "description": "Jeu mobile pour apprendre le genre des noms français.",
   "type": "module",
   "scripts": {
-    "test": "node --test \"tests/**/*.test.js\"",
-    "start": "python3 -m http.server 8000"
+    "test": "node --test \"tests/**/*.test.js\""
   },
   "engines": {
     "node": ">=20"

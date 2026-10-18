@@ -1,13 +1,16 @@
-import { addDays } from './calendar.js';
+(function (LeOuLa) {
+'use strict';
 
-export const PROGRESS_UNLOCK_GAMES = 3;
-export const TIMELINE_SIZE = 12;
-export const RECENT_SIZE = 5;
-export const TREND_WINDOW_DAYS = 14;
-export const STEADY_THRESHOLD = 70;
+const { addDays } = LeOuLa;
 
-export const TrendWindow = Object.freeze({ TWO_WEEKS: 'twoWeeks', SINCE_START: 'sinceStart' });
-export const InsightKind = Object.freeze({ STEADY: 'steady', ABOVE_AVERAGE: 'aboveAverage', KEEP_PRACTICING: 'keepPracticing' });
+const PROGRESS_UNLOCK_GAMES = 3;
+const TIMELINE_SIZE = 12;
+const RECENT_SIZE = 5;
+const TREND_WINDOW_DAYS = 14;
+const STEADY_THRESHOLD = 70;
+
+const TrendWindow = Object.freeze({ TWO_WEEKS: 'twoWeeks', SINCE_START: 'sinceStart' });
+const InsightKind = Object.freeze({ STEADY: 'steady', ABOVE_AVERAGE: 'aboveAverage', KEEP_PRACTICING: 'keepPracticing' });
 
 const mean = values => (values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0);
 
@@ -15,7 +18,7 @@ const mean = values => (values.length ? values.reduce((s, v) => s + v, 0) / valu
  * Lecture de la progression du joueur : la chronologie s'affiche
  * une fois les 3 premières parties terminées.
  */
-export class ProgressReport {
+class ProgressReport {
   #games;
   #now;
 
@@ -72,3 +75,6 @@ export class ProgressReport {
     return { kind: InsightKind.KEEP_PRACTICING };
   }
 }
+
+Object.assign(LeOuLa, { PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD, TrendWindow, InsightKind, ProgressReport });
+})(globalThis.LeOuLa ??= {});

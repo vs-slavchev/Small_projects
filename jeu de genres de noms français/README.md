@@ -1,10 +1,11 @@
 # Le ou la ?
 
-Jeu mobile pour apprendre le genre des noms français. JavaScript pur (modules ES), aucune dépendance, aucun service externe : tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `fonts/`.
+Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune dépendance, aucun service externe : tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `fonts/`.
+
+Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
 ```sh
-npm start   # sert le dossier sur http://localhost:8000 (les modules ES ne se chargent pas en file://)
-npm test    # 54 tests, avec le lanceur intégré de Node (≥ 20)
+npm test    # 59 tests, avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture
@@ -42,6 +43,8 @@ src/
 │   └── format.js              textes français (dates, durées, messages)
 └── main.js                    point d'assemblage
 ```
+
+Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global `LeOuLa` et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
 
 ## Automate de l'application
 

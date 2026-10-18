@@ -1,21 +1,24 @@
 // Calcul de la série quotidienne. Tout est exprimé en jours du calendrier local.
 
+(function (LeOuLa) {
+'use strict';
+
 const pad = n => String(n).padStart(2, '0');
 
 /** Clé de jour local « AAAA-MM-JJ ». */
-export function dayKey(date) {
+function dayKey(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function addDays(date, days) {
+function addDays(date, days) {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
 }
 
 /** Lundi de la semaine de `date`, à minuit. */
-export function startOfWeek(date) {
+function startOfWeek(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return addDays(d, -((d.getDay() + 6) % 7));
@@ -27,7 +30,7 @@ function fromKey(key) {
 }
 
 /** Jours où le joueur a terminé au moins une partie. */
-export class ActivityCalendar {
+class ActivityCalendar {
   #days;
 
   /** @param {Iterable<Date>} dates */
@@ -82,3 +85,6 @@ export class ActivityCalendar {
     });
   }
 }
+
+Object.assign(LeOuLa, { dayKey, addDays, startOfWeek, ActivityCalendar });
+})(globalThis.LeOuLa ??= {});

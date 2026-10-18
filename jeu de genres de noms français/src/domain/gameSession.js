@@ -1,12 +1,12 @@
-import { DomainError } from './errors.js';
-import { Gender } from './gender.js';
-import { Difficulty } from './difficulty.js';
-import { GameRecord } from './gameRecord.js';
+(function (LeOuLa) {
+'use strict';
 
-export const DEFAULT_GAME_LENGTH = 10;
+const { DomainError, Gender, Difficulty, GameRecord } = LeOuLa;
+
+const DEFAULT_GAME_LENGTH = 10;
 
 /** Réponse donnée à un mot. */
-export class Answer {
+class Answer {
   /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number }} props */
   constructor({ word, chosen, timeMs }) {
     this.word = word;
@@ -25,7 +25,7 @@ export class Answer {
  * est donnée et ne reprend qu'au mot suivant.
  * Les instants (`now`) sont des millisecondes fournies par l'appelant (horloge injectée).
  */
-export class GameSession {
+class GameSession {
   #length;
   #drawWord;
   #words = [];
@@ -120,3 +120,6 @@ export class GameSession {
     this.#presentedAt = now;
   }
 }
+
+Object.assign(LeOuLa, { DEFAULT_GAME_LENGTH, Answer, GameSession });
+})(globalThis.LeOuLa ??= {});

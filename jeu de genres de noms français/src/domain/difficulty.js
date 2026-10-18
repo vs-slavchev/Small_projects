@@ -1,10 +1,13 @@
-import { DomainError } from './errors.js';
+(function (LeOuLa) {
+'use strict';
+
+const { DomainError } = LeOuLa;
 
 /**
  * Niveau de difficulté adaptatif, de 0 à 100. Il monte à chaque bonne réponse,
  * baisse à chaque erreur et persiste d'une partie à l'autre. Objet valeur immuable.
  */
-export class Difficulty {
+class Difficulty {
   static MIN = 0;
   static MAX = 100;
   static STEP_UP = 4;
@@ -39,3 +42,6 @@ export class Difficulty {
     return !(roll > this.value);
   }
 }
+
+Object.assign(LeOuLa, { Difficulty });
+})(globalThis.LeOuLa ??= {});

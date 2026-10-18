@@ -1,7 +1,10 @@
-import { DomainError } from './errors.js';
+(function (LeOuLa) {
+'use strict';
+
+const { DomainError } = LeOuLa;
 
 /** Historique des réponses à un mot. Objet valeur immuable. */
-export class WordStat {
+class WordStat {
   static EMPTY = new WordStat();
 
   /** @param {number} seen @param {number} correct @param {boolean | null} lastCorrect */
@@ -31,7 +34,7 @@ export class WordStat {
 }
 
 /** Statistiques de tous les mots rencontrés par le joueur, indexées par texte. */
-export class WordStatsBook {
+class WordStatsBook {
   #stats;
 
   /** @param {Iterable<[string, WordStat]>} entries */
@@ -67,3 +70,6 @@ export class WordStatsBook {
       .map(([text]) => text);
   }
 }
+
+Object.assign(LeOuLa, { WordStat, WordStatsBook });
+})(globalThis.LeOuLa ??= {});

@@ -1,6 +1,6 @@
-import { WORD_DATA } from '../src/data/words.js';
-import { WordBank } from '../src/domain/wordBank.js';
-import { MemoryStorage } from '../src/infrastructure/localStorageRepository.js';
+import { LeOuLa } from './game.js';
+
+const { WORD_DATA, WordBank, MemoryStorage } = LeOuLa;
 
 export const realBank = () => WordBank.fromData(WORD_DATA);
 

@@ -1,3 +1,6 @@
+(function (LeOuLa) {
+'use strict';
+
 /**
  * Petit moteur d'automate à états finis, sans dépendance.
  *
@@ -63,7 +66,7 @@ function validate(definition) {
  * @param {{ initial: string, context: C, on?: object, states: Record<string, object> }} definition
  * @param {{ scheduler?: typeof defaultScheduler }} [options]
  */
-export function createMachine(definition, { scheduler = defaultScheduler } = {}) {
+function createMachine(definition, { scheduler = defaultScheduler } = {}) {
   validate(definition);
   const context = definition.context;
   const listeners = new Set();
@@ -167,3 +170,6 @@ export function createMachine(definition, { scheduler = defaultScheduler } = {})
     },
   };
 }
+
+Object.assign(LeOuLa, { createMachine });
+})(globalThis.LeOuLa ??= {});

@@ -1,14 +1,16 @@
-import { DomainError } from './errors.js';
-import { Gender } from './gender.js';
+(function (LeOuLa) {
+'use strict';
+
+const { DomainError, Gender } = LeOuLa;
 
 /** Article élidé : « l’école », « l’horizon ». */
-export const ELIDED_ARTICLE = 'l\u2019';
+const ELIDED_ARTICLE = 'l\u2019';
 // Pas de « y » : la plupart des noms en y- ne s'élident pas (le yaourt, le yoga).
 const STARTS_WITH_VOWEL = /^[aeiouàâäéèêëîïôöùûüæœ]/i;
 const STARTS_WITH_H = /^h/i;
 
 /** Groupe de noms partageant une terminaison et, en règle générale, un genre. */
-export class WordGroup {
+class WordGroup {
   /** @param {{ id: string, suffix: string, gender: Gender, rule: string }} props */
   constructor({ id, suffix, gender, rule }) {
     if (!id) throw new DomainError('Un groupe doit avoir un identifiant.');
@@ -29,7 +31,7 @@ export class WordGroup {
  * Pour un mot en h, `aspiratedH` est obligatoire : true pour un h aspiré (« le hérisson »),
  * false pour un h muet (« l’horizon »). Aucun h n'est supposé muet par défaut.
  */
-export class Word {
+class Word {
   /**
    * @param {{ text: string, gender: Gender, group: WordGroup, isException?: boolean,
    *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
@@ -90,7 +92,7 @@ export class Word {
 }
 
 /** Catalogue immuable des groupes et des mots du jeu. */
-export class WordBank {
+class WordBank {
   #groups;
   #words;
   #byText;
@@ -137,3 +139,6 @@ export class WordBank {
     return this.#byText.get(text);
   }
 }
+
+Object.assign(LeOuLa, { ELIDED_ARTICLE, WordGroup, Word, WordBank });
+})(globalThis.LeOuLa ??= {});

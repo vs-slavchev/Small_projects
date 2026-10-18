@@ -27,4 +27,4 @@ and also make it executable with chmod.
 
 12. "Egg hunt" is an old C++ and Allegro game. Compete against a dog to collect more easter eggs.
 
-13. "jeu de genres de noms français" (Le ou la ?) is a mobile browser game, written in plain JavaScript, for learning the grammatical gender of French nouns. Each word comes with the rule of its ending group, its exceptions and a fun fact; progress, daily streak and tiered achievements are stored locally. Run `npm start` in its folder and open http://localhost:8000; `npm test` runs the test suite.
+13. "jeu de genres de noms français" (Le ou la ?) is a mobile browser game, written in plain JavaScript, for learning the grammatical gender of French nouns. Each word comes with the rule of its ending group, its exceptions and a fun fact; progress, daily streak and tiered achievements are stored locally. Open `index.html` directly in a browser, no server needed; `npm test` runs the test suite.

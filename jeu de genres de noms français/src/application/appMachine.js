@@ -1,8 +1,10 @@
-import { createMachine } from './stateMachine.js';
-import { Gender } from '../domain/gender.js';
+(function (LeOuLa) {
+'use strict';
+
+const { createMachine, Gender } = LeOuLa;
 
 /** États de l'application. */
-export const AppState = Object.freeze({
+const AppState = Object.freeze({
   HOME: 'home',                 // accueil, en attente
   COUNTDOWN: 'countdown',       // accueil après une partie : la suivante démarre dans 5 s
   QUESTION: 'question',         // un mot attend la réponse du joueur
@@ -13,7 +15,7 @@ export const AppState = Object.freeze({
   ACHIEVEMENTS: 'achievements', // badges
 });
 
-export const AppEvent = Object.freeze({
+const AppEvent = Object.freeze({
   START: 'START',
   NAVIGATE: 'NAVIGATE',         // { to: Destination }
   TICK: 'TICK',
@@ -29,10 +31,10 @@ export const AppEvent = Object.freeze({
 });
 
 /** Destinations de la barre d'onglets. */
-export const Destination = Object.freeze({ HOME: 'home', PROGRESS: 'progress', ACHIEVEMENTS: 'achievements' });
+const Destination = Object.freeze({ HOME: 'home', PROGRESS: 'progress', ACHIEVEMENTS: 'achievements' });
 
-export const COUNTDOWN_SECONDS = 5;
-export const REVEAL_DELAY_MS = Object.freeze({ correct: 420, wrong: 520 });
+const COUNTDOWN_SECONDS = 5;
+const REVEAL_DELAY_MS = Object.freeze({ correct: 420, wrong: 520 });
 
 /**
  * Automate de l'application : il décide de l'enchaînement des écrans et délègue
@@ -41,7 +43,7 @@ export const REVEAL_DELAY_MS = Object.freeze({ correct: 420, wrong: 520 });
  * @param {ReturnType<typeof import('./useCases.js').createUseCases>} useCases
  * @param {{ scheduler?: object }} [options]
  */
-export function createAppMachine(useCases, options = {}) {
+function createAppMachine(useCases, options = {}) {
   const { HOME, COUNTDOWN, QUESTION, REVEALING, FEEDBACK, RESULTS, PROGRESS, ACHIEVEMENTS } = AppState;
 
   const context = {
@@ -155,3 +157,6 @@ export function createAppMachine(useCases, options = {}) {
     },
   }, options);
 }
+
+Object.assign(LeOuLa, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createAppMachine });
+})(globalThis.LeOuLa ??= {});

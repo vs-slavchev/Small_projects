@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PlayerProfile } from '../src/domain/playerProfile.js';
-import { GameRecord } from '../src/domain/gameRecord.js';
-import { ActivityCalendar } from '../src/domain/calendar.js';
-import { ProgressReport, InsightKind, TrendWindow } from '../src/domain/progressReport.js';
-import { rateGame, Verdict } from '../src/domain/gameSummary.js';
-import { AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps } from '../src/domain/achievements.js';
 import { realBank } from './helpers.js';
+import { LeOuLa } from './game.js';
+
+const {
+  PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
+  AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps,
+} = LeOuLa;
 
 const bank = realBank();
 const day = (d, h = 14) => new Date(2026, 9, d, h, 0);

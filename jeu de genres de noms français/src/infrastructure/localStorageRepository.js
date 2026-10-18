@@ -1,20 +1,23 @@
-import { PlayerProfile } from '../domain/playerProfile.js';
+(function (LeOuLa) {
+'use strict';
 
-export const PROFILE_KEY = 'lela.profile.v2';
-export const PREFERENCES_KEY = 'lela.preferences.v1';
+const { PlayerProfile } = LeOuLa;
+
+const PROFILE_KEY = 'lela.profile.v2';
+const PREFERENCES_KEY = 'lela.preferences.v1';
 /** Format de la première version du jeu, migré au premier chargement. */
-export const LEGACY_KEY = 'lela.v1';
+const LEGACY_KEY = 'lela.v1';
 const SCHEMA_VERSION = 2;
 
 /** Stockage en mémoire, utilisé quand localStorage est indisponible (navigation privée stricte, etc.). */
-export class MemoryStorage {
+class MemoryStorage {
   #items = new Map();
   getItem(key) { return this.#items.has(key) ? this.#items.get(key) : null; }
   setItem(key, value) { this.#items.set(key, String(value)); }
   removeItem(key) { this.#items.delete(key); }
 }
 
-export function browserStorage() {
+function browserStorage() {
   try {
     const storage = globalThis.localStorage;
     const probe = '__lela_probe__';
@@ -51,7 +54,7 @@ const isObject = value => value !== null && typeof value === 'object';
  * Les entrées qui ne sont même pas des objets sont écartées ici ; la validation fine
  * (une partie, une statistique à la fois) se fait dans PlayerProfile.fromSnapshot.
  */
-export function migrateLegacyProfile(legacy) {
+function migrateLegacyProfile(legacy) {
   return {
     games: (legacy.games ?? []).filter(isObject).map(g => ({
       endedAt: g.end,
@@ -71,7 +74,7 @@ export function migrateLegacyProfile(legacy) {
 }
 
 /** Dépôt du profil joueur dans le stockage local du navigateur. */
-export class LocalStorageProfileRepository {
+class LocalStorageProfileRepository {
   #storage;
   #onError;
 
@@ -111,7 +114,7 @@ export class LocalStorageProfileRepository {
 }
 
 /** Préférences d'affichage et de son, séparées du profil de jeu. */
-export class LocalStoragePreferences {
+class LocalStoragePreferences {
   static DEFAULTS = Object.freeze({ soundEnabled: true });
   #storage;
 
@@ -130,3 +133,6 @@ export class LocalStoragePreferences {
     writeJson(this.#storage, PREFERENCES_KEY, preferences);
   }
 }
+
+Object.assign(LeOuLa, { PROFILE_KEY, PREFERENCES_KEY, LEGACY_KEY, MemoryStorage, browserStorage, migrateLegacyProfile, LocalStorageProfileRepository, LocalStoragePreferences });
+})(globalThis.LeOuLa ??= {});

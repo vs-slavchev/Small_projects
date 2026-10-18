@@ -1,8 +1,10 @@
-import { GameSession, DEFAULT_GAME_LENGTH } from '../domain/gameSession.js';
-import { WordSelectionPolicy } from '../domain/wordSelection.js';
-import { AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps } from '../domain/achievements.js';
-import { ProgressReport } from '../domain/progressReport.js';
-import { GameSummary, rateGame } from '../domain/gameSummary.js';
+(function (LeOuLa) {
+'use strict';
+
+const {
+  GameSession, DEFAULT_GAME_LENGTH, WordSelectionPolicy, AchievementFacts, evaluateAchievements, newlyUnlocked,
+  earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame,
+} = LeOuLa;
 
 /**
  * Cas d'utilisation du jeu. Ils orchestrent les objets du domaine et les ports
@@ -17,7 +19,7 @@ import { GameSummary, rateGame } from '../domain/gameSummary.js';
  * @param {{ bank: import('../domain/wordBank.js').WordBank, profiles: object, preferences: object,
  *           clock: { now(): number }, random?: () => number, gameLength?: number }} deps
  */
-export function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
+function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
   const profile = profiles.load();
   let prefs = preferences.load();
   const today = () => new Date(clock.now());
@@ -101,3 +103,6 @@ export function createUseCases({ bank, profiles, preferences, clock, random = Ma
     },
   });
 }
+
+Object.assign(LeOuLa, { createUseCases });
+})(globalThis.LeOuLa ??= {});

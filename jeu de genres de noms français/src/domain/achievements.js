@@ -1,13 +1,16 @@
 // Succès : chaque succès mesure un fait de l'historique du joueur et le compare
 // à un ou trois paliers (Bronze, Argent, Or). Un succès à palier unique est simplement obtenu ou non.
 
-export const TIER_NAMES = Object.freeze(['Bronze', 'Argent', 'Or']);
-export const MAX_TIER = TIER_NAMES.length;
+(function (LeOuLa) {
+'use strict';
+
+const TIER_NAMES = Object.freeze(['Bronze', 'Argent', 'Or']);
+const MAX_TIER = TIER_NAMES.length;
 
 const NIGHT_END_HOUR = 5;
 
 /** Faits mesurables tirés du profil, calculés une fois pour tous les succès. */
-export class AchievementFacts {
+class AchievementFacts {
   /**
    * @param {import('./playerProfile.js').PlayerProfile} profile
    * @param {import('./wordBank.js').WordBank} bank
@@ -54,7 +57,7 @@ export class AchievementFacts {
  * `comparison: 'below'` signifie qu'il faut passer sous le palier (temps) ;
  * `goal` décrit un palier atteint, en une ligne.
  */
-export const ACHIEVEMENTS = Object.freeze([
+const ACHIEVEMENTS = Object.freeze([
   { id: 'builder', emoji: '🧱', name: 'Bâtisseur', description: 'Bonnes réponses dans le groupe -age.',
     measure: f => f.correctByGroup.get('age') ?? 0, thresholds: [10, 30, 100], goal: n => `${n} bonnes réponses en -age` },
   { id: 'baker', emoji: '🥖', name: 'Boulanger', description: 'Bonnes réponses dans le groupe -ette.',
@@ -83,7 +86,7 @@ export const ACHIEVEMENTS = Object.freeze([
 ].map(Object.freeze));
 
 /** Avancement du joueur sur un succès. */
-export class AchievementProgress {
+class AchievementProgress {
   /** @param {typeof ACHIEVEMENTS[number]} definition @param {number|null} value @param {number[]} thresholds */
   constructor(definition, value, thresholds) {
     this.definition = definition;
@@ -129,7 +132,7 @@ export class AchievementProgress {
 }
 
 /** @param {ReturnType<typeof AchievementFacts.collect>} facts */
-export function evaluateAchievements(facts, definitions = ACHIEVEMENTS) {
+function evaluateAchievements(facts, definitions = ACHIEVEMENTS) {
   return definitions.map(def => {
     const thresholds = typeof def.thresholds === 'function' ? def.thresholds(facts) : def.thresholds;
     return new AchievementProgress(def, def.measure(facts), thresholds);
@@ -137,10 +140,13 @@ export function evaluateAchievements(facts, definitions = ACHIEVEMENTS) {
 }
 
 /** Paliers franchis entre deux évaluations. */
-export function newlyUnlocked(before, after) {
+function newlyUnlocked(before, after) {
   const previous = new Map(before.map(p => [p.id, p.reached]));
   return after.filter(p => p.reached > (previous.get(p.id) ?? 0));
 }
 
-export const earnedSteps = list => list.reduce((sum, p) => sum + p.reached, 0);
-export const totalSteps = list => list.reduce((sum, p) => sum + p.thresholds.length, 0);
+const earnedSteps = list => list.reduce((sum, p) => sum + p.reached, 0);
+const totalSteps = list => list.reduce((sum, p) => sum + p.thresholds.length, 0);
+
+Object.assign(LeOuLa, { TIER_NAMES, MAX_TIER, AchievementFacts, ACHIEVEMENTS, AchievementProgress, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps });
+})(globalThis.LeOuLa ??= {});
