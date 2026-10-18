@@ -1,7 +1,7 @@
 // Banque de mots brute : groupes (terminaisons) et mots.
 // Chaque groupe compte au moins deux mots réguliers et au plus une exception
 // (vérifié par tests/wordBank.test.js).
-// Mot : w (texte), g ('m' | 'f'), grp (id du groupe ; absent pour un mot sans règle, à apprendre par cœur), exc (exception),
+// Mot : w (texte), g ('m' | 'f'), grp (id du groupe ; absent ou null pour un mot sans règle, à apprendre par cœur), exc (exception),
 //       asp (obligatoire pour un mot en h : true si h aspiré, false si h muet),
 //       en (traduction), fun (anecdote facultative).
 // Les mots commençant par une voyelle ou un h muet prennent l'article élidé « l’ » ; un mot en y- ne s'élide pas.

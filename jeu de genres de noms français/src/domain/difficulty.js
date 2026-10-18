@@ -35,10 +35,10 @@ class Difficulty {
 
   /**
    * Règle de tirage : si le nombre tiré (0-100) est supérieur au niveau,
-   * on propose un mot régulier ; sinon une exception.
+   * on propose un mot qui suit sa règle ; sinon un mot difficile (exception ou mot sans règle).
    * @param {number} roll nombre entre 0 et 100
    */
-  callsForException(roll) {
+  callsForHardWord(roll) {
     return !(roll > this.value);
   }
 }

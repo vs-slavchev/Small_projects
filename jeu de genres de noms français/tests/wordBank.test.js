@@ -74,6 +74,17 @@ test('un mot sans règle n’a pas de groupe et n’est pas une exception', () =
   assert.equal(bank.word('squelette').followsRule, false);
   assert.throws(() => new Word({ text: 'mer', gender: Gender.FEMININE, group: null, isException: true }), /pas de groupe/);
   assert.throws(() => WordBank.fromData({ groups: [], words: [{ w: 'mer', g: 'f', grp: 'inconnu' }] }), /groupe inconnu/);
+  assert.equal(WordBank.fromData({ groups: [], words: [{ w: 'mer', g: 'f', grp: null }] }).word('mer').group, null);
+  assert.equal(new Word({ text: 'mer', gender: Gender.FEMININE }).group, null);
+});
+
+test('un mot sans règle ne finit par aucune terminaison de groupe', () => {
+  const bank = realBank();
+  const endings = bank.groups.filter(g => g.isEnding).map(g => g.suffix.slice(1));
+  for (const w of bank.words.filter(w => !w.group)) {
+    const ending = endings.find(e => w.text.endsWith(e));
+    assert.equal(ending, undefined, `« ${w.text} » finit par -${ending} : il relève de ce groupe`);
+  }
 });
 
 test('un mot connaît son article et vérifie une réponse', () => {

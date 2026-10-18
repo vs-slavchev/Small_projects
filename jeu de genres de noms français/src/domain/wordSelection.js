@@ -52,8 +52,8 @@ class WordSelectionPolicy {
       const weak = this.#stats.weakest(candidates.map(w => w.text), weakestPoolSize);
       if (weak.length) return { word: this.#bank.word(this.#choose(weak)), strategy: SelectionStrategy.WEAKEST };
     } else if (roll >= randomShare + weakestShare) {
-      const wantHard = difficulty.callsForException(this.#random() * 100);
-      const pool = candidates.filter(w => w.followsRule === !wantHard);
+      const wantHard = difficulty.callsForHardWord(this.#random() * 100);
+      const pool = candidates.filter(w => w.followsRule !== wantHard);
       if (pool.length) return { word: this.#choose(pool), strategy: SelectionStrategy.DIFFICULTY };
     }
     return { word: this.#choose(candidates), strategy: SelectionStrategy.RANDOM };

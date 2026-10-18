@@ -13,12 +13,12 @@ test('la difficulté démarre à 0, monte et baisse, sans sortir de [0, 100]', (
   assert.equal(Difficulty.of(50).afterAnswer(false).value, 50 - Difficulty.STEP_DOWN);
 });
 
-test('tirage supérieur à la difficulté → mot régulier, sinon exception', () => {
+test('tirage supérieur à la difficulté → mot qui suit sa règle, sinon mot difficile', () => {
   const d = Difficulty.of(30);
-  assert.equal(d.callsForException(31), false);
-  assert.equal(d.callsForException(30), true);
-  assert.equal(d.callsForException(5), true);
-  assert.equal(Difficulty.of(100).callsForException(99.9), true);
+  assert.equal(d.callsForHardWord(31), false);
+  assert.equal(d.callsForHardWord(30), true);
+  assert.equal(d.callsForHardWord(5), true);
+  assert.equal(Difficulty.of(100).callsForHardWord(99.9), true);
 });
 
 test('une statistique refuse plus de réussites que de passages', () => {
@@ -32,7 +32,8 @@ test('les mots les plus faibles excluent les mots jamais vus et ceux à 80 % ou 
   book.record('c', true);              // 100 % → exclu
   book.record('d', false); for (let i = 0; i < 4; i++) book.record('d', true); // 80 % → exclu
   book.record('e', false); for (let i = 0; i < 3; i++) book.record('e', true); // 75 % → gardé
-  assert.deepEqual(book.weakest(['a', 'b', 'c', 'd', 'e', 'jamais-vu'], 20), ['a', 'b', 'e']);
+  for (let i = 0; i < 4; i++) book.record('f', true); book.record('f', false); // 80 % mais dernière réponse fausse → gardé
+  assert.deepEqual(book.weakest(['a', 'b', 'c', 'd', 'e', 'f', 'jamais-vu'], 20), ['a', 'b', 'e', 'f']);
   assert.deepEqual(book.weakest(['a', 'b'], 1), ['a']);
   assert.equal(book.get('a').lastCorrect, false);
 });

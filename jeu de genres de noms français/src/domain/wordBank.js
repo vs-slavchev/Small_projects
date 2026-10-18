@@ -42,7 +42,7 @@ class Word {
    * @param {{ text: string, gender: Gender, group: WordGroup | null, isException?: boolean,
    *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
    */
-  constructor({ text, gender, group, isException = false, aspiratedH, translation = '', anecdote = null }) {
+  constructor({ text, gender, group = null, isException = false, aspiratedH, translation = '', anecdote = null }) {
     if (!text) throw new DomainError('Un mot doit avoir un texte.');
     if (!(gender instanceof Gender)) throw new DomainError(`« ${text} » : genre invalide.`);
     if (group === null) {
@@ -140,8 +140,9 @@ class WordBank {
     const groupList = groups.map(g => new WordGroup({ id: g.id, suffix: g.label, gender: Gender.fromCode(g.g), rule: g.rule }));
     const byId = new Map(groupList.map(g => [g.id, g]));
     const wordList = words.map(w => {
-      if (w.grp !== undefined && !byId.has(w.grp)) throw new DomainError(`« ${w.w} » : groupe inconnu ${w.grp}.`);
-      const group = byId.get(w.grp) ?? null;
+      // grp absent, null ou vide : mot sans règle.
+      if (w.grp && !byId.has(w.grp)) throw new DomainError(`« ${w.w} » : groupe inconnu ${w.grp}.`);
+      const group = w.grp ? byId.get(w.grp) : null;
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
         isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdote: w.fun,

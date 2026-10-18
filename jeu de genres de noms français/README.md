@@ -86,7 +86,7 @@ stateDiagram-v2
 | Un mot en h doit déclarer son h aspiré ou muet ; un mot en y- ne s'élide pas | `Word` (constructeur), champ `asp` |
 | Un enregistrement invalide est ignoré au chargement, le reste de l'historique est conservé | `PlayerProfile.fromSnapshot` |
 | 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots à 80 % ou plus) · 50 % difficulté (mot qui suit sa règle, ou mot difficile : exception ou sans règle) | `WordSelectionPolicy.pick` |
-| Tirage 0-100 > difficulté → mot régulier, sinon exception | `Difficulty.callsForException` |
+| Tirage 0-100 > difficulté → mot qui suit sa règle, sinon mot difficile (exception ou sans règle) | `Difficulty.callsForHardWord` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
 | Le chrono ne compte que le temps de réflexion | `GameSession.thinkingTime` |
 | Une partie abandonnée n'est pas enregistrée | `appMachine` (`leaveGame`), `PlayerProfile` |

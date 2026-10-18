@@ -91,8 +91,10 @@ class AchievementFacts {
         }
         if (word.group) { // les mots sans règle ne comptent pour aucun groupe
           touchedGroups.add(word.group.id);
-          if (a.correct) bump(correctByGroup, word.group.id);
-          if (a.correct && word.isException) bump(exceptionsByGroup, word.group.id);
+          if (a.correct) {
+            bump(correctByGroup, word.group.id);
+            if (word.isException) bump(exceptionsByGroup, word.group.id);
+          }
         }
       }
       if (anecdotes && allAnecdotesRead) unhurriedGames++;

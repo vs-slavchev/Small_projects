@@ -203,7 +203,7 @@ const feedback = {
     const toGender = `<span class="to ${word.gender.code}">→ ${word.gender.label}</span>`;
     let tags, rule, missTitle, missSubtitle;
     if (!group) {
-      tags = `<span class="chip exc">SANS RÈGLE</span>${toGender}`;
+      tags = `<span class="chip none">SANS RÈGLE</span>${toGender}`;
       rule = `Aucune règle ici : le genre de <b>${esc(word.text)}</b> s’apprend par cœur. Retiens-le avec son article.`;
       [missTitle, missSubtitle] = ['Pas cette fois.', 'Celui-là s’apprend par cœur.'];
     } else if (word.isException) {
@@ -234,7 +234,7 @@ const feedback = {
           <div><div class="t1">${title}</div><div class="t2">${subtitle}</div></div>
         </div>
         <div class="rule">
-          <div class="rule-tags"><span class="lbl">Groupe</span>${tags}</div>
+          <div class="rule-tags"><span class="lbl">${group ? 'Groupe' : 'Genre'}</span>${tags}</div>
           <div class="rule-text">${rule}</div>
         </div>
         ${word.anecdote ? `<div class="fun"><div class="lbl">💡 Anecdote</div><div class="fun-text">${word.anecdote}</div></div>` : ''}
