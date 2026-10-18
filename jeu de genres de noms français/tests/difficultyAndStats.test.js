@@ -25,7 +25,7 @@ test('une statistique refuse plus de réussites que de passages', () => {
   assert.throws(() => new WordStat(1, 2));
 });
 
-test('les mots les plus faibles excluent les mots jamais vus et ceux à 80 % ou plus', () => {
+test('les mots les plus faibles excluent les mots jamais vus et ceux acquis (80 % ou plus, dernière réponse juste)', () => {
   const book = new WordStatsBook();
   book.record('a', false);              // 0 %
   book.record('b', true); book.record('b', false); // 50 %

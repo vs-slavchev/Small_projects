@@ -29,7 +29,8 @@ class WordStat {
    * Mot acquis : dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
    * Une erreur ancienne, suivie d'assez de bonnes réponses, ne le fait plus revenir en révision ;
    * une erreur toute récente, si.
-   * (À ne pas confondre avec « Maître du groupe », qui regarde la dernière réponse.)
+   * (À ne pas confondre avec « Maître du groupe », qui ne regarde que la dernière réponse,
+   * pour chaque mot d'un groupe, sans seuil de réussite.)
    */
   get isMastered() {
     return this.lastCorrect === true && this.accuracy >= WordStat.MASTERY_ACCURACY;

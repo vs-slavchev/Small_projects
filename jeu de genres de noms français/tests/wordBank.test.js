@@ -78,12 +78,15 @@ test('un mot sans règle n’a pas de groupe et n’est pas une exception', () =
   assert.equal(new Word({ text: 'mer', gender: Gender.FEMININE }).group, null);
 });
 
-test('un mot sans règle ne finit par aucune terminaison de groupe', () => {
+test('un mot sans règle ne suit pas la règle d’un groupe à terminaison', () => {
+  // Un mot qui a la terminaison ET le genre d'un groupe suit sa règle : il doit en faire partie.
+  // Une simple coïncidence de terminaison avec l'autre genre reste permise.
+  // Les groupes qui ne sont pas des terminaisons (pays) ne peuvent pas se vérifier ainsi.
   const bank = realBank();
-  const endings = bank.groups.filter(g => g.isEnding).map(g => g.suffix.slice(1));
+  const endingGroups = bank.groups.filter(g => g.isEnding);
   for (const w of bank.words.filter(w => !w.group)) {
-    const ending = endings.find(e => w.text.endsWith(e));
-    assert.equal(ending, undefined, `« ${w.text} » finit par -${ending} : il relève de ce groupe`);
+    const group = endingGroups.find(g => w.text.endsWith(g.suffix.slice(1)) && g.gender === w.gender);
+    assert.equal(group, undefined, `« ${w.text} » est ${w.gender.label} et finit par ${group?.suffix} : il suit la règle de ce groupe`);
   }
 });
 

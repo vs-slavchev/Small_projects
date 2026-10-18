@@ -85,7 +85,7 @@ stateDiagram-v2
 | Mot élidé : les boutons affichent « l’ (m.) » / « l’ (f.) » ; l'explication dit « masculin » ou « féminin » | `ui/views.js` (question, explication, bilan) |
 | Un mot en h doit déclarer son h aspiré ou muet ; un mot en y- ne s'élide pas | `Word` (constructeur), champ `asp` |
 | Un enregistrement invalide est ignoré au chargement, le reste de l'historique est conservé | `PlayerProfile.fromSnapshot` |
-| 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots à 80 % ou plus) · 50 % difficulté (mot qui suit sa règle, ou mot difficile : exception ou sans règle) | `WordSelectionPolicy.pick` |
+| 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots acquis : 80 % ou plus et dernière réponse juste) · 50 % difficulté (mot qui suit sa règle, ou mot difficile : exception ou sans règle) | `WordSelectionPolicy.pick` |
 | Tirage 0-100 > difficulté → mot qui suit sa règle, sinon mot difficile (exception ou sans règle) | `Difficulty.callsForHardWord` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
 | Le chrono ne compte que le temps de réflexion | `GameSession.thinkingTime` |
