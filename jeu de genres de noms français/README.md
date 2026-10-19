@@ -25,7 +25,8 @@ src/
 │   ├── gameRecord.js          GameRecord       partie terminée, archivée
 │   ├── playerProfile.js       PlayerProfile    agrégat « joueur »
 │   ├── calendar.js            ActivityCalendar série quotidienne
-│   ├── achievements.js        succès et paliers Bronze / Argent / Or
+│   ├── holidays.js            HOLIDAYS          18 jours de fête (dates fixes, ou calculées depuis Pâques)
+│   ├── achievements.js        succès et paliers Bronze / Argent / Or ; succès cachés des jours de fête
 │   ├── progressReport.js      chronologie, tendance, message du coach
 │   └── gameSummary.js         verdict et bilan de fin de partie
 ├── application/
