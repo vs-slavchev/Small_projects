@@ -87,7 +87,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
     },
 
     getAchievements() {
-      const list = achievements();
+      const list = achievements().filter(p => p.isVisible);
       return Object.freeze({ list, earned: earnedSteps(list), total: totalSteps(list) });
     },
 

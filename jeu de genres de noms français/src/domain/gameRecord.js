@@ -74,12 +74,17 @@ class GameRecord {
   }
 
   /**
-   * Pour chaque partie, longueur de la série de parties consécutives à `threshold` % ou plus qui s'y termine.
-   * @param {GameRecord[]} games dans l'ordre chronologique @param {number} threshold @returns {number[]}
+   * Pour chaque partie, longueur de la série de parties consécutives vérifiant `test` qui s'y termine.
+   * @param {GameRecord[]} games dans l'ordre chronologique @param {(g: GameRecord) => boolean} test @returns {number[]}
    */
-  static accuracyRuns(games, threshold) {
+  static runs(games, test) {
     let run = 0;
-    return games.map(g => (run = g.accuracy >= threshold ? run + 1 : 0));
+    return games.map(g => (run = test(g) ? run + 1 : 0));
+  }
+
+  /** Séries de parties consécutives à `threshold` % ou plus. @param {GameRecord[]} games @param {number} threshold */
+  static accuracyRuns(games, threshold) {
+    return GameRecord.runs(games, g => g.accuracy >= threshold);
   }
 }
 
