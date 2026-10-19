@@ -119,7 +119,7 @@ test('verdict de fin de partie', () => {
 test('succès : 51 paliers au total, paliers franchis détectés', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
-  assert.equal(totalSteps(before), 69, '51 paliers visibles + 18 succès cachés');
+  assert.equal(totalSteps(before), 51 + LeOuLa.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   assert.equal(earnedSteps(before), 0);
   profile.recordGame(game({ correct: 10, durationMs: 12_000 }), bank);
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
@@ -139,8 +139,8 @@ test('succès à palier unique : obtenu → affiché en Or', () => {
   assert.ok(owl.isComplete);
 });
 
-/** `n` parties identiques, une par jour. */
-const series = (n, props) => Array.from({ length: n }, (_, i) => game({ endedAt: day(1 + i), ...props }));
+/** `n` parties identiques, une par jour à partir du jour `from` d'octobre. */
+const series = (n, props, from = 1) => Array.from({ length: n }, (_, i) => game({ endedAt: day(from + i), ...props }));
 
 /** Succès `id` après avoir archivé `games` dans un profil vide. */
 function progressAfter(id, games) {
@@ -207,8 +207,7 @@ test('Intouchable : 7 parties d’affilée sans faute commencées au-dessus de 9
   assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 96 })).reached, 0);
   assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 95 })).value, 0, 'il faut dépasser 95');
   assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 100, correct: 9 })).value, 0, 'une erreur suffit');
-  const perfect = start => Array.from({ length: 4 }, (_, i) => game({ endedAt: day(start + i), difficultyStart: 96 }));
-  const broken = [...perfect(1), game({ endedAt: day(5), correct: 9 }), ...perfect(6)];
+  const broken = [...series(4, { difficultyStart: 96 }), game({ endedAt: day(5), correct: 9 }), ...series(4, { difficultyStart: 96 }, 6)];
   assert.equal(progressAfter('untouchable', broken).value, 4, 'une partie ratée au milieu remet la série à zéro');
   assert.equal(LeOuLa.ACHIEVEMENTS.filter(a => !a.hidden).at(-1).id, 'untouchable');
 });
@@ -227,7 +226,7 @@ test('Pâques et les fêtes mobiles', () => {
 
 test('succès cachés : 18 jours de fête, invisibles tant qu’ils ne sont pas obtenus', () => {
   const hidden = LeOuLa.ACHIEVEMENTS.filter(a => a.hidden);
-  assert.equal(hidden.length, 18);
+  assert.equal(hidden.length, LeOuLa.HOLIDAYS.length);
   const october = progressAfter('holiday-christmas', [game({ endedAt: new Date(2026, 9, 18) })]);
   assert.equal(october.isVisible, false);
   const noel = progressAfter('holiday-christmas', [game({ endedAt: new Date(2025, 11, 25, 10) })]);

@@ -40,8 +40,6 @@ class AchievementFacts {
     let totalCorrect = 0;
     let bestDurationMs = null;
     let perfectGames = 0;
-    let extremePerfectRun = 0;
-    let longestExtremePerfectRun = 0;
     const holidaysPlayed = new Set();
     let maxCombo = 0;
     let playedAtNight = false;
@@ -70,8 +68,6 @@ class AchievementFacts {
       else if (hour < MORNING_END_HOUR) playedEarly = true;
       bump(gamesByDay, dayKey(game.endedAt));
       if (game.isPerfect) perfectGames++;
-      extremePerfectRun = game.isPerfect && game.difficultyStart > EXTREME_DIFFICULTY ? extremePerfectRun + 1 : 0;
-      longestExtremePerfectRun = Math.max(longestExtremePerfectRun, extremePerfectRun);
       for (const id of holidaysOn(game.endedAt)) holidaysPlayed.add(id);
       maxCombo = Math.max(maxCombo, game.maxCombo);
       if (bestDurationMs === null || game.durationMs < bestDurationMs) bestDurationMs = game.durationMs;
@@ -128,9 +124,10 @@ class AchievementFacts {
       longestStreak: profile.calendar.longestStreak(),
       anecdotesRead: profile.anecdotesRead,
       recoveries: profile.recoveries,
-      playedEarly, unhurriedGames, longestExtremePerfectRun, holidaysPlayed,
+      playedEarly, unhurriedGames, holidaysPlayed,
       mostGamesInADay: Math.max(0, ...gamesByDay.values()),
       longestPreciseRun: Math.max(0, ...GameRecord.accuracyRuns(profile.games, PRECISE_ACCURACY)),
+      longestExtremePerfectRun: Math.max(0, ...GameRecord.runs(profile.games, g => g.isPerfect && g.difficultyStart > EXTREME_DIFFICULTY)),
       gameCount: profile.gameCount,
       balance,
       groupsMastered: masteredGroups.size,
@@ -193,35 +190,12 @@ const ACHIEVEMENTS = Object.freeze([
   ...holidayAchievements(),
 ].map(Object.freeze));
 
-/** Succès cachés des jours de fête : nom et emoji de chacun, dans l'ordre de HOLIDAYS. */
+/** Succès cachés : un par jour de fête, obtenu en y jouant une partie. */
 function holidayAchievements() {
-  const BADGES = {
-    newYear: ['🎉', 'Bonne année'],
-    valentine: ['💌', 'Mots doux'],
-    womensDay: ['💜', 'Féminin pluriel'],
-    francophonie: ['🌍', 'Francophone'],
-    aprilFool: ['🐟', 'Poisson d’avril'],
-    easterMonday: ['🐣', 'Chasse aux œufs'],
-    labourDay: ['🌼', 'Brin de muguet'],
-    victoryDay: ['🕊️', 'Devoir de mémoire'],
-    ascension: ['☁️', 'Septième ciel'],
-    pentecost: ['🌬️', 'Second souffle'],
-    musicDay: ['🎸', 'En musique'],
-    bastilleDay: ['🎇', 'Feu d’artifice'],
-    assumption: ['🌻', 'Plein été'],
-    halloween: ['🎃', 'Citrouille'],
-    allSaints: ['🕯️', 'Toussaint'],
-    armistice: ['🎖️', 'Bleuet'],
-    christmas: ['🎄', 'Petit papa Noël'],
-    newYearsEve: ['🥂', 'Réveillon'],
-  };
-  return HOLIDAYS.map(h => {
-    const [emoji, name] = BADGES[h.id];
-    return {
-      id: `holiday-${h.id}`, emoji, name, hidden: true, description: `Jouer une partie ${h.label}.`,
-      measure: f => (f.holidaysPlayed.has(h.id) ? 1 : 0), thresholds: [1], goal: () => `Partie jouée ${h.label}`,
-    };
-  });
+  return HOLIDAYS.map(h => ({
+    id: `holiday-${h.id}`, emoji: h.emoji, name: h.badge, hidden: true, description: `Jouer une partie ${h.label}.`,
+    measure: f => (f.holidaysPlayed.has(h.id) ? 1 : 0), thresholds: [1], goal: () => `Partie jouée ${h.label}`,
+  }));
 }
 
 /** Avancement du joueur sur un succès. */
@@ -241,9 +215,8 @@ class AchievementProgress {
   get isBelowGoal() { return this.definition.comparison === 'below'; }
   get unit() { return this.definition.unit ?? ''; }
   get isSingleStep() { return this.thresholds.length === 1; }
-  get isHidden() { return this.definition.hidden === true; }
   /** Un succès caché ne se montre qu'une fois obtenu. */
-  get isVisible() { return !this.isHidden || this.reached > 0; }
+  get isVisible() { return !this.definition.hidden || this.reached > 0; }
 
   #meets(threshold) {
     if (this.value === null || this.value === undefined) return false;
