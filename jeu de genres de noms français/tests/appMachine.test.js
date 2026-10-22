@@ -5,7 +5,7 @@ import { LeOuLa } from './game.js';
 
 const {
   createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createUseCases,
-  LocalStorageProfileRepository, LocalStoragePreferences,
+  LocalStorageProfileRepository, LocalStoragePreferences, Difficulty, DEFAULT_GAME_LENGTH,
 } = LeOuLa;
 
 function setup({ storage = memoryStorage(), seed = 3 } = {}) {
@@ -102,7 +102,7 @@ test('la difficulté acquise est conservée pour la partie suivante', () => {
   const env = setup();
   playGame(env);
   env.machine.send(AppEvent.START);
-  assert.equal(env.machine.context.session.difficulty.value, 40);
+  assert.equal(env.machine.context.session.difficulty.value, DEFAULT_GAME_LENGTH * Difficulty.STEP_UP);
 });
 
 test('la progression se déverrouille à la 3ᵉ partie', () => {

@@ -18,9 +18,9 @@ src/
 ├── domain/                    Règles du jeu, sans DOM ni stockage
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
-│   ├── difficulty.js          Difficulty       0 → 100, +4 / −6 par réponse
+│   ├── difficulty.js          Difficulty       0 → 100, +2 / −6 par réponse
 │   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot
-│   ├── wordSelection.js       WordSelectionPolicy         tirage 20 / 30 / 50 %
+│   ├── wordSelection.js       WordSelectionPolicy         tirage 60 / 30 / 10 %
 │   ├── gameSession.js         GameSession      agrégat « partie en cours »
 │   ├── gameRecord.js          GameRecord       partie terminée, archivée
 │   ├── playerProfile.js       PlayerProfile    agrégat « joueur »
@@ -86,7 +86,7 @@ stateDiagram-v2
 | Mot élidé : les boutons affichent « l’ (m.) » / « l’ (f.) » ; l'explication dit « masculin » ou « féminin » | `ui/views.js` (question, explication, bilan) |
 | Un mot en h doit déclarer son h aspiré ou muet ; un mot en y- ne s'élide pas | `Word` (constructeur), champ `asp` |
 | Un enregistrement invalide est ignoré au chargement, le reste de l'historique est conservé | `PlayerProfile.fromSnapshot` |
-| 20 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots acquis : 80 % ou plus et dernière réponse juste) · 50 % difficulté (mot qui suit sa règle, ou mot difficile : exception ou sans règle) | `WordSelectionPolicy.pick` |
+| 60 % hasard · 30 % parmi les 20 mots les plus faibles (hors mots déjà vus dans la partie et mots acquis : 80 % ou plus et dernière réponse juste) · 10 % difficulté (mot qui suit sa règle, ou mot difficile : exception ou sans règle) | `WordSelectionPolicy.pick` |
 | Tirage 0-100 > difficulté → mot qui suit sa règle, sinon mot difficile (exception ou sans règle) | `Difficulty.callsForHardWord` |
 | La difficulté monte de 4, baisse de 6, persiste entre les parties | `Difficulty`, `PlayerProfile.recordGame` |
 | Le chrono ne compte que le temps de réflexion | `GameSession.thinkingTime` |
