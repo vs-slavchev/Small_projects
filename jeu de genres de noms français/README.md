@@ -18,7 +18,7 @@ src/
 ├── domain/                    Règles du jeu, sans DOM ni stockage
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
-│   ├── difficulty.js          Difficulty       0 → 100, +4 / −6 par réponse
+│   ├── difficulty.js          Difficulty       0 → 100, +2 / −6 par réponse
 │   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot
 │   ├── wordSelection.js       WordSelectionPolicy         tirage 50 / 30 / 20 %
 │   ├── gameSession.js         GameSession      agrégat « partie en cours »

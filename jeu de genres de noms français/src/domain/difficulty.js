@@ -10,7 +10,7 @@ const { DomainError } = LeOuLa;
 class Difficulty {
   static MIN = 0;
   static MAX = 100;
-  static STEP_UP = 4;
+  static STEP_UP = 2;
   static STEP_DOWN = 6;
 
   /** @param {number} value */
