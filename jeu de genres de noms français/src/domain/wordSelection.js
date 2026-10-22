@@ -11,15 +11,15 @@ const SelectionStrategy = Object.freeze({
 
 /**
  * Politique de choix du prochain mot :
- * - 50 % : un mot au hasard ;
+ * - 60 % : un mot au hasard ;
  * - 30 % : un des 20 mots au plus faible taux de réussite
  *          (hors mots déjà proposés dans la partie et mots maîtrisés, voir `WordStat.isMastered`) ;
- * - 20 % : tirage de 0 à 100 comparé à la difficulté → mot qui suit sa règle,
+ * - 10 % : tirage de 0 à 100 comparé à la difficulté → mot qui suit sa règle,
  *          ou mot difficile (exception ou mot sans règle).
  * Si une stratégie n'a aucun candidat, on se rabat sur le hasard.
  */
 class WordSelectionPolicy {
-  static DEFAULTS = Object.freeze({ randomShare: 0.5, weakestShare: 0.3, weakestPoolSize: 20 });
+  static DEFAULTS = Object.freeze({ randomShare: 0.6, weakestShare: 0.3, weakestPoolSize: 20 });
 
   #bank;
   #stats;
