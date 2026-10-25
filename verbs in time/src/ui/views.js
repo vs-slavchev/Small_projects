@@ -456,4 +456,4 @@ const VIEWS = Object.freeze({
 });
 
 Object.assign(Conjugo, { VIEWS });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

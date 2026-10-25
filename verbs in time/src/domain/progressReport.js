@@ -34,10 +34,17 @@ class ProgressReport {
   #games;
   #now;
 
-  /** @param {import('./gameRecord.js').GameRecord[]} games triées de la plus ancienne à la plus récente */
-  constructor(games, now) {
+  #bank;
+
+  /**
+   * @param {import('./gameRecord.js').GameRecord[]} games triées de la plus ancienne à la plus récente
+   * @param {Date | number} now
+   * @param {import('./conjugation.js').VerbBank} [bank] pour nommer les verbes comme ailleurs (« se lever »)
+   */
+  constructor(games, now, bank) {
     this.#games = games;
     this.#now = new Date(now);
+    this.#bank = bank;
   }
 
   get gameCount() { return this.#games.length; }
@@ -84,7 +91,7 @@ class ProgressReport {
     const timeline = this.timeline;
     const last = games.at(-1).accuracy;
     const average = this.averageAccuracy;
-    return this.#record(last) ?? rising(timeline) ?? dip(last, average) ?? trap(timeline) ?? faster(timeline)
+    return this.#record(last) ?? rising(timeline) ?? dip(last, average) ?? trap(timeline, this.#bank) ?? faster(timeline)
       ?? this.#steady() ?? (last > average ? { kind: InsightKind.ABOVE_AVERAGE, accuracy: last } : null)
       ?? { kind: InsightKind.KEEP_PRACTICING };
   }
@@ -117,7 +124,7 @@ function dip(last, average) {
 }
 
 /** Verbe le plus souvent raté à un même temps sur la chronologie, s'il l'a encore été à sa dernière apparition. */
-function trap(timeline) {
+function trap(timeline, bank) {
   const book = new PracticeStatsBook();
   for (const a of timeline.flatMap(g => g.answers)) book.record(GameRecord.practiceKeyOf(a), a.correct);
   let found = null;
@@ -127,8 +134,8 @@ function trap(timeline) {
     if (!found || misses > found.misses || (misses === found.misses && key.localeCompare(found.key) < 0)) found = { key, misses };
   }
   if (!found) return null;
-  const [verb, tense] = found.key.split('|');
-  return { kind: InsightKind.TRAP, verb, tense, misses: found.misses };
+  const [infinitive, tense] = found.key.split('|');
+  return { kind: InsightKind.TRAP, verb: bank?.verb(infinitive)?.label ?? infinitive, tense, misses: found.misses };
 }
 
 /** Temps de réponse moyen des dernières parties nettement plus court qu'au début de la chronologie. */
@@ -148,4 +155,4 @@ Object.assign(Conjugo, {
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

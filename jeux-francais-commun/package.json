@@ -1,0 +1,12 @@
+{
+  "name": "jeux-francais-commun",
+  "private": true,
+  "description": "Moteur commun aux jeux « Le ou la ? » et « Verbes dans le temps ».",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

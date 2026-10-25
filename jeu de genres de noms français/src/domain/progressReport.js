@@ -151,4 +151,4 @@ Object.assign(LeOuLa, {
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

@@ -3,7 +3,7 @@
 
 const {
   GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, AchievementFacts, evaluateAchievements, newlyUnlocked,
-  earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame,
+  earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame, DomainError,
 } = Conjugo;
 
 /**
@@ -20,6 +20,10 @@ const {
  *           clock: { now(): number }, random?: () => number, gameLength?: number }} deps
  */
 function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
+  // Un verbe ne revient pas dans une partie : la banque doit en compter assez pour tous les tours.
+  if (gameLength > bank.verbs.length) {
+    throw new DomainError(`Partie de ${gameLength} tours impossible avec ${bank.verbs.length} verbes.`);
+  }
   const profile = profiles.load();
   let prefs = preferences.load();
   const today = () => new Date(clock.now());
@@ -83,7 +87,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
     },
 
     getProgress() {
-      return new ProgressReport(profile.games, today());
+      return new ProgressReport(profile.games, today(), bank);
     },
 
     getAchievements() {
@@ -105,4 +109,4 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 }
 
 Object.assign(Conjugo, { createUseCases });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

@@ -5,7 +5,7 @@ Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune d�
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
 ```sh
-npm test    # 59 tests, avec le lanceur intégré de Node (≥ 20)
+npm test    # avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture
@@ -24,28 +24,24 @@ src/
 │   ├── gameSession.js         GameSession      agrégat « partie en cours »
 │   ├── gameRecord.js          GameRecord       partie terminée, archivée
 │   ├── playerProfile.js       PlayerProfile    agrégat « joueur »
-│   ├── calendar.js            ActivityCalendar série quotidienne
-│   ├── holidays.js            HOLIDAYS          18 jours de fête (dates fixes, ou calculées depuis Pâques)
 │   ├── achievements.js        succès et paliers Bronze / Argent / Or ; succès cachés des jours de fête
 │   ├── progressReport.js      chronologie, tendance, message du coach
 │   └── gameSummary.js         verdict et bilan de fin de partie
 ├── application/
 │   ├── useCases.js            cas d'utilisation (orchestrent domaine + ports)
-│   ├── stateMachine.js        moteur d'automate générique
 │   └── appMachine.js          automate de l'application
 ├── infrastructure/            Adaptateurs des ports
-│   ├── localStorageRepository.js   profil + préférences, migration v1 → v2
-│   └── webAudioSound.js            sons de xylophone synthétisés
+│   └── localStorageRepository.js   profil + préférences, migration v1 → v2
 ├── ui/                        Abonnés et pilotes de l'automate
 │   ├── views.js               une vue par état, HTML pur
-│   ├── renderer.js            rendu complet ou ciblé selon la transition
 │   ├── controller.js          clics, survol, clavier → événements
-│   ├── effects.js             sons et vibrations selon les transitions
 │   └── format.js              textes français (dates, durées, messages)
 └── main.js                    point d'assemblage
 ```
 
-Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global `LeOuLa` et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
+Le moteur commun aux deux jeux (automate, calendrier et série, jours de fête, sons, rendu, effets, erreurs du domaine) vit dans `../jeux-francais-commun/` et est chargé par `index.html` : le dossier doit rester à côté de celui-ci.
+
+Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global commun `JeuxFr` (nommé `LeOuLa` à l'intérieur des fichiers) et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
 
 ## Automate de l'application
 

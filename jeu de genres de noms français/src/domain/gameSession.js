@@ -139,4 +139,4 @@ class GameSession {
 }
 
 Object.assign(LeOuLa, { DEFAULT_GAME_LENGTH, Answer, GameSession });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

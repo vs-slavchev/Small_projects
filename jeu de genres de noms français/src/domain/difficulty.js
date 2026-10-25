@@ -44,4 +44,4 @@ class Difficulty {
 }
 
 Object.assign(LeOuLa, { Difficulty });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

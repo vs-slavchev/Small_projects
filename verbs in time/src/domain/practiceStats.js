@@ -12,6 +12,8 @@ class PracticeStat {
     if (!(Number.isInteger(seen) && Number.isInteger(correct) && seen >= 0 && correct >= 0 && correct <= seen)) {
       throw new DomainError(`Statistique incohérente : ${correct} / ${seen}.`);
     }
+    if (lastCorrect !== null && typeof lastCorrect !== 'boolean') throw new DomainError(`Dernière réponse invalide : ${lastCorrect}.`);
+    if ((lastCorrect === null) !== (seen === 0)) throw new DomainError('Dernière réponse incohérente avec le nombre de passages.');
     this.seen = seen;
     this.correct = correct;
     this.lastCorrect = lastCorrect;
@@ -54,4 +56,4 @@ class PracticeStatsBook {
 }
 
 Object.assign(Conjugo, { PracticeStat, PracticeStatsBook });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

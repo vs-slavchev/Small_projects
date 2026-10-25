@@ -159,4 +159,4 @@ function createAppMachine(useCases, options = {}) {
 }
 
 Object.assign(LeOuLa, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createAppMachine });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

@@ -144,6 +144,14 @@ test('succès : sélection et fermeture d’un badge, index hors limites refusé
   assert.equal(env.machine.context.selectedBadge, null);
 });
 
+test('une partie plus longue que la banque de verbes est refusée dès le départ', () => {
+  const storage = memoryStorage();
+  assert.throws(() => createUseCases({
+    bank: realBank(), profiles: new LocalStorageProfileRepository({ storage }), preferences: new LocalStoragePreferences({ storage }),
+    clock: fakeClock(), gameLength: realBank().verbs.length + 1,
+  }), /impossible/);
+});
+
 test('le réglage du son est global et persistant', () => {
   const storage = memoryStorage();
   const env = setup({ storage });

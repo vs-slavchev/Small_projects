@@ -15,7 +15,7 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
   - **personne** : je, tu, il, elle, nous, vous, ils, elles ;
   - **verbe** : un des 20 verbes de la banque, sans répétition dans une partie ;
   - **temps** : présent, imparfait, passé composé, futur proche, futur simple.
-- Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »). La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ». Des touches d'accent (é è ê à â ç î ï ô û ù ë ’) sont affichées sous le champ.
+- Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »), sauf pour un verbe pronominal avec nous ou vous : « nous levons » serait un oubli du pronom réfléchi, il faut taper « nous nous levons ». La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ». Des touches d'accent (é è ê à â ç î ï ô û ù ë ’) sont affichées sous le champ.
 - Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous et vous n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
 - Après chaque réponse, l'écran d'explication montre la forme attendue, la règle du temps, la particularité du verbe et la conjugaison complète du verbe à ce temps.
 
@@ -32,7 +32,7 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
 
 ## Architecture
 
-L'architecture est celle de « Le ou la ? ». Les dépendances vont toujours vers le centre : l'interface connaît l'application, l'application connaît le domaine, et le domaine ne connaît personne. Les fichiers sont des scripts classiques qui publient leurs exports dans l'espace de noms global `Conjugo`. `index.html` les charge dans l'ordre des dépendances, et les tests (`tests/game.js`) suivent ce même ordre.
+L'architecture est celle de « Le ou la ? ». Les dépendances vont toujours vers le centre : l'interface connaît l'application, l'application connaît le domaine, et le domaine ne connaît personne. Le moteur commun aux deux jeux (automate, calendrier et série, jours de fête, sons, rendu, effets, erreurs du domaine) vit dans `../jeux-francais-commun/` : le dossier doit rester à côté de celui-ci. Les fichiers sont des scripts classiques qui publient leurs exports dans l'espace de noms global commun `JeuxFr` (nommé `Conjugo` à l'intérieur des fichiers). `index.html` les charge dans l'ordre des dépendances, et les tests (`tests/game.js`) suivent ce même ordre.
 
 ```
 src/
@@ -44,13 +44,12 @@ src/
 │   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
 │   ├── gameRecord.js            GameRecord : partie terminée, archivée
 │   ├── playerProfile.js         PlayerProfile : joueur
-│   ├── calendar.js, holidays.js série quotidienne, jours de fête
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
 │   ├── progressReport.js        chronologie, tendance, conjugaison « piège »
 │   └── gameSummary.js           verdict et bilan de fin de partie
-├── application/                 cas d'utilisation et automate (inchangé, ANSWER porte { text })
-├── infrastructure/              stockage local (clés conjugo.*) et sons
-└── ui/                          vues, rendu, contrôleur (saisie et touches d'accent), effets
+├── application/                 cas d'utilisation et automate de l'application (ANSWER porte { text })
+├── infrastructure/              stockage local (clés conjugo.*)
+└── ui/                          vues, contrôleur (saisie et touches d'accent), textes
 ```
 
 Seuls le présent, le participe passé et les radicaux irréguliers sont stockés. Les autres formes sont calculées :

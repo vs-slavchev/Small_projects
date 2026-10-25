@@ -87,7 +87,9 @@ class LocalStoragePreferences {
   }
 
   load() {
-    return { ...LocalStoragePreferences.DEFAULTS, ...readJson(this.#storage, PREFERENCES_KEY) };
+    const stored = readJson(this.#storage, PREFERENCES_KEY);
+    const { soundEnabled } = LocalStoragePreferences.DEFAULTS;
+    return { soundEnabled: typeof stored?.soundEnabled === 'boolean' ? stored.soundEnabled : soundEnabled };
   }
 
   save(preferences) {
@@ -96,4 +98,4 @@ class LocalStoragePreferences {
 }
 
 Object.assign(Conjugo, { PROFILE_KEY, PREFERENCES_KEY, MemoryStorage, browserStorage, LocalStorageProfileRepository, LocalStoragePreferences });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

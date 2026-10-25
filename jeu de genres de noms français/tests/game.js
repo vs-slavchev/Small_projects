@@ -1,5 +1,5 @@
 // Charge les scripts du jeu dans l'ordre d'index.html (sauf main.js, qui démarre l'interface)
-// et expose l'espace de noms LeOuLa qu'ils remplissent.
+// et expose, sous le nom LeOuLa, l'espace de noms commun JeuxFr qu'ils remplissent.
 
 import { readFileSync } from 'node:fs';
 
@@ -8,4 +8,4 @@ for (const [, src] of html.matchAll(/<script src="([^"]+)"><\/script>/g)) {
   if (src !== 'src/main.js') await import(new URL(`../${src}`, import.meta.url));
 }
 
-export const { LeOuLa } = globalThis;
+export const LeOuLa = globalThis.JeuxFr;

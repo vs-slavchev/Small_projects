@@ -29,4 +29,4 @@ machine.subscribe(createEffects({
 bindController(root, machine);
 machine.start();
 
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

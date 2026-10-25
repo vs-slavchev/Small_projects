@@ -44,4 +44,4 @@ class GameSummary {
 }
 
 Object.assign(LeOuLa, { Verdict, rateGame, GameSummary });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

@@ -97,6 +97,14 @@ test('commentaire de la chronologie : le constat le plus parlant l’emporte', (
   assert.deepEqual(insight([3, 3, 3]), { kind: InsightKind.KEEP_PRACTICING });
 });
 
+test('piège : un verbe pronominal est nommé avec son « se »', () => {
+  const lever = [...firstFive.slice(0, 4), ask('lever', 'imperfect')];
+  const games = [1, 2, 3].map(d => game({ endedAt: day(d), correct: 4, questions: lever }));
+  const insight = new ProgressReport(games, day(18), bank).insight;
+  assert.equal(insight.kind, InsightKind.TRAP);
+  assert.equal(insight.verb, 'se lever');
+});
+
 test('verdict de fin de partie', () => {
   const earlier = [game({ endedAt: day(16), correct: 3 })];
   assert.equal(rateGame(game({ correct: 5 }), earlier), Verdict.PERFECT);

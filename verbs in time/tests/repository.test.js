@@ -43,6 +43,7 @@ test('un enregistrement invalide est ignoré, le reste de l’historique est con
   stored.profile.games.push({ endedAt: '2026-10-18T09:00:00.000Z', answers: [] });   // partie vide
   stored.profile.games.push({ endedAt: '2026-10-18T10:00:00.000Z', answers: [{}] }); // réponse incomplète
   stored.profile.practice['voir|present'] = { seen: 1, correct: 5 };                  // plus de réussites que de passages
+  stored.profile.practice['faire|present'] = { seen: 1, correct: 0, lastCorrect: 'false' }; // dernière réponse illisible
   storage.setItem(PROFILE_KEY, JSON.stringify(stored));
 
   const errors = [];
@@ -50,7 +51,8 @@ test('un enregistrement invalide est ignoré, le reste de l’historique est con
   assert.equal(loaded.gameCount, 1);
   assert.equal(loaded.practice.get('finir|futurSimple').seen, 1);
   assert.equal(loaded.practice.get('voir|present').seen, 0);
-  assert.equal(errors.length, 3);
+  assert.equal(loaded.practice.get('faire|present').seen, 0);
+  assert.equal(errors.length, 4);
 });
 
 test('les préférences sont conservées à part', () => {
@@ -59,6 +61,14 @@ test('les préférences sont conservées à part', () => {
   assert.equal(prefs.load().soundEnabled, true);
   prefs.save({ soundEnabled: false });
   assert.equal(new LocalStoragePreferences({ storage }).load().soundEnabled, false);
+});
+
+test('des préférences illisibles reviennent aux réglages par défaut', () => {
+  const storage = memoryStorage();
+  for (const raw of ['"on"', '{"soundEnabled":"no"}', '[1]']) {
+    storage.setItem(Conjugo.PREFERENCES_KEY, raw);
+    assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: true }, raw);
+  }
 });
 
 test('un stockage plein n’empêche pas de jouer', () => {

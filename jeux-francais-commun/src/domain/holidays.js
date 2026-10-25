@@ -1,10 +1,10 @@
 // Jours fériés français et journées mondiales, pour les succès cachés.
 // Les fêtes mobiles (Pâques, Ascension, Pentecôte) se calculent à partir de Pâques, année par année.
 
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { dayKey, addDays } = Conjugo;
+const { dayKey, addDays } = JeuxFr;
 
 /** Dimanche de Pâques (calendrier grégorien, algorithme de Meeus). */
 function easterSunday(year) {
@@ -77,5 +77,5 @@ function holidaysOn(date) {
   return calendarOf(d.getFullYear()).get(dayKey(d)) ?? [];
 }
 
-Object.assign(Conjugo, { HOLIDAYS, easterSunday, holidaysOn });
-})(globalThis.Conjugo ??= {});
+Object.assign(JeuxFr, { HOLIDAYS, easterSunday, holidaysOn });
+})(globalThis.JeuxFr ??= {});

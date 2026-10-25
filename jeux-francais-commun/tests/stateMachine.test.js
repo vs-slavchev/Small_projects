@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fakeScheduler } from './helpers.js';
-import { LeOuLa } from './game.js';
+import { fakeScheduler } from './testKit.js';
+import '../src/application/stateMachine.js';
 
-const { createMachine } = LeOuLa;
+const { createMachine } = globalThis.JeuxFr;
 
 function traffic(log = [], scheduler = fakeScheduler()) {
   const machine = createMachine({

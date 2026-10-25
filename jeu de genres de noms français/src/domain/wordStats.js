@@ -81,4 +81,4 @@ class WordStatsBook {
 }
 
 Object.assign(LeOuLa, { WordStat, WordStatsBook });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

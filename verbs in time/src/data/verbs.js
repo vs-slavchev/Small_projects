@@ -86,4 +86,4 @@ const VERB_DATA = Object.freeze([
 ]);
 
 Object.assign(Conjugo, { VERB_TYPES, VERB_DATA });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

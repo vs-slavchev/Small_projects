@@ -95,4 +95,4 @@ class GameRecord {
 }
 
 Object.assign(Conjugo, { GameRecord });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

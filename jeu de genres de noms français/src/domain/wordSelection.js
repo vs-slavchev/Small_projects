@@ -65,4 +65,4 @@ class WordSelectionPolicy {
 }
 
 Object.assign(LeOuLa, { SelectionStrategy, WordSelectionPolicy });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

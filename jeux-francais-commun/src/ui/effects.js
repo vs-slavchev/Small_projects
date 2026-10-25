@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { AppState, AppEvent } = LeOuLa;
+const { AppState, AppEvent } = JeuxFr;
 
 const BADGE_SOUND_DELAY_S = 0.9;
 const TAP_EVENTS = new Set([
@@ -33,5 +33,5 @@ function createEffects({ sound, vibrate = () => {} }) {
   };
 }
 
-Object.assign(LeOuLa, { createEffects });
-})(globalThis.LeOuLa ??= {});
+Object.assign(JeuxFr, { createEffects });
+})(globalThis.JeuxFr ??= {});

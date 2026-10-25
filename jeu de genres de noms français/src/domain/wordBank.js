@@ -161,4 +161,4 @@ class WordBank {
 }
 
 Object.assign(LeOuLa, { ELIDED_ARTICLE, WordGroup, Word, WordBank });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

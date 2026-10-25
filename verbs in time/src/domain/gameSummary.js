@@ -45,4 +45,4 @@ class GameSummary {
 }
 
 Object.assign(Conjugo, { Verdict, rateGame, GameSummary });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

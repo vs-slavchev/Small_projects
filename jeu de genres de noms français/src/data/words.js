@@ -304,4 +304,4 @@ const WORDS = Object.freeze([
 const WORD_DATA = Object.freeze({ groups: GROUPS, words: WORDS });
 
 Object.assign(LeOuLa, { GROUPS, WORDS, WORD_DATA });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

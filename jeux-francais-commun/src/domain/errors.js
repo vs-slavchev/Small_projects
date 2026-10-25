@@ -1,4 +1,4 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
 /** Violation d'une règle du domaine (invariant cassé, opération interdite dans l'état courant). */
@@ -9,5 +9,5 @@ class DomainError extends Error {
   }
 }
 
-Object.assign(Conjugo, { DomainError });
-})(globalThis.Conjugo ??= {});
+Object.assign(JeuxFr, { DomainError });
+})(globalThis.JeuxFr ??= {});

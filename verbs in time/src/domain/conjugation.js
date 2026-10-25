@@ -170,13 +170,7 @@ class Verb {
       default:
         throw new DomainError(`Temps non géré : ${tense.label}.`);
     }
-    const withSubject = rest => joinElided(person.subject, rest);
-    return new Conjugation({
-      bareForms: [...variants, ...spellings],
-      subjectForms: [...variants, ...spellings].map(withSubject),
-      display: withSubject(shown ?? variants[0]),
-      others: spellings.map(withSubject),
-    });
+    return new Conjugation({ subject: person.subject, variants, spellings, shown });
   }
 }
 
@@ -216,13 +210,21 @@ const stripAccents = text => text.normalize('NFD').replace(/\p{M}/gu, '');
 class Conjugation {
   #accepted;
 
-  /** @param {{ subjectForms: string[], bareForms: string[], display: string, others?: string[] }} props */
-  constructor({ subjectForms, bareForms, display, others = [] }) {
-    this.forms = Object.freeze([...subjectForms]);
-    this.display = display;
+  /**
+   * @param {{ subject: string, variants: string[], spellings?: string[], shown?: string }} props
+   *   formes sans sujet : accords possibles, autres orthographes, forme à afficher (par défaut la première)
+   */
+  constructor({ subject, variants, spellings = [], shown = variants[0] }) {
+    const withSubject = rest => joinElided(subject, rest);
+    const bare = [...variants, ...spellings];
+    this.forms = Object.freeze(bare.map(withSubject));
+    this.display = withSubject(shown);
     /** Autres écritures acceptées, à signaler après la réponse. */
-    this.others = Object.freeze([...others]);
-    this.#accepted = [...subjectForms, ...bareForms].map(normalizeAnswer);
+    this.others = Object.freeze(spellings.map(withSubject));
+    // Quand la forme commence par un pronom identique au sujet (« nous nous levons »), la réponse
+    // sans sujet (« nous levons ») ne se distingue pas d'un oubli du pronom réfléchi : le sujet est alors obligatoire.
+    const subjectRequired = bare.some(rest => rest.startsWith(`${subject} `));
+    this.#accepted = [...this.forms, ...(subjectRequired ? [] : bare)].map(normalizeAnswer);
     Object.freeze(this);
   }
 
@@ -292,4 +294,4 @@ class VerbBank {
 }
 
 Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

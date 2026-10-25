@@ -101,4 +101,4 @@ class PlayerProfile {
 }
 
 Object.assign(LeOuLa, { PlayerProfile });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

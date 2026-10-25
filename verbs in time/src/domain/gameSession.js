@@ -119,4 +119,4 @@ class GameSession {
 }
 
 Object.assign(Conjugo, { DEFAULT_GAME_LENGTH, Answer, GameSession });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

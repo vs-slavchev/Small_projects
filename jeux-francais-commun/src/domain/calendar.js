@@ -1,6 +1,6 @@
 // Calcul de la série quotidienne. Tout est exprimé en jours du calendrier local.
 
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
 const pad = n => String(n).padStart(2, '0');
@@ -86,5 +86,5 @@ class ActivityCalendar {
   }
 }
 
-Object.assign(Conjugo, { dayKey, addDays, startOfWeek, ActivityCalendar });
-})(globalThis.Conjugo ??= {});
+Object.assign(JeuxFr, { dayKey, addDays, startOfWeek, ActivityCalendar });
+})(globalThis.JeuxFr ??= {});

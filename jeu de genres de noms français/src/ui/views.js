@@ -448,4 +448,4 @@ const VIEWS = Object.freeze({
 });
 
 Object.assign(LeOuLa, { VIEWS });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

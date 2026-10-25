@@ -82,6 +82,11 @@ test('saisie : casse, espaces, apostrophes et sujet facultatif', () => {
   assert.equal(c.check('habites').correct, false);
   assert.ok(bank.verb('lever').conjugate(PRESENT, JE).check('me lève').correct);
   assert.equal(bank.verb('lever').conjugate(PRESENT, JE).check('lève').correct, false, 'le pronom réfléchi est obligatoire');
+  const nous = bank.verb('lever').conjugate(PRESENT, NOUS);
+  assert.ok(nous.check('nous nous levons').correct);
+  assert.equal(nous.check('nous levons').correct, false, 'avec nous et vous, le sujet est obligatoire');
+  assert.equal(bank.verb('lever').conjugate(PASSE_COMPOSE, VOUS).check('vous êtes levés').correct, false);
+  assert.ok(bank.verb('finir').conjugate(PRESENT, NOUS).check('finissons').correct, 'verbe non pronominal : sujet facultatif');
 });
 
 test('accents : réponse fausse, mais signalée comme presque juste', () => {

@@ -135,4 +135,4 @@ class LocalStoragePreferences {
 }
 
 Object.assign(LeOuLa, { PROFILE_KEY, PREFERENCES_KEY, LEGACY_KEY, MemoryStorage, browserStorage, migrateLegacyProfile, LocalStorageProfileRepository, LocalStoragePreferences });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

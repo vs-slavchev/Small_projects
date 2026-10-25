@@ -61,4 +61,4 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
 }
 
 Object.assign(LeOuLa, { bindController });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

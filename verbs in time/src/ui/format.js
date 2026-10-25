@@ -102,4 +102,4 @@ function achievementStatus(p) {
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
 Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

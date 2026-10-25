@@ -105,4 +105,4 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 }
 
 Object.assign(LeOuLa, { createUseCases });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

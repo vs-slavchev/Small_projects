@@ -1,7 +1,10 @@
 (function (Conjugo) {
 'use strict';
 
-const { AppEvent } = Conjugo;
+const { AppState, AppEvent } = Conjugo;
+
+/** Délai pendant lequel Entrée ou Espace ne quitte pas l'explication qui vient de s'afficher. */
+const CONTINUE_GUARD_MS = 600;
 
 /**
  * Traduit les gestes du joueur en événements de l'automate.
@@ -59,6 +62,12 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     });
   }
 
+  // La touche qui valide la réponse, répétée ou appuyée deux fois, ne doit pas sauter l'explication.
+  let feedbackShownAt = -Infinity;
+  machine.subscribe(({ state, changed }) => {
+    if (changed && state === AppState.FEEDBACK) feedbackShownAt = performance.now();
+  });
+
   // Clavier : Entrée ou Espace pour continuer (hors champ de saisie), Échap pour fermer un badge.
   root.ownerDocument.addEventListener('keydown', event => {
     if (event.target instanceof HTMLInputElement) return;
@@ -68,6 +77,7 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
       case ' ':
         if (machine.can(AppEvent.CONTINUE)) {
           event.preventDefault();
+          if (event.repeat || performance.now() - feedbackShownAt < CONTINUE_GUARD_MS) break;
           machine.send(AppEvent.CONTINUE);
         }
         break;
@@ -86,4 +96,4 @@ function insertAtCursor(input, text) {
 }
 
 Object.assign(Conjugo, { bindController });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

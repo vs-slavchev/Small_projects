@@ -82,4 +82,4 @@ class PlayerProfile {
 }
 
 Object.assign(Conjugo, { PlayerProfile });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

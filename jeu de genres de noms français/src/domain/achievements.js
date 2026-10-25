@@ -264,4 +264,4 @@ const earnedSteps = list => list.reduce((sum, p) => sum + p.reached, 0);
 const totalSteps = list => list.reduce((sum, p) => sum + p.thresholds.length, 0);
 
 Object.assign(LeOuLa, { TIER_NAMES, MAX_TIER, AchievementFacts, ACHIEVEMENTS, AchievementProgress, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

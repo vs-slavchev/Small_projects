@@ -36,4 +36,4 @@ class Gender {
 }
 
 Object.assign(LeOuLa, { Gender });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});

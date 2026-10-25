@@ -31,4 +31,4 @@ class QuestionPicker {
 }
 
 Object.assign(Conjugo, { QuestionPicker });
-})(globalThis.Conjugo ??= {});
+})(globalThis.JeuxFr ??= {});

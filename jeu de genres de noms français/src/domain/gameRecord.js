@@ -89,4 +89,4 @@ class GameRecord {
 }
 
 Object.assign(LeOuLa, { GameRecord });
-})(globalThis.LeOuLa ??= {});
+})(globalThis.JeuxFr ??= {});
