@@ -5,7 +5,7 @@
 
 const {
   VerbBank, createUseCases, createAppMachine, LocalStorageProfileRepository,
-  LocalStoragePreferences, browserStorage, WebAudioSound, VIEWS, AppState, AppEvent, createRenderer, createEffects, bindController,
+  LocalStoragePreferences, browserStorage, WebAudioSound, createSpeaker, VIEWS, AppState, AppEvent, createRenderer, createEffects, bindController,
 } = JeuxFr;
 
 const clock = { now: () => Date.now() };
@@ -27,8 +27,12 @@ machine.subscribe(createEffects({
   vibrate: ms => navigator.vibrate?.(ms),
   AppState,
   AppEvent,
+  extraTapEvents: [AppEvent.START_REVIEW, AppEvent.TOGGLE_TENSE, AppEvent.TOGGLE_TYPE, AppEvent.RETYPE],
 }));
-bindController(root, machine);
+const speaker = createSpeaker();
+// Sans synthèse vocale, les boutons « écouter » sont masqués.
+document.documentElement.classList.toggle('no-speech', !speaker.available);
+bindController(root, machine, { speak: speaker.speak });
 machine.start();
 
 })(globalThis.JeuxFr ??= {});

@@ -10,6 +10,9 @@ class AnswerStat {
     return new this();
   }
 
+  /** Taux de réussite à partir duquel un élément est considéré comme acquis. */
+  static MASTERY_ACCURACY = 0.8;
+
   /**
    * @param {number} seen @param {number} correct
    * @param {boolean | null} lastCorrect null si inconnue (jamais vu, ou ancien format)
@@ -29,6 +32,15 @@ class AnswerStat {
   /** Taux de réussite entre 0 et 1, ou null si jamais vu. */
   get accuracy() {
     return this.seen ? this.correct / this.seen : null;
+  }
+
+  /**
+   * Élément acquis : dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
+   * Une erreur ancienne, suivie d'assez de bonnes réponses, ne le fait plus revenir en révision ;
+   * une erreur toute récente, si.
+   */
+  get isMastered() {
+    return this.lastCorrect === true && this.accuracy >= AnswerStat.MASTERY_ACCURACY;
   }
 
   /** @param {boolean} correct @returns {this} une statistique de la même classe */
@@ -59,6 +71,20 @@ class AnswerStatsBook {
 
   entries() {
     return this.#stats.entries();
+  }
+
+  /**
+   * Parmi `candidates`, les clés déjà vues et pas encore acquises (voir `AnswerStat.isMastered`),
+   * du plus faible taux de réussite au plus élevé.
+   * @param {string[]} candidates @param {number} limit @returns {string[]}
+   */
+  weakest(candidates, limit) {
+    return candidates
+      .map(key => [key, this.get(key)])
+      .filter(([, s]) => s.seen > 0 && !s.isMastered)
+      .sort(([ka, a], [kb, b]) => a.accuracy - b.accuracy || b.seen - a.seen || ka.localeCompare(kb))
+      .slice(0, limit)
+      .map(([key]) => key);
   }
 }
 

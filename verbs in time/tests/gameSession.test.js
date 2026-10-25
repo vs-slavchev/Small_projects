@@ -6,10 +6,8 @@ import { JeuxFr } from './game.js';
 const { GameSession, Question, Tense, Person, DomainError, DEFAULT_GAME_LENGTH } = JeuxFr;
 
 const bank = realBank();
-/** Distribue les verbes de la banque dans l'ordre, au présent avec « nous », en respectant les exclusions. */
-const inOrder = ({ excludedVerbs }) => new Question({
-  verb: bank.verbs.find(v => !excludedVerbs.has(v.infinitive)), tense: Tense.PRESENT, person: Person.NOUS,
-});
+/** Distribue les verbes de la banque dans l'ordre, au présent avec « nous ». */
+const inOrder = ({ asked }) => new Question({ verb: bank.verbs[asked.length], tense: Tense.PRESENT, person: Person.NOUS });
 const start = (length = 3) => GameSession.start({ length, drawQuestion: inOrder, now: 0 });
 const right = s => s.currentQuestion.expected.forms[0];
 const WRONG = 'xyz';
@@ -69,11 +67,7 @@ test('le chrono ne compte que le temps de réflexion', () => {
   assert.equal(s.finish(70_000).durationMs, 7000);
 });
 
-test('un verbe ne revient jamais dans la même partie', () => {
-  const s = start(5);
-  const seen = new Set([s.currentQuestion.verb]);
-  for (let i = 1; i < 5; i++) { s.answer(WRONG, i); s.next(i); seen.add(s.currentQuestion.verb); }
-  assert.equal(seen.size, 5);
+test('une même question ne revient jamais dans la partie', () => {
   const same = () => new Question({ verb: bank.verbs[0], tense: Tense.PRESENT, person: Person.JE });
   const cheating = GameSession.start({ length: 2, drawQuestion: same, now: 0 });
   cheating.answer(WRONG, 1);

@@ -150,7 +150,34 @@ function faster(timeline) {
   return { kind: InsightKind.FASTER, beforeMs: Math.round(before), nowMs: Math.round(now) };
 }
 
+/** Niveau d'une conjugaison (verbe + temps) dans la grille de maîtrise. */
+const MasteryLevel = Object.freeze({ UNSEEN: 'unseen', WEAK: 'weak', LEARNING: 'learning', MASTERED: 'mastered' });
+/** Sous ce taux de réussite, une conjugaison est faible. */
+const WEAK_ACCURACY = 0.5;
+
+/**
+ * Grille de maîtrise : pour chaque type de verbe, ses verbes, et pour chaque verbe un niveau par temps.
+ * @param {import('./conjugation.js').VerbBank} bank
+ * @param {import('../../../jeux-francais-commun/src/domain/answerStats.js').AnswerStatsBook} practice
+ * @param {import('./conjugation.js').Tense[]} tenses
+ */
+function masteryGrid(bank, practice, tenses) {
+  const level = stat => {
+    if (!stat.seen) return MasteryLevel.UNSEEN;
+    if (stat.isMastered) return MasteryLevel.MASTERED;
+    return stat.accuracy < WEAK_ACCURACY ? MasteryLevel.WEAK : MasteryLevel.LEARNING;
+  };
+  return bank.types.map(type => ({
+    type,
+    verbs: bank.verbs.filter(v => v.type === type).map(verb => ({
+      verb,
+      levels: tenses.map(t => level(practice.get(GameRecord.practiceKeyOf({ verb: verb.infinitive, tense: t.id })))),
+    })),
+  }));
+}
+
 Object.assign(JeuxFr, {
+  MasteryLevel, masteryGrid,
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });

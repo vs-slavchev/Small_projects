@@ -39,30 +39,39 @@ function writeJson(storage, key, value) {
   }
 }
 
+/** Même type que la valeur par défaut ; un tableau n'est pas un objet ordinaire. */
+const sameShape = (value, fallback) => typeof value === typeof fallback && Array.isArray(value) === Array.isArray(fallback);
+
 /**
  * Préférences d'affichage et de son, séparées du profil de jeu. Une valeur stockée n'est reprise
- * que si elle a le type de sa valeur par défaut ; sinon la valeur par défaut s'applique.
+ * que si elle passe son contrôle (par défaut : même type que sa valeur par défaut) ; sinon la valeur par défaut s'applique.
  */
 class PreferenceStore {
   static DEFAULTS = Object.freeze({ soundEnabled: true });
   #storage;
   #key;
   #fallback;
+  #defaults;
+  #valid;
 
   /**
-   * @param {{ storage?: Storage, key: string, fallback?: () => object | null }} options
-   *   `fallback` fournit des préférences quand rien n'est stocké sous `key` (ancien format, par exemple).
+   * @param {{ storage?: Storage, key: string, fallback?: () => object | null,
+   *           defaults?: object, validators?: Record<string, (value: unknown) => boolean> }} options
+   *   `fallback` fournit des préférences quand rien n'est stocké sous `key` (ancien format, par exemple) ;
+   *   `validators` remplace le contrôle de type pour les réglages qui en ont besoin.
    */
-  constructor({ storage = browserStorage(), key, fallback = () => null }) {
+  constructor({ storage = browserStorage(), key, fallback = () => null, defaults = PreferenceStore.DEFAULTS, validators = {} }) {
     this.#storage = storage;
     this.#key = key;
     this.#fallback = fallback;
+    this.#defaults = defaults;
+    this.#valid = (name, value) => (validators[name] ?? (v => sameShape(v, defaults[name])))(value);
   }
 
   load() {
     const stored = readJson(this.#storage, this.#key) ?? this.#fallback();
-    return Object.fromEntries(Object.entries(PreferenceStore.DEFAULTS)
-      .map(([name, value]) => [name, typeof stored?.[name] === typeof value ? stored[name] : value]));
+    return Object.fromEntries(Object.entries(this.#defaults)
+      .map(([name, value]) => [name, stored !== null && typeof stored === 'object' && this.#valid(name, stored[name]) ? stored[name] : value]));
   }
 
   save(preferences) {

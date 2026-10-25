@@ -13,11 +13,19 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
 - Une partie compte **5 tours**.
 - À chaque tour, trois dimensions sont tirées au hasard, indépendamment :
   - **personne** : je, tu, il, elle, nous, vous, ils, elles ;
-  - **verbe** : un des 20 verbes de la banque, sans répétition dans une partie ;
+  - **verbe** : un des 20 verbes de la banque, sans répétition dans une partie (tant que les réglages le permettent) ;
   - **temps** : présent, imparfait, passé composé, futur proche, futur simple.
+- La question est située par une expression de temps (« Hier, nous … », « L’année prochaine, je … ») : le temps se comprend par son usage, pas seulement par son nom.
+- **Révisions** : environ 30 % des tirages reviennent sur une conjugaison faible (verbe + temps déjà raté et pas encore acquis). En fin de partie, « Rejouer mes erreurs » repose les questions ratées.
+- **Réglages** (⚙ sur l'accueil) : choisir les temps et les types de verbes à travailler ; il en reste toujours au moins un de chaque.
 - Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »), sauf pour un verbe pronominal avec nous ou vous : « nous levons » serait un oubli du pronom réfléchi, il faut taper « nous nous levons ». La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ». Des touches d'accent (é è ê à â ç î ï ô û ù ë ’) sont affichées sous le champ.
 - Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous et vous n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
-- Après chaque réponse, l'écran d'explication montre la forme attendue, la règle du temps, la particularité du verbe et la conjugaison complète du verbe à ce temps.
+- Après chaque réponse, l'écran d'explication montre :
+  - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, accord), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
+  - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, pronom réfléchi manquant, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
+  - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée ;
+  - la règle du temps (avec ce que l'oral ne distingue pas : parle / parles / parlent), la particularité du verbe, les verbes qui **se conjuguent comme lui**, et la conjugaison complète du verbe à ce temps, découpée elle aussi.
+- **Progrès** : en plus de la chronologie, une grille de maîtrise verbe × temps (pas encore vu, à revoir, en cours, acquis).
 
 ## Un verbe par type de conjugaison
 
@@ -38,17 +46,19 @@ L'architecture est celle de « Le ou la ? ». Les dépendances vont toujours ver
 src/
 ├── data/verbs.js                Types de verbes et 20 verbes (présent, participe, radicaux irréguliers, note)
 ├── domain/
-│   ├── conjugation.js           Person, Tense, Verb.conjugate, Conjugation.check, Question, VerbBank
-│   ├── questionSelection.js     QuestionPicker : triplet aléatoire verbe × temps × personne
+│   ├── conjugation.js           Person, Tense (règles, expressions de temps), Verb.conjugate (formes découpées),
+│   │                            Conjugation.check, Question, VerbBank
+│   ├── diagnosis.js             diagnose : nature d'une erreur (autre temps, autre personne, auxiliaire…)
+│   ├── questionSelection.js     QuestionPicker : triplet aléatoire, révisions, réglages
 │   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
 │   ├── gameRecord.js            GameRecord : partie terminée, archivée
 │   ├── playerProfile.js         PlayerProfile : joueur
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
-│   ├── progressReport.js        chronologie, tendance, conjugaison « piège »
+│   ├── progressReport.js        chronologie, tendance, conjugaison « piège », grille de maîtrise
 │   └── gameSummary.js           verdict et bilan de fin de partie
 ├── application/                 cas d'utilisation et automate de l'application (ANSWER porte { text })
-├── infrastructure/              stockage local (clés conjugo.*)
-└── ui/                          vues, contrôleur (saisie et touches d'accent), verdicts et commentaires
+├── infrastructure/              stockage local (clés conjugo.*), synthèse vocale
+└── ui/                          vues, contrôleur (saisie, recopie, touches d'accent), verdicts, diagnostics
 ```
 
 Seuls le présent, le participe passé et les radicaux irréguliers sont stockés. Les autres formes sont calculées :

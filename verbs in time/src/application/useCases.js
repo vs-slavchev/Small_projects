@@ -3,7 +3,7 @@
 
 const {
   GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, AchievementFacts, evaluateAchievements, newlyUnlocked,
-  earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame, DomainError,
+  earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame, DomainError, Tense, masteryGrid,
 } = JeuxFr;
 
 /**
@@ -12,7 +12,7 @@ const {
  *
  * Ports attendus :
  * - profiles    : { load(): PlayerProfile, save(profile): void }
- * - preferences : { load(): { soundEnabled: boolean }, save(prefs): void }
+ * - preferences : { load(): { soundEnabled: boolean, tenses: string[] | null, types: string[] | null }, save(prefs): void }
  * - clock       : { now(): number }   // millisecondes
  * - random      : () => number        // [0, 1)
  *
@@ -20,12 +20,24 @@ const {
  *           clock: { now(): number }, random?: () => number, gameLength?: number }} deps
  */
 function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
-  const picker = new QuestionPicker({ bank, random });
-  if (gameLength > picker.capacity) {
-    throw new DomainError(`Partie de ${gameLength} tours impossible : ${picker.capacity} questions possibles au plus.`);
+  if (gameLength > QuestionPicker.MIN_CAPACITY) {
+    throw new DomainError(`Partie de ${gameLength} tours impossible : ${QuestionPicker.MIN_CAPACITY} questions différentes sont garanties au plus.`);
   }
   const profile = profiles.load();
   let prefs = preferences.load();
+  const savePrefs = changes => {
+    prefs = { ...prefs, ...changes };
+    preferences.save(prefs);
+  };
+  /** Identifiants retenus dans un réglage (null : tous), avec `id` ajouté ou retiré ; null si plus rien ne resterait. */
+  const toggled = (chosen, all, id) => {
+    const current = chosen?.filter(c => all.includes(c)) ?? all;
+    const next = current.includes(id) ? current.filter(c => c !== id) : [...current, id];
+    if (!next.length || !all.includes(id)) return undefined;
+    return next.length === all.length ? null : next;
+  };
+  const tenseIds = Tense.ALL.map(t => t.id);
+  const typeIds = bank.types.map(t => t.id);
   const today = () => new Date(clock.now());
   // Évaluation des succès mise en cache : le profil ne change qu'à la fin d'une partie,
   // où le cache est invalidé. L'état « avant » d'une partie est donc déjà calculé.
@@ -44,11 +56,16 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
       });
     },
 
-    /** Démarre une partie : chaque tour tire un verbe, un temps et une personne au hasard. */
-    startGame() {
+    /**
+     * Démarre une partie : chaque tour tire un verbe, un temps et une personne parmi les réglages du joueur.
+     * @param {import('../domain/conjugation.js').Question[]} [review] questions à reposer d'abord (« Rejouer mes erreurs »)
+     */
+    startGame(review = []) {
+      const picker = new QuestionPicker({ bank, random, stats: profile.practice, tenses: prefs.tenses, types: prefs.types });
+      const queue = review.slice(0, gameLength);
       return GameSession.start({
         length: gameLength,
-        drawQuestion: request => picker.pick(request),
+        drawQuestion: request => queue.shift() ?? picker.pick(request),
         now: clock.now(),
       });
     },
@@ -89,6 +106,36 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
       return new ProgressReport(profile.games, today(), bank);
     },
 
+    /** Grille de maîtrise : niveau de chaque verbe à chaque temps. */
+    getMastery() {
+      return masteryGrid(bank, profile.practice, Tense.ALL);
+    },
+
+    /** Temps et types de verbes à travailler, cochés ou non. */
+    getSettings() {
+      const on = (chosen, id) => !chosen?.length || chosen.includes(id);
+      return Object.freeze({
+        tenses: Tense.ALL.map(tense => ({ tense, on: on(prefs.tenses, tense.id) })),
+        types: bank.types.map(type => ({ type, on: on(prefs.types, type.id) })),
+      });
+    },
+
+    /** Coche ou décoche un temps ; il en reste toujours au moins un. @returns {boolean} vrai si le réglage a changé */
+    toggleTense(id) {
+      const tenses = toggled(prefs.tenses, tenseIds, id);
+      if (tenses === undefined) return false;
+      savePrefs({ tenses });
+      return true;
+    },
+
+    /** Coche ou décoche un type de verbe ; il en reste toujours au moins un. @returns {boolean} vrai si le réglage a changé */
+    toggleType(id) {
+      const types = toggled(prefs.types, typeIds, id);
+      if (types === undefined) return false;
+      savePrefs({ types });
+      return true;
+    },
+
     getAchievements() {
       const list = achievements().filter(p => p.isVisible);
       return Object.freeze({ list, earned: earnedSteps(list), total: totalSteps(list) });
@@ -100,8 +147,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 
     /** @returns {boolean} nouvel état du son */
     toggleSound() {
-      prefs = { ...prefs, soundEnabled: !prefs.soundEnabled };
-      preferences.save(prefs);
+      savePrefs({ soundEnabled: !prefs.soundEnabled });
       return prefs.soundEnabled;
     },
   });

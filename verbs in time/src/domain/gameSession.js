@@ -1,7 +1,7 @@
 (function (JeuxFr) {
 'use strict';
 
-const { DomainError, Question, GameRecord } = JeuxFr;
+const { DomainError, Question, GameRecord, diagnose } = JeuxFr;
 
 const DEFAULT_GAME_LENGTH = 5;
 
@@ -16,6 +16,8 @@ class Answer {
     this.correct = correct;
     /** Faux uniquement à cause des accents. */
     this.accentsOnly = accentsOnly;
+    /** Nature de l'erreur (autre temps, autre personne, auxiliaire…), ou null. */
+    this.diagnosis = correct ? null : diagnose(question, given);
     Object.freeze(this);
   }
 }
@@ -39,7 +41,7 @@ class GameSession {
   #presentedAt = 0;
 
   /**
-   * @param {{ length?: number, drawQuestion: (req: { excludedVerbs: Set<string> }) => Question }} props
+   * @param {{ length?: number, drawQuestion: (req: { asked: Question[] }) => Question }} props
    */
   constructor({ length = DEFAULT_GAME_LENGTH, drawQuestion }) {
     if (!Number.isInteger(length) || length < 1) throw new DomainError(`Longueur de partie invalide : ${length}.`);
@@ -109,10 +111,11 @@ class GameSession {
   }
 
   #present(now) {
-    const excludedVerbs = new Set(this.#questions.map(q => q.verb.infinitive));
-    const question = this.#drawQuestion({ excludedVerbs });
+    const asked = [...this.#questions];
+    const question = this.#drawQuestion({ asked });
     if (!(question instanceof Question)) throw new DomainError('Question invalide.');
-    if (excludedVerbs.has(question.verb.infinitive)) throw new DomainError('Un verbe ne peut pas revenir dans la même partie.');
+    const same = q => q.verb === question.verb && q.tense === question.tense && q.person === question.person;
+    if (asked.some(same)) throw new DomainError('Une question ne peut pas revenir dans la même partie.');
     this.#questions.push(question);
     this.#presentedAt = now;
   }

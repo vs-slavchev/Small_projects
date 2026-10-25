@@ -6,18 +6,20 @@ const { AppEvent } = JeuxFr;
 /**
  * Traduit les gestes du joueur en événements de l'automate.
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
- * La réponse est saisie dans le champ `#answer` et envoyée par le formulaire ; les touches
- * `data-insert` ajoutent un caractère accentué au curseur. L'automate ignore de lui-même les événements
+ * La réponse est saisie dans le champ `#answer` et envoyée par le formulaire ; après une erreur,
+ * la bonne forme est recopiée dans `#retype`. Les touches `data-insert` ajoutent un caractère accentué
+ * au curseur, les boutons `data-speak` font lire une forme à voix haute (`speak`). L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
  * @param {HTMLElement} root
  * @param {ReturnType<typeof import('../../../jeux-francais-commun/src/application/stateMachine.js').createMachine>} machine
- * @param {{ confirm?: (message: string) => boolean }} [options]
+ * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => void }} [options]
  */
-function bindController(root, machine, { confirm = message => globalThis.confirm(message) } = {}) {
+function bindController(root, machine, { confirm = message => globalThis.confirm(message), speak = () => {} } = {}) {
   const payloadOf = el => {
-    const { to, index } = el.dataset;
+    const { to, index, id } = el.dataset;
     if (to) return { to };
+    if (id) return { id };
     if (index !== undefined) return { index: Number(index) };
     return {};
   };
@@ -29,8 +31,10 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
 
   root.addEventListener('submit', event => {
     event.preventDefault();
-    const input = event.target.querySelector('#answer');
-    if (input) machine.send(AppEvent.ANSWER, { text: input.value });
+    const answer = event.target.querySelector('#answer');
+    const retype = event.target.querySelector('#retype');
+    if (answer) machine.send(AppEvent.ANSWER, { text: answer.value });
+    else if (retype) machine.send(AppEvent.RETYPE, { text: retype.value });
   });
 
   // Une touche d'accent ne doit pas prendre le focus : le clavier du téléphone resterait fermé.
@@ -41,7 +45,12 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
   root.addEventListener('click', event => {
     const key = event.target.closest('[data-insert]');
     if (key) {
-      insertAtCursor(root.querySelector('#answer'), key.dataset.insert);
+      insertAtCursor(key.closest('form')?.querySelector('input'), key.dataset.insert);
+      return;
+    }
+    const spoken = event.target.closest('[data-speak]');
+    if (spoken) {
+      speak(spoken.dataset.speak);
       return;
     }
     const el = event.target.closest('[data-event]');

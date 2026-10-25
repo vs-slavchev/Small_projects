@@ -20,7 +20,10 @@ function setup({ storage = memoryStorage(), seed = 3 } = {}) {
   return { machine, clock, scheduler, storage, profiles };
 }
 
-/** Répond à une question (juste ou faux), laisse passer le retour visuel et attend l'explication. */
+/**
+ * Répond à une question (juste ou faux), laisse passer le retour visuel et attend l'explication ;
+ * après une erreur, recopie la bonne forme pour pouvoir continuer.
+ */
 function answerQuestion({ machine, clock, scheduler }, correct) {
   const question = machine.context.session.currentQuestion;
   clock.advance(2000);
@@ -29,6 +32,7 @@ function answerQuestion({ machine, clock, scheduler }, correct) {
   scheduler.advance(correct ? REVEAL_DELAY_MS.correct : REVEAL_DELAY_MS.wrong);
   assert.equal(machine.state, AppState.FEEDBACK);
   scheduler.advance(FEEDBACK_MIN_MS);
+  if (!correct) machine.send(AppEvent.RETYPE, { text: question.expected.forms[0] });
 }
 
 function playGame(env, pattern = Array(DEFAULT_GAME_LENGTH).fill(true)) {
@@ -66,13 +70,80 @@ test('un double appui sur une réponse est ignoré', () => {
 test('l’explication ne se quitte pas dans la foulée de la réponse', () => {
   const env = setup();
   env.machine.send(AppEvent.START);
-  env.machine.send(AppEvent.ANSWER, { text: 'xyz' });
-  env.scheduler.advance(REVEAL_DELAY_MS.wrong);
+  env.machine.send(AppEvent.ANSWER, { text: env.machine.context.session.currentQuestion.expected.forms[0] });
+  env.scheduler.advance(REVEAL_DELAY_MS.correct);
   env.machine.send(AppEvent.CONTINUE);
   assert.equal(env.machine.state, AppState.FEEDBACK, 'second appui sur Entrée ignoré');
   env.scheduler.advance(FEEDBACK_MIN_MS);
   env.machine.send(AppEvent.CONTINUE);
   assert.equal(env.machine.state, AppState.QUESTION);
+});
+
+test('après une erreur, il faut recopier la bonne forme pour continuer', () => {
+  const env = setup();
+  env.machine.send(AppEvent.START);
+  const { expected } = env.machine.context.session.currentQuestion;
+  env.machine.send(AppEvent.ANSWER, { text: 'xyz' });
+  env.scheduler.advance(REVEAL_DELAY_MS.wrong + FEEDBACK_MIN_MS);
+  env.machine.send(AppEvent.CONTINUE);
+  assert.equal(env.machine.state, AppState.FEEDBACK, 'pas encore recopiée');
+  env.machine.send(AppEvent.RETYPE, { text: 'abc' });
+  assert.deepEqual([env.machine.context.retyped, env.machine.context.retypeTried], [false, true]);
+  env.machine.send(AppEvent.RETYPE, { text: expected.forms[0] });
+  assert.equal(env.machine.context.retyped, true);
+  env.machine.send(AppEvent.CONTINUE);
+  assert.equal(env.machine.state, AppState.QUESTION);
+});
+
+test('« Rejouer mes erreurs » repose d’abord les questions ratées', () => {
+  const env = setup();
+  playGame(env, [false, true, false, true, true]);
+  const missed = env.machine.context.summary.missed.map(m => m.question);
+  env.machine.send(AppEvent.START_REVIEW);
+  assert.equal(env.machine.state, AppState.QUESTION);
+  assert.equal(env.machine.context.session.currentQuestion, missed[0]);
+  answerQuestion(env, true);
+  env.machine.send(AppEvent.CONTINUE);
+  assert.equal(env.machine.context.session.currentQuestion, missed[1]);
+});
+
+test('« Rejouer mes erreurs » n’est pas proposé après un sans-faute', () => {
+  const env = setup();
+  playGame(env);
+  env.machine.send(AppEvent.START_REVIEW);
+  assert.equal(env.machine.state, AppState.RESULTS);
+});
+
+test('réglages : les temps choisis sont les seuls demandés, et il en reste toujours un', () => {
+  const env = setup();
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.SETTINGS });
+  assert.equal(env.machine.state, AppState.SETTINGS);
+  for (const { tense } of env.machine.context.settings.tenses) {
+    if (tense.id !== 'passeCompose') env.machine.send(AppEvent.TOGGLE_TENSE, { id: tense.id });
+  }
+  env.machine.send(AppEvent.TOGGLE_TENSE, { id: 'passeCompose' });
+  assert.deepEqual(env.machine.context.settings.tenses.filter(t => t.on).map(t => t.tense.id), ['passeCompose'], 'le dernier temps reste coché');
+  env.machine.send(AppEvent.TOGGLE_TYPE, { id: 'pronominal' });
+  assert.equal(env.machine.context.settings.types.find(t => t.type.id === 'pronominal').on, false);
+  env.machine.send(AppEvent.START);
+  const asked = [];
+  for (let i = 0; i < DEFAULT_GAME_LENGTH; i++) {
+    asked.push(env.machine.context.session.currentQuestion);
+    answerQuestion(env, true);
+    env.machine.send(AppEvent.CONTINUE);
+  }
+  assert.ok(asked.every(q => q.tense.id === 'passeCompose' && !q.verb.pronominal));
+  assert.deepEqual(env.storage.getItem('conjugo.preferences.v1') && JSON.parse(env.storage.getItem('conjugo.preferences.v1')).tenses, ['passeCompose'], 'réglage enregistré');
+});
+
+test('la progression montre la grille de maîtrise', () => {
+  const env = setup();
+  playGame(env, [true, false, true, true, true]);
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.PROGRESS });
+  const cells = env.machine.context.mastery.flatMap(g => g.verbs.flatMap(v => v.levels));
+  assert.equal(cells.length, 20 * 5);
+  assert.equal(cells.filter(l => l !== 'unseen').length, 5);
+  assert.equal(cells.filter(l => l === 'weak').length, 1);
 });
 
 test('retour à l’accueil après une partie : compte à rebours de 5 s puis nouvelle partie', () => {
@@ -157,12 +228,12 @@ test('succès : sélection et fermeture d’un badge, index hors limites refusé
   assert.equal(env.machine.context.selectedBadge, null);
 });
 
-test('une partie plus longue que la banque de verbes est refusée dès le départ', () => {
+test('une partie plus longue que le nombre de questions garanties est refusée dès le départ', () => {
   const storage = memoryStorage();
   const bank = realBank();
   assert.throws(() => createUseCases({
     bank, profiles: new LocalStorageProfileRepository({ storage }), preferences: new LocalStoragePreferences({ storage }),
-    clock: fakeClock(), gameLength: bank.verbs.length + 1,
+    clock: fakeClock(), gameLength: 9,
   }), /impossible/);
 });
 

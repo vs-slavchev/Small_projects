@@ -9,9 +9,9 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Person, dayKey, PROGRESS_UNLOCK_GAMES,
-  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
-  trendText, insightText, achievementStatus, unlockedLabel,
+  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Person, Tense, dayKey, PROGRESS_UNLOCK_GAMES,
+  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, diffChars, similarity,
+  VERDICT_TEXT, trendText, insightText, diagnosisText, achievementStatus, unlockedLabel,
 } = JeuxFr;
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
@@ -42,6 +42,22 @@ function topBar(session, now, freshIndex) {
   </div>`;
 }
 
+/** Forme conjuguée découpée : chaque morceau (radical, terminaison, auxiliaire…) a sa couleur. */
+const segmented = segments => segments
+  .map(s => (s.kind === 'space' ? ' ' : `<span class="sg sg-${s.kind}">${esc(s.text)}</span>`)).join('');
+
+/** Légende des couleurs de `segmented`. */
+const SEGMENT_LEGEND = `<div class="sg-legend" aria-hidden="true">
+  <span class="sg sg-stem">radical</span><span class="sg sg-ending">terminaison</span><span class="sg sg-aux">auxiliaire</span><span class="sg sg-agreement">accord</span>
+</div>`;
+
+/** Touches d'accent, insérées dans le champ du même formulaire. */
+const accentKeys = disabled => `<div class="keys">${ACCENT_KEYS
+  .map(k => `<button type="button" class="key" data-insert="${k}" tabindex="-1"${disabled ? ' disabled' : ''}>${k}</button>`).join('')}</div>`;
+
+/** Bouton qui fait lire une forme à voix haute (masqué si le navigateur ne sait pas parler). */
+const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
+
 /** Rappel de la question : « nous · finir · futur simple ». */
 const questionLabel = question =>
   `${esc(question.person.subject)} · ${esc(question.verb.label)} · ${esc(question.tense.label)}`;
@@ -49,6 +65,17 @@ const questionLabel = question =>
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
 
 /* ---------- Accueil (avec ou sans compte à rebours) ---------- */
+
+/** Rappel des réglages quand ils restreignent l'entraînement. */
+function focusLine({ tenses, types }) {
+  const on = list => list.filter(item => item.on);
+  if (on(tenses).length === tenses.length && on(types).length === types.length) return '';
+  const parts = [
+    on(tenses).length < tenses.length && on(tenses).map(t => t.tense.label).join(', '),
+    on(types).length < types.length && on(types).map(t => t.type.label).join(', '),
+  ].filter(Boolean);
+  return `<button class="focus-line" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.SETTINGS}">🎯 ${esc(parts.join(' · '))}</button>`;
+}
 
 const countdownFill = remaining => `${((COUNTDOWN_SECONDS - remaining + 1) / COUNTDOWN_SECONDS) * 100}%`;
 
@@ -81,6 +108,7 @@ const home = {
         <div class="home-head">
           <div class="logo">verbes <span>&amp;</span> temps</div>
           <div class="head-right">
+            <button class="icon-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.SETTINGS}" aria-label="Réglages : temps et verbes à travailler">⚙️</button>
             <button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(context.soundEnabled)}">${context.soundEnabled ? '🔊' : '🔇'}</button>
             <div class="pill"><span>🔥</span>${streak} ${plural(streak, 'jour')}</div>
           </div>
@@ -93,6 +121,7 @@ const home = {
           ${message}
         </div>
         <div class="week">${days}</div>
+        ${focusLine(context.settings)}
         <div class="grow"></div>
         ${startButton}
         <div style="height:4px"></div>
@@ -142,11 +171,11 @@ const question = {
   render({ state, context }, env) {
     const { session } = context;
     const answer = session.lastAnswer;
-    const { verb, tense, person } = session.currentQuestion;
+    const { verb, tense, person, marker } = session.currentQuestion;
     const revealing = state === AppState.REVEALING;
     const combo = session.combo;
     const result = revealing ? (answer.correct ? ' good' : ' bad') : '';
-    const keys = ACCENT_KEYS.map(k => `<button type="button" class="key" data-insert="${k}" tabindex="-1"${revealing ? ' disabled' : ''}>${k}</button>`).join('');
+
     return `<div class="screen play">
       <div class="top-safe"></div>
       <div class="play-top">
@@ -159,7 +188,7 @@ const question = {
       <div class="card-wrap">
         <div class="card${result}">
           <div class="chip tense pill">${esc(tense.label)}</div>
-          <div class="person">${esc(person.subject)}</div>
+          <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
           <div class="word" style="font-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
           <div class="en">${esc(verb.translation)}</div>
         </div>
@@ -171,7 +200,7 @@ const question = {
             enterkeyhint="done" placeholder="${esc(person.subject)} …" value="${revealing ? esc(answer.given) : ''}"${revealing ? ' disabled' : ''}>
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
-        <div class="keys">${keys}</div>
+        ${accentKeys(revealing)}
       </form>
     </div>`;
   },
@@ -186,13 +215,39 @@ function sparks(count = 10, radius = 34) {
   }).join('');
 }
 
-/** Les huit personnes du temps demandé ; la ligne de la question est mise en valeur. */
+/** Les huit personnes du temps demandé, découpées ; la ligne de la question est mise en valeur. */
 function conjugationTable(question) {
   const rows = Person.ALL.map(p => {
-    const form = question.verb.conjugate(question.tense, p).display;
-    return `<div class="cj-row${p === question.person ? ' on' : ''}">${esc(form)}</div>`;
+    const form = question.verb.conjugate(question.tense, p);
+    return `<div class="cj-row${p === question.person ? ' on' : ''}">${segmented(form.segments)}</div>`;
   }).join('');
   return `<div class="cj-table">${rows}</div>`;
+}
+
+/**
+ * Réponse comparée lettre à lettre à la forme juste la plus proche (avec ou sans sujet) :
+ * lettres en trop barrées dans la réponse, lettres manquantes soulignées dans la forme juste.
+ */
+function answerDiff(given, expected) {
+  const target = expected.accepted.reduce((best, form) => (similarity(given, form) > similarity(given, best) ? form : best));
+  const parts = diffChars(given, target);
+  const show = (skip, cls) => parts.filter(p => p.type !== skip)
+    .map(p => (p.type === 'same' ? esc(p.text) : `<span class="${cls}">${esc(p.text)}</span>`)).join('');
+  return { given: show('missing', 'df-extra'), target: show('extra', 'df-missing') };
+}
+
+/** Après une erreur : recopier la bonne forme pour pouvoir continuer. */
+function retypeBlock({ retyped, retypeTried }) {
+  const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
+  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
+    <label class="lbl" for="retype">À toi</label>
+    <div class="input-row">
+      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
+      <button class="submit press" type="submit"${retyped ? ' disabled' : ''}>OK</button>
+    </div>
+    <div class="retype-status" aria-live="polite">${status}</div>
+    ${retyped ? '' : accentKeys(false)}
+  </form>`;
 }
 
 const feedback = {
@@ -215,14 +270,25 @@ const feedback = {
     const others = expected.others.length
       ? `<div class="also">Aussi accepté : ${expected.others.map(esc).join(', ')}</div>`
       : '';
+    const diff = answer.correct ? null : answerDiff(answer.given, expected);
+    const diagnosis = answer.diagnosis ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
+    const alsoLike = verb.alsoLike.length
+      ? `<div class="also-like">Se conjugue comme lui : ${verb.alsoLike.map(esc).join(', ')}.</div>`
+      : '';
+    const locked = !context.retyped;
     return `<div class="screen play fb">
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
       <div class="fb-word">
         <div class="ask">${questionLabel(question)}</div>
-        <div class="big" style="font-size:${fitFontSize(expected.display, 44, 640)}px">${esc(expected.display)}</div>
+        <div class="big-row">
+          <div class="big" style="font-size:${fitFontSize(expected.display, 44, 640)}px">${segmented(expected.segments)}</div>
+          ${speakButton(expected.forms[0])}
+        </div>
+        ${SEGMENT_LEGEND}
         ${others}
-        ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${esc(answer.given)}</s></div>`}
+        ${diff ? `<div class="you-said">Tu as répondu <span class="given">${diff.given}</span></div>
+          <div class="you-said">Il fallait <span class="target">${diff.target}</span></div>` : ''}
       </div>
       <div class="grow"></div>
       <div class="sheet">
@@ -230,6 +296,8 @@ const feedback = {
           <div class="mark">${answer.correct ? `✓${sparks()}` : '!'}</div>
           <div><div class="t1">${title}</div><div class="t2">${subtitle}</div></div>
         </div>
+        ${diagnosis}
+        ${answer.correct ? '' : retypeBlock(context)}
         <div class="rule">
           <div class="rule-tags"><span class="lbl">Temps</span><span class="chip tense">${esc(tense.label)}</span></div>
           <div class="rule-text">${tense.rule}</div>
@@ -237,14 +305,33 @@ const feedback = {
         <div class="fun">
           <div class="rule-tags"><span class="lbl">${esc(verb.label)}</span><span class="chip type">${esc(verb.type.label)}</span></div>
           <div class="fun-text">${verb.note || verb.type.rule}</div>
+          ${alsoLike}
         </div>
         <div class="rule">
           <div class="lbl">${esc(verb.label)} ${esc(tense.withPreposition)}</div>
           ${conjugationTable(question)}
         </div>
-        <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}">${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
+        <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}"${locked ? ' aria-disabled="true"' : ''}>${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
       </div>
     </div>`;
+  },
+  /** Après une erreur, le champ de copie prend le focus. */
+  mounted(root) {
+    root.querySelector('#retype')?.focus({ preventScroll: true });
+  },
+  /** Copie proposée : état du champ, et « Continuer » déverrouillé une fois la forme recopiée. */
+  patch(root, { context }) {
+    const form = root.querySelector('.retype');
+    if (!form) return;
+    form.outerHTML = retypeBlock(context);
+    const next = root.querySelector('.next-btn');
+    if (context.retyped) {
+      next.removeAttribute('aria-disabled');
+      next.focus({ preventScroll: true });
+    } else {
+      const input = root.querySelector('#retype');
+      input.focus({ preventScroll: true });
+    }
   },
 };
 
@@ -270,7 +357,7 @@ const results = {
     const review = missed.length
       ? `<div class="review">${missed.map(({ question: q, given }, i) => `<div class="miss" style="animation-delay:${400 + i * 60}ms">
           <span class="q">${questionLabel(q)}</span>
-          <b>${esc(q.expected.display)}</b>
+          <b>${segmented(q.expected.segments)}</b>
           <s>${esc(given)}</s>
         </div>`).join('')}</div>`
       : '<div class="review-none">Rien à revoir. Tout est juste.</div>';
@@ -294,7 +381,8 @@ const results = {
         </div>
         <div class="grow"></div>
         <div class="end-actions">
-          <button class="replay press" data-event="${AppEvent.START}">Rejouer</button>
+          ${missed.length ? `<button class="replay press" data-event="${AppEvent.START_REVIEW}">Rejouer mes erreurs (${missed.length})</button>` : ''}
+          <button class="${missed.length ? 'ghost' : 'replay press'}" data-event="${AppEvent.START}">${missed.length ? 'Nouvelle partie' : 'Rejouer'}</button>
           <button class="ghost" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.PROGRESS}">Voir ma progression</button>
         </div>
       </div>
@@ -337,6 +425,23 @@ function chart(timeline, today) {
   </svg>`;
 }
 
+const TENSE_ABBR = Object.freeze({ present: 'Prés.', imperfect: 'Imp.', passeCompose: 'P. c.', futurProche: 'F. pr.', futurSimple: 'F. s.' });
+const MASTERY_LABEL = Object.freeze({ unseen: 'pas encore vu', weak: 'à revoir', learning: 'en cours', mastered: 'acquis' });
+
+/** Grille de maîtrise : un verbe par ligne (regroupés par type), un temps par colonne. */
+function masteryPanel(grid) {
+  const head = `<div class="mg-row mg-head"><span></span>${Tense.ALL.map(t => `<span title="${esc(t.label)}">${TENSE_ABBR[t.id]}</span>`).join('')}</div>`;
+  const groups = grid.map(({ type, verbs }) => `<div class="mg-type">${esc(type.label)}</div>
+    ${verbs.map(({ verb, levels }) => `<div class="mg-row"><span class="mg-verb">${esc(verb.label)}</span>${levels
+      .map((level, i) => `<i class="mg-cell ${level}" title="${esc(verb.label)} ${esc(Tense.ALL[i].withPreposition)} : ${MASTERY_LABEL[level]}"></i>`).join('')}</div>`).join('')}`).join('');
+  const legend = Object.entries(MASTERY_LABEL).map(([level, label]) => `<span><i class="mg-cell ${level}"></i>${label}</span>`).join('');
+  return `<div class="panel mastery">
+    <div class="panel-head"><b>Maîtrise</b><span>verbe × temps</span></div>
+    <div class="mg">${head}${groups}</div>
+    <div class="mg-legend">${legend}</div>
+  </div>`;
+}
+
 const progress = {
   screen: 'progress',
   render({ context }, env) {
@@ -354,8 +459,7 @@ const progress = {
           <h2>${report.gameCount === 0 ? `Joue ${PROGRESS_UNLOCK_GAMES} parties pour voir ta courbe.` : `Encore ${left} ${plural(left, 'partie')} pour voir ta courbe.`}</h2>
           <p>Chaque partie terminée apparaîtra sur la chronologie.</p>
           <button class="mid-btn press" data-event="${AppEvent.START}">Jouer la partie ${report.gameCount + 1}</button>
-        </div>
-        <div class="grow"></div>`;
+        </div>`;
     } else {
       const trend = report.trend;
       const rows = report.recent.map((g, i) => `<div class="game-row" style="animation-delay:${150 + i * 50}ms">
@@ -381,6 +485,7 @@ const progress = {
       <div class="page">
         <div class="page-title">Progrès</div>
         ${body}
+        ${masteryPanel(context.mastery)}
       </div>
       ${tabbar(Destination.PROGRESS)}
     </div>`;
@@ -443,6 +548,37 @@ const achievements = {
   mounted: syncPopover,
 };
 
+/* ---------- Réglages ---------- */
+
+function settingsLists({ tenses, types }) {
+  const toggle = (event, id, label, on) =>
+    `<button class="toggle${on ? ' on' : ''}" data-event="${event}" data-id="${id}" aria-pressed="${on}"><span class="box">${on ? '✓' : ''}</span>${esc(label)}</button>`;
+  return `<div class="lbl">Temps</div>
+    <div class="toggles">${tenses.map(({ tense, on }) => toggle(AppEvent.TOGGLE_TENSE, tense.id, tense.label, on)).join('')}</div>
+    <div class="lbl">Verbes</div>
+    <div class="toggles">${types.map(({ type, on }) => toggle(AppEvent.TOGGLE_TYPE, type.id, type.label, on)).join('')}</div>`;
+}
+
+const settings = {
+  screen: 'settings',
+  render({ context }) {
+    return `<div class="screen">
+      <div class="top-safe"></div>
+      <div class="page">
+        <div class="page-title">Réglages</div>
+        <p class="settings-intro">Choisis ce que tu veux travailler. Il reste toujours au moins un temps et un type de verbe.</p>
+        <div class="settings-lists">${settingsLists(context.settings)}</div>
+        <button class="mid-btn press" data-event="${AppEvent.START}">Jouer avec ces réglages</button>
+      </div>
+      ${tabbar(Destination.HOME)}
+    </div>`;
+  },
+  patch(root, { context }) {
+    const lists = root.querySelector('.settings-lists');
+    if (lists) lists.innerHTML = settingsLists(context.settings);
+  },
+};
+
 /** Vue de chaque état de l'automate. */
 const VIEWS = Object.freeze({
   [AppState.HOME]: home,
@@ -453,6 +589,7 @@ const VIEWS = Object.freeze({
   [AppState.RESULTS]: results,
   [AppState.PROGRESS]: progress,
   [AppState.ACHIEVEMENTS]: achievements,
+  [AppState.SETTINGS]: settings,
 });
 
 Object.assign(JeuxFr, { VIEWS });

@@ -3,7 +3,7 @@
 (function (JeuxFr) {
 'use strict';
 
-const { InsightKind, Verdict, Tense, escapeHtml, formatSeconds } = JeuxFr;
+const { InsightKind, Verdict, Tense, ErrorKind, escapeHtml, formatSeconds } = JeuxFr;
 
 const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Sans faute. Impeccable.',
@@ -36,8 +36,33 @@ function insightText(insight) {
   }
 }
 
+/**
+ * Phrase qui explique une erreur (voir `diagnose`).
+ * @param {{ kind: string }} diagnosis @param {import('../domain/conjugation.js').Question} question
+ */
+function diagnosisText(diagnosis, { tense, person, verb }) {
+  switch (diagnosis.kind) {
+    case ErrorKind.ACCENTS:
+      return 'Toutes les lettres sont là : seuls les accents sont faux.';
+    case ErrorKind.OTHER_TENSE:
+      return `Tu as écrit la forme <b>${diagnosis.tense.withPreposition}</b> ; la question demandait ${tense.withPreposition}.`;
+    case ErrorKind.OTHER_PERSON:
+      return `C’est la forme de «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, le sujet est «&nbsp;${escapeHtml(person.subject)}&nbsp;».`;
+    case ErrorKind.AUXILIARY:
+      return `${escapeHtml(verb.label)} se conjugue avec <b>${diagnosis.auxiliary}</b> au passé composé${diagnosis.auxiliary === 'être' ? ' (verbes de mouvement et verbes pronominaux)' : ''}.`;
+    case ErrorKind.AGREEMENT:
+      return `Avec être, le participe s’accorde avec le sujet : <b>+e</b> au féminin, <b>+s</b> au pluriel.`;
+    case ErrorKind.MISSING_REFLEXIVE:
+      return 'Le pronom réfléchi (me, te, se, nous, vous) fait partie du verbe : il ne doit pas manquer.';
+    case ErrorKind.ENDING:
+      return `Le radical <b>${escapeHtml(diagnosis.stem)}-</b> est juste ; c’est la terminaison qui change : <b>-${escapeHtml(diagnosis.ending)}</b>.`;
+    default:
+      return '';
+  }
+}
+
 /** « au futur simple », « à l’imparfait » ; l'identifiant brut si le temps n'existe plus. */
 const tenseWithPreposition = id => Tense.ALL.find(t => t.id === id)?.withPreposition ?? escapeHtml(id);
 
-Object.assign(JeuxFr, { VERDICT_TEXT, insightText });
+Object.assign(JeuxFr, { VERDICT_TEXT, insightText, diagnosisText });
 })(globalThis.JeuxFr ??= {});

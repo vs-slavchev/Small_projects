@@ -32,6 +32,34 @@ function relativeDay(date, today) {
   return shortDate(date);
 }
 
+/**
+ * Écart lettre à lettre entre deux textes (plus longue sous-suite commune).
+ * @returns {{ type: 'same' | 'extra' | 'missing', text: string }[]} `extra` : en trop dans `given`, `missing` : absent de `given`
+ */
+function diffChars(given, expected) {
+  const a = [...given];
+  const b = [...expected];
+  const lcs = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+  }
+  const parts = [];
+  const push = (type, ch) => (parts.at(-1)?.type === type ? (parts.at(-1).text += ch) : parts.push({ type, text: ch }));
+  let i = 0;
+  let j = 0;
+  while (i < a.length || j < b.length) {
+    if (i < a.length && j < b.length && a[i] === b[j]) { push('same', a[i]); i++; j++; }
+    else if (j < b.length && (i === a.length || lcs[i][j + 1] >= lcs[i + 1][j])) { push('missing', b[j]); j++; }
+    else { push('extra', a[i]); i++; }
+  }
+  return parts;
+}
+
+/** Nombre de lettres communes, dans l'ordre : sert à choisir la forme attendue la plus proche d'une réponse. */
+const similarity = (given, expected) => diffChars(given, expected).filter(p => p.type === 'same').reduce((n, p) => n + p.text.length, 0);
+
 /** Taille de police pour qu'un texte tienne sur une ligne de l'écran. */
 const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
 
@@ -67,5 +95,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(JeuxFr, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, trendText, achievementStatus, unlockedLabel });
+Object.assign(JeuxFr, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, diffChars, similarity, fitFontSize, trendText, achievementStatus, unlockedLabel });
 })(globalThis.JeuxFr ??= {});
