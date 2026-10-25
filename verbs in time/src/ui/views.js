@@ -161,7 +161,7 @@ const question = {
           <div class="tense-chip">${esc(tense.label)}</div>
           <div class="person">${esc(person.subject)}</div>
           <div class="word" style="font-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
-          <div class="en">${esc(verb.translation)} · ${esc(verb.type.label)}</div>
+          <div class="en">${esc(verb.translation)}</div>
         </div>
       </div>
       <form class="answer-form${revealing ? ' locked' : ''}" autocomplete="off">
