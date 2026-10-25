@@ -74,13 +74,7 @@ function insightText(insight) {
 }
 
 /** « au futur simple », « à l’imparfait » ; l'identifiant brut si le temps n'existe plus. */
-function tenseWithPreposition(id) {
-  try {
-    return Tense.fromId(id).withPreposition;
-  } catch {
-    return escapeHtml(id);
-  }
-}
+const tenseWithPreposition = id => Tense.ALL.find(t => t.id === id)?.withPreposition ?? escapeHtml(id);
 
 /** @param {import('../domain/achievements.js').AchievementProgress} p */
 function achievementStatus(p) {

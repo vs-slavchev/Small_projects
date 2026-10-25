@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, practiceKey } = Conjugo;
+const { DomainError } = Conjugo;
 
 /**
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée et réponses.
@@ -13,7 +13,7 @@ class GameRecord {
   /**
    * @param {{ endedAt: Date, durationMs: number, maxCombo: number,
    *           answers: { verb: string, tense: string, person: string, given: string, correct: boolean,
-   *                      timeMs: number, readMs?: number | null }[] }} props
+   *                      timeMs: number }[] }} props
    */
   constructor({ endedAt, durationMs, maxCombo, answers }) {
     const date = new Date(endedAt);
@@ -31,7 +31,6 @@ class GameRecord {
         given: String(a.given ?? ''),
         correct: Boolean(a.correct),
         timeMs: Math.max(0, Math.round(Number(a.timeMs) || 0)),
-        readMs: a.readMs == null ? null : Math.max(0, Math.round(Number(a.readMs) || 0)),
       });
     }));
     this.correctCount = this.answers.filter(a => a.correct).length;
@@ -70,9 +69,9 @@ class GameRecord {
     return new GameRecord({ ...snapshot, endedAt: new Date(snapshot.endedAt) });
   }
 
-  /** Clé de statistiques d'une réponse archivée. */
+  /** Clé de suivi des statistiques : un verbe à un temps, toutes personnes confondues. */
   static practiceKeyOf(answer) {
-    return practiceKey(answer.verb, answer.tense);
+    return `${answer.verb}|${answer.tense}`;
   }
 
   /** Meilleur pourcentage de réussite parmi `games` (-Infinity si aucune). @param {GameRecord[]} games */

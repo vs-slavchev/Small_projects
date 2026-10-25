@@ -67,6 +67,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
      */
     finishGame(session) {
       const record = session.finish(clock.now());
+      const missed = session.answers.filter(a => !a.correct).map(({ question, given }) => ({ question, given }));
       const earlierGames = profile.games;
       const before = achievements();
       profile.recordGame(record);
@@ -76,7 +77,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
         record,
         verdict: rateGame(record, earlierGames),
         unlocked: newlyUnlocked(before, achievements()),
-        missed: record.missed.map(a => ({ question: bank.question(a), given: a.given })).filter(m => m.question),
+        missed,
         streak: profile.calendar.currentStreak(today()),
       });
     },

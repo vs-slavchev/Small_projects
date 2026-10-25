@@ -110,7 +110,7 @@ test('succès : paliers franchis détectés après une partie', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
   assert.equal(earnedSteps(before), 0);
-  assert.equal(totalSteps(before), ACHIEVEMENTS.reduce((n, a) => n + (typeof a.thresholds === 'function' ? a.thresholds({ typeCount: 0, verbCount: 0 }).length : a.thresholds.length), 0));
+  assert.equal(totalSteps(before), 46 + Conjugo.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   profile.recordGame(game({ correct: 5, durationMs: 50_000 }));
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
   const unlocked = newlyUnlocked(before, after).map(p => `${p.id}:${p.reached}`);
@@ -202,7 +202,7 @@ test('Pâques et les fêtes mobiles', () => {
 });
 
 test('succès cachés : 18 jours de fête, invisibles tant qu’ils ne sont pas obtenus', () => {
-  const hidden = Conjugo.ACHIEVEMENTS.filter(a => a.hidden);
+  const hidden = ACHIEVEMENTS.filter(a => a.hidden);
   assert.equal(hidden.length, Conjugo.HOLIDAYS.length);
   const october = progressAfter('holiday-christmas', [game({ endedAt: new Date(2026, 9, 18) })]);
   assert.equal(october.isVisible, false);

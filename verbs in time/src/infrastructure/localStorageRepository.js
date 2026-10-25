@@ -62,10 +62,9 @@ class LocalStorageProfileRepository {
    * @returns {PlayerProfile} un profil vide si rien n'est stocké.
    */
   load() {
-    const options = { onInvalid: this.#onError };
     try {
       const current = readJson(this.#storage, PROFILE_KEY);
-      if (current?.version === SCHEMA_VERSION && current.profile) return PlayerProfile.fromSnapshot(current.profile, options);
+      if (current?.version === SCHEMA_VERSION && current.profile) return PlayerProfile.fromSnapshot(current.profile, { onInvalid: this.#onError });
     } catch (error) {
       this.#onError(error);
     }

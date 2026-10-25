@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
 import { Conjugo } from './game.js';
 
-const { Tense, Person, VerbBank, VERB_DATA, VERB_TYPES, DomainError } = Conjugo;
+const { Tense, Person, Question, VerbBank, VERB_DATA, VERB_TYPES, DomainError } = Conjugo;
 
 const bank = realBank();
 const form = (infinitive, tense, person) => bank.verb(infinitive).conjugate(tense, person).display;
@@ -104,10 +104,8 @@ test('données invalides refusées au chargement', () => {
   assert.throws(() => VerbBank.fromData(VERB_DATA.filter(v => v.type !== 'pronominal')), /Aucun verbe/);
 });
 
-test('une question archivée se reconstruit ; un verbe disparu donne null', () => {
-  const q = bank.question({ verb: 'finir', tense: 'futurSimple', person: 'nous' });
+test('une question calcule sa forme attendue', () => {
+  const q = new Question({ verb: bank.verb('finir'), tense: FUTUR_SIMPLE, person: NOUS });
   assert.equal(q.expected.display, 'nous finirons');
-  assert.equal(q.practiceKey, 'finir|futurSimple');
-  assert.equal(bank.question({ verb: 'chanter', tense: 'present', person: 'je' }), null);
-  assert.equal(bank.question({ verb: 'finir', tense: 'passé simple', person: 'je' }), null);
+  assert.throws(() => new Question({ verb: bank.verb('finir'), tense: FUTUR_SIMPLE }), DomainError);
 });

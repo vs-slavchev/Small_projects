@@ -119,19 +119,16 @@ function dip(last, average) {
 /** Verbe le plus souvent raté à un même temps sur la chronologie, s'il l'a encore été à sa dernière apparition. */
 function trap(timeline) {
   const book = new PracticeStatsBook();
-  const parts = new Map();
-  for (const a of timeline.flatMap(g => g.answers)) {
-    const key = GameRecord.practiceKeyOf(a);
-    book.record(key, a.correct);
-    parts.set(key, { verb: a.verb, tense: a.tense });
-  }
+  for (const a of timeline.flatMap(g => g.answers)) book.record(GameRecord.practiceKeyOf(a), a.correct);
   let found = null;
   for (const [key, stat] of book.entries()) {
     const misses = stat.seen - stat.correct;
     if (misses < TRAP_MISSES || stat.lastCorrect) continue;
     if (!found || misses > found.misses || (misses === found.misses && key.localeCompare(found.key) < 0)) found = { key, misses };
   }
-  return found && { kind: InsightKind.TRAP, ...parts.get(found.key), misses: found.misses };
+  if (!found) return null;
+  const [verb, tense] = found.key.split('|');
+  return { kind: InsightKind.TRAP, verb, tense, misses: found.misses };
 }
 
 /** Temps de réponse moyen des dernières parties nettement plus court qu'au début de la chronologie. */

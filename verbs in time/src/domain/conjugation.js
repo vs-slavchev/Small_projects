@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, VERB_TYPES } = Conjugo;
+const { DomainError, VERB_TYPES, VERB_DATA } = Conjugo;
 
 /** Apostrophe typographique des formes affichées : « j’habite ». */
 const APOSTROPHE = '’';
@@ -41,14 +41,6 @@ class Person {
   static ELLES = new Person('elles', 5, ['es'], 'es');
   static ALL = Object.freeze([Person.JE, Person.TU, Person.IL, Person.ELLE, Person.NOUS, Person.VOUS, Person.ILS, Person.ELLES]);
 
-  /** @param {string} subject */
-  static fromSubject(subject) {
-    const person = Person.ALL.find(p => p.subject === subject);
-    if (!person) throw new DomainError(`Personne inconnue : « ${subject} ».`);
-    return person;
-  }
-
-  get code() { return this.subject; }
 }
 
 /** Temps de conjugaison. Objet valeur : les cinq instances sont fixes. */
@@ -73,13 +65,6 @@ class Tense {
   static FUTUR_SIMPLE = new Tense({ id: 'futurSimple', label: 'futur simple', withPreposition: 'au futur simple',
     rule: 'Infinitif (sans le e final des verbes en -re) + <b>-ai, -as, -a, -ons, -ez, -ont</b>. Certains radicaux sont irréguliers : ser-, aur-, ir-, fer-, viendr-, verr-, pourr-.' });
   static ALL = Object.freeze([Tense.PRESENT, Tense.IMPERFECT, Tense.PASSE_COMPOSE, Tense.FUTUR_PROCHE, Tense.FUTUR_SIMPLE]);
-
-  /** @param {string} id */
-  static fromId(id) {
-    const tense = Tense.ALL.find(t => t.id === id);
-    if (!tense) throw new DomainError(`Temps inconnu : « ${id} ».`);
-    return tense;
-  }
 }
 
 const REFLEXIVE = Object.freeze(['me', 'te', 'se', 'nous', 'vous', 'se']);
@@ -157,7 +142,10 @@ class Verb {
     if (!(person instanceof Person)) throw new DomainError('Personne invalide.');
     const i = person.index;
     const reflexive = rest => (this.pronominal ? joinElided(REFLEXIVE[i], rest) : rest);
+    // Formes sans sujet : les accords possibles (`variants`) et les autres orthographes (`spellings`)
+    // sont toutes justes ; `shown` est la forme affichée.
     let variants;
+    let spellings = [];
     let shown;
     switch (tense) {
       case Tense.PRESENT:
@@ -167,26 +155,33 @@ class Verb {
         variants = [reflexive(imperfectForm(this.imperfectStem, IMPERFECT_ENDINGS[i]))];
         break;
       case Tense.FUTUR_SIMPLE:
-        variants = this.futureStems.map(s => reflexive(s + FUTURE_ENDINGS[i]));
+        [variants, spellings] = splitFirst(this.futureStems.map(s => reflexive(s + FUTURE_ENDINGS[i])));
         break;
       case Tense.FUTUR_PROCHE:
-        variants = [`${ALLER_PRESENT[i]} ${this.pronominal ? joinElided(REFLEXIVE[i], this.infinitive) : this.infinitive}`];
+        variants = [`${ALLER_PRESENT[i]} ${reflexive(this.infinitive)}`];
         break;
       case Tense.PASSE_COMPOSE: {
         const auxiliary = AUXILIARY_PRESENT[this.auxiliary][i];
         const agrees = this.auxiliary === 'être';
-        const endings = agrees ? person.agreements : [''];
-        variants = endings.map(e => reflexive(`${auxiliary} ${agree(this.participle, e)}`));
-        if (agrees) shown = joinElided(person.subject, reflexive(`${auxiliary} ${this.participle}${person.agreementLabel}`));
+        variants = (agrees ? person.agreements : ['']).map(e => reflexive(`${auxiliary} ${agree(this.participle, e)}`));
+        if (agrees) shown = reflexive(`${auxiliary} ${this.participle}${person.agreementLabel}`);
         break;
       }
       default:
         throw new DomainError(`Temps non géré : ${tense.label}.`);
     }
-    const forms = variants.map(rest => joinElided(person.subject, rest));
-    return new Conjugation({ forms, display: shown ?? forms[0], others: shown ? [] : forms.slice(1) });
+    const withSubject = rest => joinElided(person.subject, rest);
+    return new Conjugation({
+      bareForms: [...variants, ...spellings],
+      subjectForms: [...variants, ...spellings].map(withSubject),
+      display: withSubject(shown ?? variants[0]),
+      others: spellings.map(withSubject),
+    });
   }
 }
+
+/** [premier élément dans une liste, reste] */
+const splitFirst = list => [list.slice(0, 1), list.slice(1)];
 
 /** Imparfait : le ç et le ge du radical ne sont utiles que devant a (commençais, mais commencions). */
 function imperfectForm(stem, ending) {
@@ -219,24 +214,16 @@ const stripAccents = text => text.normalize('NFD').replace(/\p{M}/gu, '');
  * Le joueur peut aussi répondre sans le pronom sujet : « finirai » vaut « je finirai ».
  */
 class Conjugation {
-  /** @param {{ forms: string[], display: string, others?: string[] }} props */
-  constructor({ forms, display, others = [] }) {
-    this.forms = Object.freeze([...forms]);
+  #accepted;
+
+  /** @param {{ subjectForms: string[], bareForms: string[], display: string, others?: string[] }} props */
+  constructor({ subjectForms, bareForms, display, others = [] }) {
+    this.forms = Object.freeze([...subjectForms]);
     this.display = display;
     /** Autres écritures acceptées, à signaler après la réponse. */
     this.others = Object.freeze([...others]);
+    this.#accepted = [...subjectForms, ...bareForms].map(normalizeAnswer);
     Object.freeze(this);
-  }
-
-  #accepted() {
-    return this.forms.flatMap(form => {
-      const full = normalizeAnswer(form);
-      const space = full.indexOf(' ');
-      const apostrophe = full.indexOf("'");
-      // Sans le sujet : tout ce qui suit le premier mot (« je ») ou « j' ».
-      const cut = apostrophe > 0 && (space < 0 || apostrophe < space) ? apostrophe + 1 : space + 1;
-      return [full, full.slice(cut)];
-    });
   }
 
   /**
@@ -245,10 +232,9 @@ class Conjugation {
    */
   check(input) {
     const given = normalizeAnswer(input);
-    const accepted = this.#accepted();
-    if (accepted.includes(given)) return { correct: true, accentsOnly: false };
+    if (this.#accepted.includes(given)) return { correct: true, accentsOnly: false };
     const bare = stripAccents(given);
-    return { correct: false, accentsOnly: accepted.some(a => stripAccents(a) === bare) };
+    return { correct: false, accentsOnly: this.#accepted.some(a => stripAccents(a) === bare) };
   }
 }
 
@@ -263,14 +249,7 @@ class Question {
     this.expected = verb.conjugate(tense, person);
     Object.freeze(this);
   }
-
-  /** Clé de suivi des statistiques : un verbe à un temps, toutes personnes confondues. */
-  get practiceKey() {
-    return practiceKey(this.verb.infinitive, this.tense.id);
-  }
 }
-
-const practiceKey = (infinitive, tenseId) => `${infinitive}|${tenseId}`;
 
 /** Banque des verbes. Valide les données au chargement. */
 class VerbBank {
@@ -292,7 +271,7 @@ class VerbBank {
     }
   }
 
-  static fromData(data = Conjugo.VERB_DATA, typeData = VERB_TYPES) {
+  static fromData(data = VERB_DATA, typeData = VERB_TYPES) {
     const types = typeData.map(t => new VerbType(t));
     const byId = new Map(types.map(t => [t.id, t]));
     const verbs = data.map(d => {
@@ -310,18 +289,7 @@ class VerbBank {
   verb(infinitive) {
     return this.#byInfinitive.get(infinitive);
   }
-
-  /** Reconstruit une question archivée ; null si le verbe n'existe plus. */
-  question({ verb, tense, person }) {
-    const found = this.verb(verb);
-    if (!found) return null;
-    try {
-      return new Question({ verb: found, tense: Tense.fromId(tense), person: Person.fromSubject(person) });
-    } catch {
-      return null;
-    }
-  }
 }
 
-Object.assign(Conjugo, { Person, Tense, VerbType, Verb, Conjugation, Question, VerbBank, normalizeAnswer, practiceKey, joinElided });
+Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank });
 })(globalThis.Conjugo ??= {});

@@ -145,7 +145,7 @@ const question = {
     const { verb, tense, person } = session.currentQuestion;
     const revealing = state === AppState.REVEALING;
     const combo = session.combo;
-    const cardState = revealing ? (answer.correct ? ' good' : ' bad') : '';
+    const result = revealing ? (answer.correct ? ' good' : ' bad') : '';
     const keys = ACCENT_KEYS.map(k => `<button type="button" class="key" data-insert="${k}" tabindex="-1"${revealing ? ' disabled' : ''}>${k}</button>`).join('');
     return `<div class="screen play">
       <div class="top-safe"></div>
@@ -157,14 +157,14 @@ const question = {
         </div>
       </div>
       <div class="card-wrap">
-        <div class="card q${cardState}">
-          <div class="tense-chip">${esc(tense.label)}</div>
+        <div class="card${result}">
+          <div class="chip tense pill">${esc(tense.label)}</div>
           <div class="person">${esc(person.subject)}</div>
           <div class="word" style="font-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
           <div class="en">${esc(verb.translation)}</div>
         </div>
       </div>
-      <form class="answer-form${revealing ? ' locked' : ''}" autocomplete="off">
+      <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off">
         <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
         <div class="input-row">
           <input id="answer" name="answer" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"

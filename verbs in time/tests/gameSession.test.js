@@ -66,9 +66,7 @@ test('le chrono ne compte que le temps de réflexion', () => {
   s.next(60_000);
   assert.equal(s.thinkingTime(62_000), 5000);
   s.answer(right(s), 64_000);
-  const record = s.finish(70_000);
-  assert.equal(record.durationMs, 7000);
-  assert.deepEqual(record.answers.map(a => a.readMs), [57_000, 6000]);
+  assert.equal(s.finish(70_000).durationMs, 7000);
 });
 
 test('un verbe ne revient jamais dans la même partie', () => {

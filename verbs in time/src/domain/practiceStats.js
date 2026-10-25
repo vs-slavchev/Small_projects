@@ -29,7 +29,7 @@ class PracticeStat {
   }
 }
 
-/** Statistiques de chaque couple verbe + temps rencontré (clé `practiceKey`). */
+/** Statistiques de chaque couple verbe + temps rencontré (clé `GameRecord.practiceKeyOf`). */
 class PracticeStatsBook {
   #stats;
 
