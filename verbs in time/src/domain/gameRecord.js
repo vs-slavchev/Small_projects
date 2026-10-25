@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { DomainError } = JeuxFr;
+const { DomainError } = Conjugo;
 
 /**
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée et réponses.
@@ -94,5 +94,5 @@ class GameRecord {
   }
 }
 
-Object.assign(JeuxFr, { GameRecord });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { GameRecord });
+})(globalThis.Conjugo ??= {});

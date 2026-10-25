@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank, seededRandom, fakeClock, fakeScheduler, memoryStorage } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { Conjugo } from './game.js';
 
 const {
   createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createUseCases,
   LocalStorageProfileRepository, LocalStoragePreferences, DEFAULT_GAME_LENGTH, ACHIEVEMENTS,
-} = JeuxFr;
+} = Conjugo;
 
 function setup({ storage = memoryStorage(), seed = 3 } = {}) {
   const clock = fakeClock();

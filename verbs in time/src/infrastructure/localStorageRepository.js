@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { PlayerProfile, browserStorage, readJson, writeJson, PreferenceStore } = JeuxFr;
+const { PlayerProfile, browserStorage, readJson, writeJson, PreferenceStore } = Conjugo;
 
 const PROFILE_KEY = 'conjugo.profile.v1';
 const PREFERENCES_KEY = 'conjugo.preferences.v1';
@@ -55,5 +55,5 @@ class LocalStoragePreferences extends PreferenceStore {
   }
 }
 
-Object.assign(JeuxFr, { PROFILE_KEY, PREFERENCES_KEY, LocalStorageProfileRepository, LocalStoragePreferences });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { PROFILE_KEY, PREFERENCES_KEY, LocalStorageProfileRepository, LocalStoragePreferences });
+})(globalThis.Conjugo ??= {});

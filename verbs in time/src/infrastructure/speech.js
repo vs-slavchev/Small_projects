@@ -1,4 +1,4 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
 /**
@@ -25,5 +25,5 @@ function createSpeaker({ synth = globalThis.speechSynthesis, Utterance = globalT
   });
 }
 
-Object.assign(JeuxFr, { createSpeaker });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { createSpeaker });
+})(globalThis.Conjugo ??= {});

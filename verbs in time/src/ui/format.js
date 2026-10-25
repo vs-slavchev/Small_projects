@@ -1,9 +1,9 @@
-// Textes propres au jeu (verdicts, commentaires de la chronologie) ; le reste de la mise en forme est commun.
+// Textes du jeu (verdicts, commentaires de la chronologie, diagnostics) ; la mise en forme générique est dans textFormat.js.
 
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { InsightKind, Verdict, Tense, ErrorKind, escapeHtml, formatSeconds } = JeuxFr;
+const { InsightKind, Verdict, Tense, ErrorKind, escapeHtml, formatSeconds } = Conjugo;
 
 const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Sans faute. Impeccable.',
@@ -64,5 +64,5 @@ function diagnosisText(diagnosis, { tense, person, verb }) {
 /** « au futur simple », « à l’imparfait » ; l'identifiant brut si le temps n'existe plus. */
 const tenseWithPreposition = id => Tense.ALL.find(t => t.id === id)?.withPreposition ?? escapeHtml(id);
 
-Object.assign(JeuxFr, { VERDICT_TEXT, insightText, diagnosisText });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { VERDICT_TEXT, insightText, diagnosisText });
+})(globalThis.Conjugo ??= {});

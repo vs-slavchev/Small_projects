@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { Conjugo } from './game.js';
 
-const { GameSession, Question, Tense, Person, DomainError, DEFAULT_GAME_LENGTH } = JeuxFr;
+const { GameSession, Question, Tense, Person, DomainError, DEFAULT_GAME_LENGTH } = Conjugo;
 
 const bank = realBank();
 /** Distribue les verbes de la banque dans l'ordre, au présent avec « nous ». */

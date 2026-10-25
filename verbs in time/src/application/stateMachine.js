@@ -1,4 +1,4 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
 /**
@@ -171,5 +171,5 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
   };
 }
 
-Object.assign(JeuxFr, { createMachine });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { createMachine });
+})(globalThis.Conjugo ??= {});

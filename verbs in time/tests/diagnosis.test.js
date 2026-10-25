@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { Conjugo } from './game.js';
 
-const { Question, Tense, Person, ErrorKind, diagnose } = JeuxFr;
+const { Question, Tense, Person, ErrorKind, diagnose } = Conjugo;
 
 const bank = realBank();
 const ask = (verb, tense, person) => new Question({ verb: bank.verb(verb), tense, person });
@@ -53,7 +53,7 @@ test('diagnostic : chaque type d’erreur est reconnu', () => {
 });
 
 test('le diagnostic est gardé avec la réponse', () => {
-  const { GameSession } = JeuxFr;
+  const { GameSession } = Conjugo;
   const q = ask('finir', Tense.IMPERFECT, Person.NOUS);
   const s = GameSession.start({ length: 1, drawQuestion: () => q, now: 0 });
   assert.equal(s.answer('nous finissons', 1).diagnosis.kind, ErrorKind.OTHER_TENSE);

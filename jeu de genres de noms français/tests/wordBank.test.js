@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { LeOuLa } from './game.js';
 
-const { Gender, Word, WordGroup, WordBank, DomainError } = JeuxFr;
+const { Gender, Word, WordGroup, WordBank, DomainError } = LeOuLa;
 
 const ette = new WordGroup({ id: 'ette', suffix: '-ette', gender: Gender.FEMININE, rule: '' });
 

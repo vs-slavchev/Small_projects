@@ -1,9 +1,9 @@
-// Mise en forme commune aux jeux : textes français (dates, durées, pluriels, succès) pour l'interface.
+// Mise en forme générique : dates, durées, pluriels, écart lettre à lettre, tendances et succès.
 
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { TrendWindow, dayKey, addDays } = JeuxFr;
+const { TrendWindow, dayKey, addDays } = Conjugo;
 
 const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
 const SECONDS_FORMAT = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
@@ -95,5 +95,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(JeuxFr, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, diffChars, similarity, fitFontSize, trendText, achievementStatus, unlockedLabel });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, diffChars, similarity, fitFontSize, trendText, achievementStatus, unlockedLabel });
+})(globalThis.Conjugo ??= {});

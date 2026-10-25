@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { DomainError, Person, Tense, Question, GameRecord, AnswerStatsBook } = JeuxFr;
+const { DomainError, Person, Tense, Question, GameRecord, AnswerStatsBook } = Conjugo;
 
 /** Part des tirages consacrée aux révisions, et nombre de conjugaisons faibles parmi lesquelles choisir. */
 const REVIEW_SHARE = 0.3;
@@ -68,5 +68,5 @@ class QuestionPicker {
   }
 }
 
-Object.assign(JeuxFr, { REVIEW_SHARE, QuestionPicker });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { REVIEW_SHARE, QuestionPicker });
+})(globalThis.Conjugo ??= {});

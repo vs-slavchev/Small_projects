@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { memoryStorage } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { Conjugo } from './game.js';
 
-const { LocalStorageProfileRepository, LocalStoragePreferences, PROFILE_KEY, PlayerProfile, GameRecord } = JeuxFr;
+const { LocalStorageProfileRepository, LocalStoragePreferences, PROFILE_KEY, PlayerProfile, GameRecord } = Conjugo;
 
 const record = (endedAt = new Date(2026, 9, 18, 9)) => new GameRecord({
   endedAt, durationMs: 41_000, maxCombo: 1,
@@ -66,11 +66,11 @@ test('les préférences sont conservées à part', () => {
 test('des préférences illisibles reviennent aux réglages par défaut', () => {
   const storage = memoryStorage();
   for (const raw of ['"on"', '{"soundEnabled":"no"}', '[1]']) {
-    storage.setItem(JeuxFr.PREFERENCES_KEY, raw);
+    storage.setItem(Conjugo.PREFERENCES_KEY, raw);
     assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: true, tenses: null, types: null }, raw);
   }
   for (const tenses of ['present', [1], { a: 1 }]) {
-    storage.setItem(JeuxFr.PREFERENCES_KEY, JSON.stringify({ soundEnabled: false, tenses }));
+    storage.setItem(Conjugo.PREFERENCES_KEY, JSON.stringify({ soundEnabled: false, tenses }));
     assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: false, tenses: null, types: null }, JSON.stringify(tenses));
   }
 });

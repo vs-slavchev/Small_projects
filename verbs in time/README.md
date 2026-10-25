@@ -1,6 +1,6 @@
 # Verbes dans le temps
 
-Jeu mobile pour apprendre la conjugaison des verbes français, dérivé de « Le ou la ? » (`../jeu de genres de noms français`). Il est écrit en JavaScript pur, sans dépendance ni service externe. Tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `../jeux-francais-commun/fonts/`.
+Jeu mobile pour apprendre la conjugaison des verbes français, inspiré de « Le ou la ? » mais entièrement autonome : aucun fichier n'est partagé avec un autre projet. Il est écrit en JavaScript pur, sans dépendance ni service externe. Tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `fonts/`.
 
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
@@ -40,25 +40,43 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
 
 ## Architecture
 
-L'architecture est celle de « Le ou la ? ». Les dépendances vont toujours vers le centre : l'interface connaît l'application, l'application connaît le domaine, et le domaine ne connaît personne. Le moteur commun aux deux jeux vit dans `../jeux-francais-commun/` (voir son README) : le dossier doit rester à côté de celui-ci. Les fichiers sont des scripts classiques qui publient leurs exports dans l'espace de noms global commun `JeuxFr`. `index.html` les charge dans l'ordre des dépendances, et les tests (`tests/game.js`) suivent ce même ordre.
+Les dépendances vont toujours vers le centre : l'interface connaît l'application, l'application connaît le domaine, et le domaine ne connaît personne. Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`) qui publient leurs exports dans l'espace de noms global `Conjugo`. `index.html` les charge dans l'ordre des dépendances, et les tests (`tests/game.js`) suivent ce même ordre.
 
 ```
 src/
-├── data/verbs.js                Types de verbes et 20 verbes (présent, participe, radicaux irréguliers, note)
+├── data/verbs.js                Types de verbes et 20 verbes (présent, participe, radicaux irréguliers, modèles, note)
 ├── domain/
+│   ├── errors.js                DomainError
 │   ├── conjugation.js           Person, Tense (règles, expressions de temps), Verb.conjugate (formes découpées),
 │   │                            Conjugation.check, Question, VerbBank
 │   ├── diagnosis.js             diagnose : nature d'une erreur (autre temps, autre personne, auxiliaire…)
-│   ├── questionSelection.js     QuestionPicker : triplet aléatoire, révisions, réglages
-│   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
+│   ├── calendar.js              dayKey, addDays, ActivityCalendar (série quotidienne)
+│   ├── answerStats.js           AnswerStat, AnswerStatsBook : réussites par verbe et par temps, conjugaisons faibles
 │   ├── gameRecord.js            GameRecord : partie terminée, archivée
+│   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
+│   ├── questionSelection.js     QuestionPicker : triplet aléatoire, révisions, réglages
 │   ├── playerProfile.js         PlayerProfile : joueur
+│   ├── holidays.js              jours de fête (succès cachés)
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
 │   ├── progressReport.js        chronologie, tendance, conjugaison « piège », grille de maîtrise
 │   └── gameSummary.js           verdict et bilan de fin de partie
-├── application/                 cas d'utilisation et automate de l'application (ANSWER porte { text })
-├── infrastructure/              stockage local (clés conjugo.*), synthèse vocale
-└── ui/                          vues, contrôleur (saisie, recopie, touches d'accent), verdicts, diagnostics
+├── application/
+│   ├── stateMachine.js          moteur d'automate générique
+│   ├── useCases.js              cas d'utilisation (orchestrent domaine + ports)
+│   └── appMachine.js            automate de l'application
+├── infrastructure/
+│   ├── storage.js               localStorage ou mémoire, JSON tolérant, PreferenceStore
+│   ├── localStorageRepository.js  profil et préférences (clés conjugo.*)
+│   ├── webAudioSound.js         sons synthétisés
+│   └── speech.js                lecture à voix haute
+├── ui/
+│   ├── textFormat.js            mise en forme générique (dates, durées, écart lettre à lettre, succès)
+│   ├── format.js                verdicts, commentaires de la chronologie, diagnostics
+│   ├── views.js                 une vue par état, HTML pur
+│   ├── renderer.js              rendu complet ou ciblé selon la transition
+│   ├── controller.js            clics, saisie, recopie, touches d'accent → événements
+│   └── effects.js               sons et vibrations selon les transitions
+└── main.js                      point d'assemblage
 ```
 
 Seuls le présent, le participe passé et les radicaux irréguliers sont stockés. Les autres formes sont calculées :

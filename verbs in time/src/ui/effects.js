@@ -1,4 +1,4 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
 const BADGE_SOUND_DELAY_S = 0.9;
@@ -33,5 +33,5 @@ function createEffects({ sound, vibrate = () => {}, AppState, AppEvent, extraTap
   };
 }
 
-Object.assign(JeuxFr, { createEffects });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { createEffects });
+})(globalThis.Conjugo ??= {});

@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar } = JeuxFr;
+const { GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar } = Conjugo;
 
 /**
  * Tout ce que le jeu sait du joueur (agrégat) : parties terminées, statistiques par verbe et par temps,
@@ -81,5 +81,5 @@ class PlayerProfile {
   }
 }
 
-Object.assign(JeuxFr, { PlayerProfile });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { PlayerProfile });
+})(globalThis.Conjugo ??= {});

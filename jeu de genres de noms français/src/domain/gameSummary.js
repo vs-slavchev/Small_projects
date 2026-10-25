@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
-const { addDays, GameRecord } = JeuxFr;
+const { addDays, GameRecord } = LeOuLa;
 
 /** Appréciation d'une partie, du meilleur au moins bon. */
 const Verdict = Object.freeze({
@@ -43,5 +43,5 @@ class GameSummary {
   }
 }
 
-Object.assign(JeuxFr, { Verdict, rateGame, GameSummary });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { Verdict, rateGame, GameSummary });
+})(globalThis.LeOuLa ??= {});

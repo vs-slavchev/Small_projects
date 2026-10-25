@@ -1,4 +1,4 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
 /** Stockage en mémoire, utilisé quand localStorage est indisponible (navigation privée stricte, etc.). */
@@ -79,5 +79,5 @@ class PreferenceStore {
   }
 }
 
-Object.assign(JeuxFr, { MemoryStorage, browserStorage, readJson, writeJson, PreferenceStore });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { MemoryStorage, browserStorage, readJson, writeJson, PreferenceStore });
+})(globalThis.Conjugo ??= {});

@@ -5,14 +5,14 @@
 // - mounted(root, snapshot) : effets après insertion dans le DOM ; peut retourner une fonction de nettoyage,
 //                             appelée avant le rendu suivant.
 
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
 const {
   AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
   escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
   trendText, insightText, achievementStatus, unlockedLabel,
-} = JeuxFr;
+} = LeOuLa;
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -447,5 +447,5 @@ const VIEWS = Object.freeze({
   [AppState.ACHIEVEMENTS]: achievements,
 });
 
-Object.assign(JeuxFr, { VIEWS });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { VIEWS });
+})(globalThis.LeOuLa ??= {});

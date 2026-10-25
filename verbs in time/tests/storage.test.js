@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import '../src/infrastructure/storage.js';
+import { Conjugo } from './game.js';
 
-const { MemoryStorage, PreferenceStore, writeJson } = globalThis.JeuxFr;
+const { MemoryStorage, PreferenceStore, writeJson } = Conjugo;
 
 test('préférences : seules les valeurs du bon type sont reprises', () => {
   const storage = new MemoryStorage();

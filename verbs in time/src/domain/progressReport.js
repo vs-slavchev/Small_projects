@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { addDays, GameRecord, AnswerStatsBook } = JeuxFr;
+const { addDays, GameRecord, AnswerStatsBook } = Conjugo;
 
 const PROGRESS_UNLOCK_GAMES = 3;
 const TIMELINE_SIZE = 12;
@@ -158,7 +158,7 @@ const WEAK_ACCURACY = 0.5;
 /**
  * Grille de maîtrise : pour chaque type de verbe, ses verbes, et pour chaque verbe un niveau par temps.
  * @param {import('./conjugation.js').VerbBank} bank
- * @param {import('../../../jeux-francais-commun/src/domain/answerStats.js').AnswerStatsBook} practice
+ * @param {import('./answerStats.js').AnswerStatsBook} practice
  * @param {import('./conjugation.js').Tense[]} tenses
  */
 function masteryGrid(bank, practice, tenses) {
@@ -176,9 +176,9 @@ function masteryGrid(bank, practice, tenses) {
   }));
 }
 
-Object.assign(JeuxFr, {
+Object.assign(Conjugo, {
   MasteryLevel, masteryGrid,
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });
-})(globalThis.JeuxFr ??= {});
+})(globalThis.Conjugo ??= {});

@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { DomainError, VERB_TYPES, VERB_DATA } = JeuxFr;
+const { DomainError, VERB_TYPES, VERB_DATA } = Conjugo;
 
 /** Apostrophe typographique des formes affichées : « j’habite ». */
 const APOSTROPHE = '’';
@@ -351,5 +351,5 @@ class VerbBank {
   }
 }
 
-Object.assign(JeuxFr, { Person, Tense, Verb, Question, VerbBank, normalizeAnswer, stripAccents });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank, normalizeAnswer, stripAccents });
+})(globalThis.Conjugo ??= {});

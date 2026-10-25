@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { DomainError, Question, GameRecord, diagnose } = JeuxFr;
+const { DomainError, Question, GameRecord, diagnose } = Conjugo;
 
 const DEFAULT_GAME_LENGTH = 5;
 
@@ -121,5 +121,5 @@ class GameSession {
   }
 }
 
-Object.assign(JeuxFr, { DEFAULT_GAME_LENGTH, Answer, GameSession });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { DEFAULT_GAME_LENGTH, Answer, GameSession });
+})(globalThis.Conjugo ??= {});

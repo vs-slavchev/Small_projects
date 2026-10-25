@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
-const { DomainError } = JeuxFr;
+const { DomainError } = LeOuLa;
 
 const SelectionStrategy = Object.freeze({
   RANDOM: 'random',
@@ -64,5 +64,5 @@ class WordSelectionPolicy {
   }
 }
 
-Object.assign(JeuxFr, { SelectionStrategy, WordSelectionPolicy });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { SelectionStrategy, WordSelectionPolicy });
+})(globalThis.LeOuLa ??= {});

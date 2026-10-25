@@ -1,6 +1,6 @@
 // Sons synthétisés avec Web Audio : timbre doux de xylophone, aucun fichier à charger.
 
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760, 2093];
@@ -72,5 +72,5 @@ class WebAudioSound {
   }
 }
 
-Object.assign(JeuxFr, { WebAudioSound });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { WebAudioSound });
+})(globalThis.LeOuLa ??= {});

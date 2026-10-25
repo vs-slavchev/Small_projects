@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
-const { createMachine, Gender } = JeuxFr;
+const { createMachine, Gender } = LeOuLa;
 
 /** États de l'application. */
 const AppState = Object.freeze({
@@ -158,5 +158,5 @@ function createAppMachine(useCases, options = {}) {
   }, options);
 }
 
-Object.assign(JeuxFr, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createAppMachine });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createAppMachine });
+})(globalThis.LeOuLa ??= {});

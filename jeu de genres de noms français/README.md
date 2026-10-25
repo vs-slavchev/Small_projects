@@ -1,11 +1,11 @@
 # Le ou la ?
 
-Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune dépendance, aucun service externe : tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `../jeux-francais-commun/fonts/`.
+Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune dépendance, aucun service externe : tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `fonts/`.
 
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
 ```sh
-npm test    # avec le lanceur intégré de Node (≥ 20)
+npm test    # 59 tests, avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture
@@ -19,29 +19,33 @@ src/
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
 │   ├── difficulty.js          Difficulty       0 → 100, +2 / −6 par réponse
-│   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot, mots acquis
+│   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot
 │   ├── wordSelection.js       WordSelectionPolicy         tirage 60 / 30 / 10 %
 │   ├── gameSession.js         GameSession      agrégat « partie en cours »
 │   ├── gameRecord.js          GameRecord       partie terminée, archivée
 │   ├── playerProfile.js       PlayerProfile    agrégat « joueur »
+│   ├── calendar.js            ActivityCalendar série quotidienne
+│   ├── holidays.js            HOLIDAYS          18 jours de fête (dates fixes, ou calculées depuis Pâques)
 │   ├── achievements.js        succès et paliers Bronze / Argent / Or ; succès cachés des jours de fête
 │   ├── progressReport.js      chronologie, tendance, message du coach
 │   └── gameSummary.js         verdict et bilan de fin de partie
 ├── application/
 │   ├── useCases.js            cas d'utilisation (orchestrent domaine + ports)
+│   ├── stateMachine.js        moteur d'automate générique
 │   └── appMachine.js          automate de l'application
 ├── infrastructure/            Adaptateurs des ports
-│   └── localStorageRepository.js   profil + préférences (clés lela.*), migration v1 → v2
+│   ├── localStorageRepository.js   profil + préférences, migration v1 → v2
+│   └── webAudioSound.js            sons de xylophone synthétisés
 ├── ui/                        Abonnés et pilotes de l'automate
 │   ├── views.js               une vue par état, HTML pur
+│   ├── renderer.js            rendu complet ou ciblé selon la transition
 │   ├── controller.js          clics, survol, clavier → événements
-│   └── format.js              verdicts et commentaires de la chronologie
+│   ├── effects.js             sons et vibrations selon les transitions
+│   └── format.js              textes français (dates, durées, messages)
 └── main.js                    point d'assemblage
 ```
 
-Le moteur commun aux deux jeux vit dans `../jeux-francais-commun/` (voir son README) : le dossier doit rester à côté de celui-ci.
-
-Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global commun `JeuxFr` et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
+Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global `LeOuLa` et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
 
 ## Automate de l'application
 

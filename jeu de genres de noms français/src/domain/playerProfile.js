@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
-const { Difficulty, GameRecord, WordStat, WordStatsBook, ActivityCalendar } = JeuxFr;
+const { Difficulty, GameRecord, WordStat, WordStatsBook, ActivityCalendar } = LeOuLa;
 
 /**
  * Tout ce que le jeu sait du joueur (agrégat) : parties terminées, statistiques par mot,
@@ -100,5 +100,5 @@ class PlayerProfile {
   }
 }
 
-Object.assign(JeuxFr, { PlayerProfile });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { PlayerProfile });
+})(globalThis.LeOuLa ??= {});

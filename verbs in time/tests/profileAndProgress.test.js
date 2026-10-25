@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { Conjugo } from './game.js';
 
 const {
   PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
   AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps, ACHIEVEMENTS, Tense,
-} = JeuxFr;
+} = Conjugo;
 
 const bank = realBank();
 const day = (d, h = 14, m = 0) => new Date(2026, 9, d, h, m);
@@ -118,7 +118,7 @@ test('succès : paliers franchis détectés après une partie', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
   assert.equal(earnedSteps(before), 0);
-  assert.equal(totalSteps(before), 46 + JeuxFr.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
+  assert.equal(totalSteps(before), 46 + Conjugo.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   profile.recordGame(game({ correct: 5, durationMs: 50_000 }));
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
   const unlocked = newlyUnlocked(before, after).map(p => `${p.id}:${p.reached}`);
@@ -198,10 +198,10 @@ test('Miroir, Accord parfait et Dompteur : selon le type de verbe et l’auxilia
 });
 
 test('Pâques et les fêtes mobiles', () => {
-  const { easterSunday, holidaysOn } = JeuxFr;
-  assert.equal(JeuxFr.dayKey(easterSunday(2024)), '2024-03-31');
-  assert.equal(JeuxFr.dayKey(easterSunday(2025)), '2025-04-20');
-  assert.equal(JeuxFr.dayKey(easterSunday(2026)), '2026-04-05');
+  const { easterSunday, holidaysOn } = Conjugo;
+  assert.equal(Conjugo.dayKey(easterSunday(2024)), '2024-03-31');
+  assert.equal(Conjugo.dayKey(easterSunday(2025)), '2025-04-20');
+  assert.equal(Conjugo.dayKey(easterSunday(2026)), '2026-04-05');
   assert.deepEqual(holidaysOn(new Date(2026, 3, 6, 23, 59)), ['easterMonday']);
   assert.deepEqual(holidaysOn(new Date(2026, 4, 14)), ['ascension']);
   assert.deepEqual(holidaysOn(new Date(2026, 4, 25)), ['pentecost']);
@@ -211,7 +211,7 @@ test('Pâques et les fêtes mobiles', () => {
 
 test('succès cachés : 18 jours de fête, invisibles tant qu’ils ne sont pas obtenus', () => {
   const hidden = ACHIEVEMENTS.filter(a => a.hidden);
-  assert.equal(hidden.length, JeuxFr.HOLIDAYS.length);
+  assert.equal(hidden.length, Conjugo.HOLIDAYS.length);
   const october = progressAfter('holiday-christmas', [game({ endedAt: new Date(2026, 9, 18) })]);
   assert.equal(october.isVisible, false);
   const noel = progressAfter('holiday-christmas', [game({ endedAt: new Date(2025, 11, 25, 10) })]);

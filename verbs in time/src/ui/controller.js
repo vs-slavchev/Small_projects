@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { AppEvent } = JeuxFr;
+const { AppEvent } = Conjugo;
 
 /**
  * Traduit les gestes du joueur en événements de l'automate.
@@ -12,7 +12,7 @@ const { AppEvent } = JeuxFr;
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
  * @param {HTMLElement} root
- * @param {ReturnType<typeof import('../../../jeux-francais-commun/src/application/stateMachine.js').createMachine>} machine
+ * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
  * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => void }} [options]
  */
 function bindController(root, machine, { confirm = message => globalThis.confirm(message), speak = () => {} } = {}) {
@@ -95,5 +95,5 @@ function insertAtCursor(input, text) {
   input.setSelectionRange(start + text.length, start + text.length);
 }
 
-Object.assign(JeuxFr, { bindController });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { bindController });
+})(globalThis.Conjugo ??= {});

@@ -1,9 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import '../src/domain/errors.js';
-import '../src/domain/answerStats.js';
+import { Conjugo } from './game.js';
 
-const { AnswerStat, AnswerStatsBook, DomainError } = globalThis.JeuxFr;
+const { AnswerStat, AnswerStatsBook, DomainError } = Conjugo;
 
 test('une statistique compte passages et réussites, et retient la dernière réponse', () => {
   const s = AnswerStat.EMPTY.record(true).record(false);

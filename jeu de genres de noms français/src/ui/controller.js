@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
-const { AppEvent, Gender } = JeuxFr;
+const { AppEvent, Gender } = LeOuLa;
 
 /**
  * Traduit les gestes du joueur en événements de l'automate.
@@ -10,7 +10,7 @@ const { AppEvent, Gender } = JeuxFr;
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
  * @param {HTMLElement} root
- * @param {ReturnType<typeof import('../../../jeux-francais-commun/src/application/stateMachine.js').createMachine>} machine
+ * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
  * @param {{ confirm?: (message: string) => boolean }} [options]
  */
 function bindController(root, machine, { confirm = message => globalThis.confirm(message) } = {}) {
@@ -60,5 +60,5 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
   });
 }
 
-Object.assign(JeuxFr, { bindController });
-})(globalThis.JeuxFr ??= {});
+Object.assign(LeOuLa, { bindController });
+})(globalThis.LeOuLa ??= {});

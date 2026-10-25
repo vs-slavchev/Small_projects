@@ -30,5 +30,3 @@ and also make it executable with chmod.
 13. "jeu de genres de noms français" (Le ou la ?) is a mobile browser game, written in plain JavaScript, for learning the grammatical gender of French nouns. Each word comes with the rule of its ending group, its exceptions and a fun fact; progress, daily streak and tiered achievements are stored locally. Open `index.html` directly in a browser, no server needed; `npm test` runs the test suite.
 
 14. "verbs in time" (Verbes dans le temps) is a companion browser game for learning French verb conjugation. Each 5-round game draws a random person × verb × tense (présent, imparfait, passé composé, futur proche, futur simple); the player types the form, then sees the rule, the verb's particularity and its full conjugation. Twenty verbs cover every group (1st group and its spelling changes, 2nd and 3rd groups, auxiliaries, a pronominal verb).
-
-15. "jeux-francais-commun" holds the code, fonts and test tools shared by the two French games above. Keep it next to both game folders.

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { JeuxFr } from './game.js';
+import { Conjugo } from './game.js';
 
-const { Tense, Person, Question, VerbBank, VERB_DATA, VERB_TYPES, DomainError } = JeuxFr;
+const { Tense, Person, Question, VerbBank, VERB_DATA, VERB_TYPES, DomainError } = Conjugo;
 
 const bank = realBank();
 const form = (infinitive, tense, person) => bank.verb(infinitive).conjugate(tense, person).display;

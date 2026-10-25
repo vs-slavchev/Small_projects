@@ -1,4 +1,4 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
 const DEFAULT_THEME = '--paper';
@@ -39,5 +39,5 @@ function createRenderer(root, { views, now }) {
   };
 }
 
-Object.assign(JeuxFr, { createRenderer });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { createRenderer });
+})(globalThis.Conjugo ??= {});

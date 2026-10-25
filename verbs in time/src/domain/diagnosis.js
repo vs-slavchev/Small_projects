@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { Tense, Person, normalizeAnswer } = JeuxFr;
+const { Tense, Person, normalizeAnswer } = Conjugo;
 
 /** Nature d'une erreur, de la plus précise à la plus vague. */
 const ErrorKind = Object.freeze({
@@ -55,5 +55,5 @@ function diagnose(question, given) {
   return null;
 }
 
-Object.assign(JeuxFr, { ErrorKind, diagnose });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { ErrorKind, diagnose });
+})(globalThis.Conjugo ??= {});

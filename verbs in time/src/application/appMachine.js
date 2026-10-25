@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { createMachine } = JeuxFr;
+const { createMachine } = Conjugo;
 
 /** États de l'application. */
 const AppState = Object.freeze({
@@ -204,5 +204,5 @@ function createAppMachine(useCases, options = {}) {
   }, options);
 }
 
-Object.assign(JeuxFr, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createAppMachine });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createAppMachine });
+})(globalThis.Conjugo ??= {});

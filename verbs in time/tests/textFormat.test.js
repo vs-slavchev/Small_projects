@@ -1,9 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import '../src/domain/calendar.js';
-import '../src/ui/format.js';
+import { Conjugo } from './game.js';
 
-const { diffChars, similarity } = globalThis.JeuxFr;
+const { diffChars, similarity } = Conjugo;
 
 test('écart lettre à lettre : lettres en trop et lettres manquantes', () => {
   assert.deepEqual(diffChars('il parlais', 'il parlait'), [

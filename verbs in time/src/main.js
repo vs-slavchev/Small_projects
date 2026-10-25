@@ -1,12 +1,12 @@
 // Point d'assemblage : relie le domaine, les cas d'utilisation, l'automate et les adaptateurs.
 
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
 const {
   VerbBank, createUseCases, createAppMachine, LocalStorageProfileRepository,
   LocalStoragePreferences, browserStorage, WebAudioSound, createSpeaker, VIEWS, AppState, AppEvent, createRenderer, createEffects, bindController,
-} = JeuxFr;
+} = Conjugo;
 
 const clock = { now: () => Date.now() };
 const storage = browserStorage();
@@ -35,4 +35,4 @@ document.documentElement.classList.toggle('no-speech', !speaker.available);
 bindController(root, machine, { speak: speaker.speak });
 machine.start();
 
-})(globalThis.JeuxFr ??= {});
+})(globalThis.Conjugo ??= {});

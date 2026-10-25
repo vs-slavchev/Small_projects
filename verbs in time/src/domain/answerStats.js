@@ -1,9 +1,9 @@
-(function (JeuxFr) {
+(function (Conjugo) {
 'use strict';
 
-const { DomainError } = JeuxFr;
+const { DomainError } = Conjugo;
 
-/** Historique des réponses à un élément (mot, verbe à un temps…). Objet valeur immuable. */
+/** Historique des réponses à un élément (un verbe à un temps). Objet valeur immuable. */
 class AnswerStat {
   /** Statistique vide de la classe appelante (AnswerStat ou une sous-classe). */
   static get EMPTY() {
@@ -88,5 +88,5 @@ class AnswerStatsBook {
   }
 }
 
-Object.assign(JeuxFr, { AnswerStat, AnswerStatsBook });
-})(globalThis.JeuxFr ??= {});
+Object.assign(Conjugo, { AnswerStat, AnswerStatsBook });
+})(globalThis.Conjugo ??= {});

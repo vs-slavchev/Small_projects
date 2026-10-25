@@ -1,7 +1,7 @@
-(function (JeuxFr) {
+(function (LeOuLa) {
 'use strict';
 
-const { addDays, GameRecord, Gender, WordStatsBook } = JeuxFr;
+const { addDays, GameRecord, Gender, WordStatsBook } = LeOuLa;
 
 const PROGRESS_UNLOCK_GAMES = 3;
 const TIMELINE_SIZE = 12;
@@ -147,8 +147,8 @@ function faster(timeline) {
   return { kind: InsightKind.FASTER, beforeMs: Math.round(before), nowMs: Math.round(now) };
 }
 
-Object.assign(JeuxFr, {
+Object.assign(LeOuLa, {
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });
-})(globalThis.JeuxFr ??= {});
+})(globalThis.LeOuLa ??= {});
