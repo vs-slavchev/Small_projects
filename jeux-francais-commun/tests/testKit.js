@@ -1,4 +1,22 @@
-// Doublures de test communes aux jeux : hasard reproductible, horloge et planificateur manuels.
+// Outils de test communs aux jeux : chargement d'un jeu, hasard reproductible, horloge et planificateur manuels.
+
+import { readFileSync } from 'node:fs';
+
+/**
+ * Charge les scripts d'un jeu dans l'ordre de son index.html (sauf main.js, qui démarre l'interface)
+ * et retourne l'espace de noms commun JeuxFr qu'ils remplissent.
+ * @param {URL} indexHtml
+ */
+export async function loadGame(indexHtml) {
+  const html = readFileSync(indexHtml, 'utf8');
+  for (const [, src] of html.matchAll(/<script src="([^"]+)"><\/script>/g)) {
+    if (src !== 'src/main.js') await import(new URL(src, indexHtml));
+  }
+  return globalThis.JeuxFr;
+}
+
+/** Stockage en mémoire, à la place de localStorage (une fois le jeu chargé). */
+export const memoryStorage = () => new globalThis.JeuxFr.MemoryStorage();
 
 /** Générateur pseudo-aléatoire reproductible (mulberry32). */
 export function seededRandom(seed = 42) {

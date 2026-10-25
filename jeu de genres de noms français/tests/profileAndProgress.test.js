@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { LeOuLa } from './game.js';
+import { JeuxFr } from './game.js';
 
 const {
   PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
   AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps,
-} = LeOuLa;
+} = JeuxFr;
 
 const bank = realBank();
 const day = (d, h = 14, m = 0) => new Date(2026, 9, d, h, m);
@@ -119,7 +119,7 @@ test('verdict de fin de partie', () => {
 test('succès : 51 paliers au total, paliers franchis détectés', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
-  assert.equal(totalSteps(before), 51 + LeOuLa.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
+  assert.equal(totalSteps(before), 51 + JeuxFr.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   assert.equal(earnedSteps(before), 0);
   profile.recordGame(game({ correct: 10, durationMs: 12_000 }), bank);
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
@@ -209,14 +209,14 @@ test('Intouchable : 7 parties d’affilée sans faute commencées au-dessus de 9
   assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 100, correct: 9 })).value, 0, 'une erreur suffit');
   const broken = [...series(4, { difficultyStart: 96 }), game({ endedAt: day(5), correct: 9 }), ...series(4, { difficultyStart: 96 }, 6)];
   assert.equal(progressAfter('untouchable', broken).value, 4, 'une partie ratée au milieu remet la série à zéro');
-  assert.equal(LeOuLa.ACHIEVEMENTS.filter(a => !a.hidden).at(-1).id, 'untouchable');
+  assert.equal(JeuxFr.ACHIEVEMENTS.filter(a => !a.hidden).at(-1).id, 'untouchable');
 });
 
 test('Pâques et les fêtes mobiles', () => {
-  const { easterSunday, holidaysOn } = LeOuLa;
-  assert.equal(LeOuLa.dayKey(easterSunday(2024)), '2024-03-31');
-  assert.equal(LeOuLa.dayKey(easterSunday(2025)), '2025-04-20');
-  assert.equal(LeOuLa.dayKey(easterSunday(2026)), '2026-04-05');
+  const { easterSunday, holidaysOn } = JeuxFr;
+  assert.equal(JeuxFr.dayKey(easterSunday(2024)), '2024-03-31');
+  assert.equal(JeuxFr.dayKey(easterSunday(2025)), '2025-04-20');
+  assert.equal(JeuxFr.dayKey(easterSunday(2026)), '2026-04-05');
   assert.deepEqual(holidaysOn(new Date(2026, 3, 6, 23, 59)), ['easterMonday']);
   assert.deepEqual(holidaysOn(new Date(2026, 4, 14)), ['ascension']);
   assert.deepEqual(holidaysOn(new Date(2026, 4, 25)), ['pentecost']);
@@ -225,8 +225,8 @@ test('Pâques et les fêtes mobiles', () => {
 });
 
 test('succès cachés : 18 jours de fête, invisibles tant qu’ils ne sont pas obtenus', () => {
-  const hidden = LeOuLa.ACHIEVEMENTS.filter(a => a.hidden);
-  assert.equal(hidden.length, LeOuLa.HOLIDAYS.length);
+  const hidden = JeuxFr.ACHIEVEMENTS.filter(a => a.hidden);
+  assert.equal(hidden.length, JeuxFr.HOLIDAYS.length);
   const october = progressAfter('holiday-christmas', [game({ endedAt: new Date(2026, 9, 18) })]);
   assert.equal(october.isVisible, false);
   const noel = progressAfter('holiday-christmas', [game({ endedAt: new Date(2025, 11, 25, 10) })]);

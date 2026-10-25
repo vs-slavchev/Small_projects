@@ -1,6 +1,6 @@
 # Le ou la ?
 
-Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune dépendance, aucun service externe : tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `fonts/`.
+Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune dépendance, aucun service externe : tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `../jeux-francais-commun/fonts/`.
 
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
@@ -19,7 +19,7 @@ src/
 │   ├── gender.js              Gender           objet valeur (le / la)
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
 │   ├── difficulty.js          Difficulty       0 → 100, +2 / −6 par réponse
-│   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot
+│   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot, mots acquis
 │   ├── wordSelection.js       WordSelectionPolicy         tirage 60 / 30 / 10 %
 │   ├── gameSession.js         GameSession      agrégat « partie en cours »
 │   ├── gameRecord.js          GameRecord       partie terminée, archivée
@@ -31,17 +31,17 @@ src/
 │   ├── useCases.js            cas d'utilisation (orchestrent domaine + ports)
 │   └── appMachine.js          automate de l'application
 ├── infrastructure/            Adaptateurs des ports
-│   └── localStorageRepository.js   profil + préférences, migration v1 → v2
+│   └── localStorageRepository.js   profil + préférences (clés lela.*), migration v1 → v2
 ├── ui/                        Abonnés et pilotes de l'automate
 │   ├── views.js               une vue par état, HTML pur
 │   ├── controller.js          clics, survol, clavier → événements
-│   └── format.js              textes français (dates, durées, messages)
+│   └── format.js              verdicts et commentaires de la chronologie
 └── main.js                    point d'assemblage
 ```
 
-Le moteur commun aux deux jeux (automate, calendrier et série, jours de fête, sons, rendu, effets, erreurs du domaine) vit dans `../jeux-francais-commun/` et est chargé par `index.html` : le dossier doit rester à côté de celui-ci.
+Le moteur commun aux deux jeux vit dans `../jeux-francais-commun/` (voir son README) : le dossier doit rester à côté de celui-ci.
 
-Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global commun `JeuxFr` (nommé `LeOuLa` à l'intérieur des fichiers) et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
+Les fichiers sont des scripts classiques (pas des modules ES, que les navigateurs refusent de charger en `file://`). Chacun s'enveloppe dans une fonction, lit ses dépendances dans l'espace de noms global commun `JeuxFr` et y publie ce qu'il exporte. `index.html` les charge dans l'ordre des dépendances ; un nouveau fichier doit y être ajouté après ceux qu'il utilise. Les tests chargent les scripts dans ce même ordre (`tests/game.js`) et vérifient donc qu'il est correct.
 
 ## Automate de l'application
 

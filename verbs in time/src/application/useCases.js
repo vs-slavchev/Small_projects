@@ -1,10 +1,10 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
 const {
   GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, AchievementFacts, evaluateAchievements, newlyUnlocked,
   earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame, DomainError,
-} = Conjugo;
+} = JeuxFr;
 
 /**
  * Cas d'utilisation du jeu. Ils orchestrent les objets du domaine et les ports
@@ -20,9 +20,9 @@ const {
  *           clock: { now(): number }, random?: () => number, gameLength?: number }} deps
  */
 function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
-  // Un verbe ne revient pas dans une partie : la banque doit en compter assez pour tous les tours.
-  if (gameLength > bank.verbs.length) {
-    throw new DomainError(`Partie de ${gameLength} tours impossible avec ${bank.verbs.length} verbes.`);
+  const picker = new QuestionPicker({ bank, random });
+  if (gameLength > picker.capacity) {
+    throw new DomainError(`Partie de ${gameLength} tours impossible : ${picker.capacity} questions possibles au plus.`);
   }
   const profile = profiles.load();
   let prefs = preferences.load();
@@ -46,7 +46,6 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 
     /** Démarre une partie : chaque tour tire un verbe, un temps et une personne au hasard. */
     startGame() {
-      const picker = new QuestionPicker({ bank, random });
       return GameSession.start({
         length: gameLength,
         drawQuestion: request => picker.pick(request),
@@ -108,5 +107,5 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
   });
 }
 
-Object.assign(Conjugo, { createUseCases });
+Object.assign(JeuxFr, { createUseCases });
 })(globalThis.JeuxFr ??= {});

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank, sequence, seededRandom } from './helpers.js';
-import { LeOuLa } from './game.js';
+import { JeuxFr } from './game.js';
 
-const { WordSelectionPolicy, SelectionStrategy, WordStatsBook, Difficulty } = LeOuLa;
+const { WordSelectionPolicy, SelectionStrategy, WordStatsBook, Difficulty } = JeuxFr;
 
 const bank = realBank();
 const policy = (random, stats = new WordStatsBook()) => new WordSelectionPolicy({ bank, stats, random });

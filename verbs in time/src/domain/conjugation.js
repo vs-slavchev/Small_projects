@@ -1,7 +1,7 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError, VERB_TYPES, VERB_DATA } = Conjugo;
+const { DomainError, VERB_TYPES, VERB_DATA } = JeuxFr;
 
 /** Apostrophe typographique des formes affichées : « j’habite ». */
 const APOSTROPHE = '’';
@@ -142,8 +142,6 @@ class Verb {
     if (!(person instanceof Person)) throw new DomainError('Personne invalide.');
     const i = person.index;
     const reflexive = rest => (this.pronominal ? joinElided(REFLEXIVE[i], rest) : rest);
-    // Formes sans sujet : les accords possibles (`variants`) et les autres orthographes (`spellings`)
-    // sont toutes justes ; `shown` est la forme affichée.
     let variants;
     let spellings = [];
     let shown;
@@ -205,7 +203,8 @@ const stripAccents = text => text.normalize('NFD').replace(/\p{M}/gu, '');
 /**
  * Forme conjuguée attendue. `forms` liste toutes les écritures justes avec leur sujet
  * (accords possibles, orthographe rectifiée) ; `display` est celle qu'on montre au joueur.
- * Le joueur peut aussi répondre sans le pronom sujet : « finirai » vaut « je finirai ».
+ * Le joueur peut aussi répondre sans le pronom sujet (« finirai » vaut « je finirai »), sauf si la forme
+ * commence par un pronom identique au sujet (« nous nous levons ») : voir le constructeur.
  */
 class Conjugation {
   #accepted;
@@ -220,7 +219,7 @@ class Conjugation {
     this.forms = Object.freeze(bare.map(withSubject));
     this.display = withSubject(shown);
     /** Autres écritures acceptées, à signaler après la réponse. */
-    this.others = Object.freeze(spellings.map(withSubject));
+    this.others = Object.freeze(this.forms.slice(variants.length));
     // Quand la forme commence par un pronom identique au sujet (« nous nous levons »), la réponse
     // sans sujet (« nous levons ») ne se distingue pas d'un oubli du pronom réfléchi : le sujet est alors obligatoire.
     const subjectRequired = bare.some(rest => rest.startsWith(`${subject} `));
@@ -293,5 +292,5 @@ class VerbBank {
   }
 }
 
-Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank });
+Object.assign(JeuxFr, { Person, Tense, Verb, Question, VerbBank });
 })(globalThis.JeuxFr ??= {});

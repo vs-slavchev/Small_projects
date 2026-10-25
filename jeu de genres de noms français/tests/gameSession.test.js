@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { LeOuLa } from './game.js';
+import { JeuxFr } from './game.js';
 
-const { GameSession, Difficulty, Gender, DomainError } = LeOuLa;
+const { GameSession, Difficulty, Gender, DomainError } = JeuxFr;
 
 const bank = realBank();
 /** Distribue les mots de la banque dans l'ordre, en respectant les exclusions. */

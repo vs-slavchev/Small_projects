@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError, Gender } = LeOuLa;
+const { DomainError, Gender } = JeuxFr;
 
 /** Article élidé : « l’école », « l’horizon ». */
 const ELIDED_ARTICLE = 'l\u2019';
@@ -160,5 +160,5 @@ class WordBank {
   }
 }
 
-Object.assign(LeOuLa, { ELIDED_ARTICLE, WordGroup, Word, WordBank });
+Object.assign(JeuxFr, { ELIDED_ARTICLE, WordGroup, Word, WordBank });
 })(globalThis.JeuxFr ??= {});

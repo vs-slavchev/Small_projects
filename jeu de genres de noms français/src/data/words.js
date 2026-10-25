@@ -7,7 +7,7 @@
 // Les mots commençant par une voyelle ou un h muet prennent l'article élidé « l’ » ; un mot en y- ne s'élide pas.
 // Ce fichier ne contient que des données ; WordBank.fromData() les valide et les transforme en objets du domaine.
 
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
 const GROUPS = Object.freeze([
@@ -303,5 +303,5 @@ const WORDS = Object.freeze([
 
 const WORD_DATA = Object.freeze({ groups: GROUPS, words: WORDS });
 
-Object.assign(LeOuLa, { GROUPS, WORDS, WORD_DATA });
+Object.assign(JeuxFr, { GROUPS, WORDS, WORD_DATA });
 })(globalThis.JeuxFr ??= {});

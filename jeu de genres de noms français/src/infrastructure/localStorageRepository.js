@@ -1,51 +1,13 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { PlayerProfile } = LeOuLa;
+const { PlayerProfile, browserStorage, readJson, writeJson, PreferenceStore } = JeuxFr;
 
 const PROFILE_KEY = 'lela.profile.v2';
 const PREFERENCES_KEY = 'lela.preferences.v1';
 /** Format de la première version du jeu, migré au premier chargement. */
 const LEGACY_KEY = 'lela.v1';
 const SCHEMA_VERSION = 2;
-
-/** Stockage en mémoire, utilisé quand localStorage est indisponible (navigation privée stricte, etc.). */
-class MemoryStorage {
-  #items = new Map();
-  getItem(key) { return this.#items.has(key) ? this.#items.get(key) : null; }
-  setItem(key, value) { this.#items.set(key, String(value)); }
-  removeItem(key) { this.#items.delete(key); }
-}
-
-function browserStorage() {
-  try {
-    const storage = globalThis.localStorage;
-    const probe = '__lela_probe__';
-    storage.setItem(probe, probe);
-    storage.removeItem(probe);
-    return storage;
-  } catch {
-    return new MemoryStorage();
-  }
-}
-
-function readJson(storage, key) {
-  try {
-    const raw = storage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeJson(storage, key, value) {
-  try {
-    storage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false; // quota dépassé : le jeu continue, seule la sauvegarde est perdue
-  }
-}
 
 const isObject = value => value !== null && typeof value === 'object';
 
@@ -113,26 +75,19 @@ class LocalStorageProfileRepository {
   }
 }
 
-/** Préférences d'affichage et de son, séparées du profil de jeu. */
-class LocalStoragePreferences {
-  static DEFAULTS = Object.freeze({ soundEnabled: true });
-  #storage;
-
+/** Préférences du jeu ; à défaut, le réglage « muet » de la version 1 est repris. */
+class LocalStoragePreferences extends PreferenceStore {
   constructor({ storage = browserStorage() } = {}) {
-    this.#storage = storage;
-  }
-
-  load() {
-    const stored = readJson(this.#storage, PREFERENCES_KEY);
-    if (stored) return { ...LocalStoragePreferences.DEFAULTS, ...stored };
-    const legacy = readJson(this.#storage, LEGACY_KEY);
-    return { ...LocalStoragePreferences.DEFAULTS, ...(legacy && 'muted' in legacy ? { soundEnabled: !legacy.muted } : {}) };
-  }
-
-  save(preferences) {
-    writeJson(this.#storage, PREFERENCES_KEY, preferences);
+    super({
+      storage,
+      key: PREFERENCES_KEY,
+      fallback: () => {
+        const legacy = readJson(storage, LEGACY_KEY);
+        return legacy && 'muted' in legacy ? { soundEnabled: !legacy.muted } : null;
+      },
+    });
   }
 }
 
-Object.assign(LeOuLa, { PROFILE_KEY, PREFERENCES_KEY, LEGACY_KEY, MemoryStorage, browserStorage, migrateLegacyProfile, LocalStorageProfileRepository, LocalStoragePreferences });
+Object.assign(JeuxFr, { PROFILE_KEY, PREFERENCES_KEY, LEGACY_KEY, migrateLegacyProfile, LocalStorageProfileRepository, LocalStoragePreferences });
 })(globalThis.JeuxFr ??= {});

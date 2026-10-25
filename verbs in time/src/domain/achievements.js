@@ -2,10 +2,10 @@
 // à un ou trois paliers (Bronze, Argent, Or). Un succès à palier unique est simplement obtenu ou non.
 // Un succès caché n'apparaît qu'une fois obtenu.
 
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { Tense, GameRecord, dayKey, HOLIDAYS, holidaysOn } = Conjugo;
+const { Tense, GameRecord, dayKey, HOLIDAYS, holidaysOn } = JeuxFr;
 
 const TIER_NAMES = Object.freeze(['Bronze', 'Argent', 'Or']);
 const MAX_TIER = TIER_NAMES.length;
@@ -226,5 +226,5 @@ function newlyUnlocked(before, after) {
 const earnedSteps = list => list.reduce((sum, p) => sum + p.reached, 0);
 const totalSteps = list => list.reduce((sum, p) => sum + p.thresholds.length, 0);
 
-Object.assign(Conjugo, { TIER_NAMES, MAX_TIER, AchievementFacts, ACHIEVEMENTS, AchievementProgress, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps });
+Object.assign(JeuxFr, { TIER_NAMES, MAX_TIER, AchievementFacts, ACHIEVEMENTS, AchievementProgress, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps });
 })(globalThis.JeuxFr ??= {});

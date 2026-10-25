@@ -31,4 +31,4 @@ and also make it executable with chmod.
 
 14. "verbs in time" (Verbes dans le temps) is a companion browser game for learning French verb conjugation. Each 5-round game draws a random person × verb × tense (présent, imparfait, passé composé, futur proche, futur simple); the player types the form, then sees the rule, the verb's particularity and its full conjugation. Twenty verbs cover every group (1st group and its spelling changes, 2nd and 3rd groups, auxiliaries, a pronominal verb).
 
-15. "jeux-francais-commun" holds the engine shared by the two French games above (state machine, daily streak calendar, holidays, sounds, renderer, effects). Keep it next to both game folders.
+15. "jeux-francais-commun" holds the code, fonts and test tools shared by the two French games above. Keep it next to both game folders.

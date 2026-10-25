@@ -13,7 +13,7 @@
 // - pronominal  : true pour un verbe pronominal (se lever) ;
 // - note        : particularité expliquée après la réponse (HTML voulu).
 
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
 const VERB_TYPES = Object.freeze([
@@ -85,5 +85,5 @@ const VERB_DATA = Object.freeze([
     note: 'Le pronom se place avant le verbe, et avant l’infinitif au futur proche (je vais <b>me</b> lever). Le e devient <b>è</b> devant une syllabe muette.' },
 ]);
 
-Object.assign(Conjugo, { VERB_TYPES, VERB_DATA });
+Object.assign(JeuxFr, { VERB_TYPES, VERB_DATA });
 })(globalThis.JeuxFr ??= {});

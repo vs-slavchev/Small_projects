@@ -1,7 +1,7 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { GameRecord, PracticeStat, PracticeStatsBook, ActivityCalendar } = Conjugo;
+const { GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar } = JeuxFr;
 
 /**
  * Tout ce que le jeu sait du joueur (agrégat) : parties terminées, statistiques par verbe et par temps,
@@ -16,8 +16,8 @@ class PlayerProfile {
   #practice;
   #recoveries;
 
-  /** @param {{ games?: GameRecord[], practice?: PracticeStatsBook, recoveries?: number }} props */
-  constructor({ games = [], practice = new PracticeStatsBook(), recoveries = 0 } = {}) {
+  /** @param {{ games?: GameRecord[], practice?: AnswerStatsBook, recoveries?: number }} props */
+  constructor({ games = [], practice = new AnswerStatsBook(), recoveries = 0 } = {}) {
     this.#games = [...games].sort((a, b) => a.endedAt - b.endedAt);
     this.#gamesView = Object.freeze([...this.#games]);
     this.#calendar = new ActivityCalendar(this.#games.map(g => g.endedAt));
@@ -74,12 +74,12 @@ class PlayerProfile {
     const count = value => (Number.isInteger(value) && value >= 0 ? value : 0);
     return new PlayerProfile({
       games: valid(Array.isArray(snapshot.games) ? snapshot.games : [], GameRecord.fromSnapshot),
-      practice: new PracticeStatsBook(valid(Object.entries(snapshot.practice ?? {}),
-        ([key, s]) => [key, new PracticeStat(s.seen, s.correct, s.lastCorrect ?? null)])),
+      practice: new AnswerStatsBook(valid(Object.entries(snapshot.practice ?? {}),
+        ([key, s]) => [key, new AnswerStat(s.seen, s.correct, s.lastCorrect ?? null)])),
       recoveries: count(snapshot.recoveries),
     });
   }
 }
 
-Object.assign(Conjugo, { PlayerProfile });
+Object.assign(JeuxFr, { PlayerProfile });
 })(globalThis.JeuxFr ??= {});

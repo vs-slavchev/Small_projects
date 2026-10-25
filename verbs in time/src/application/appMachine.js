@@ -1,7 +1,7 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { createMachine } = Conjugo;
+const { createMachine } = JeuxFr;
 
 /** États de l'application. */
 const AppState = Object.freeze({
@@ -23,6 +23,7 @@ const AppEvent = Object.freeze({
   ANSWER: 'ANSWER',             // { text: string }
   REVEALED: 'REVEALED',
   CONTINUE: 'CONTINUE',
+  FEEDBACK_READY: 'FEEDBACK_READY', // l'explication est restée assez longtemps à l'écran pour être quittée
   QUIT: 'QUIT',
   SELECT_BADGE: 'SELECT_BADGE', // { index: number }
   PREVIEW_BADGE: 'PREVIEW_BADGE', // { index: number } — survol à la souris, même effet que SELECT_BADGE
@@ -35,6 +36,8 @@ const Destination = Object.freeze({ HOME: 'home', PROGRESS: 'progress', ACHIEVEM
 
 const COUNTDOWN_SECONDS = 5;
 const REVEAL_DELAY_MS = Object.freeze({ correct: 420, wrong: 520 });
+/** L'explication ne peut pas être quittée avant ce délai : la touche Entrée qui a validé la réponse ne doit pas la sauter. */
+const FEEDBACK_MIN_MS = 600;
 
 /**
  * Automate de l'application : il décide de l'enchaînement des écrans et délègue
@@ -56,6 +59,8 @@ function createAppMachine(useCases, options = {}) {
     achievements: null,
     selectedBadge: null,
     countdown: 0,
+    /** Faux pendant les premiers instants de l'explication (FEEDBACK_MIN_MS). */
+    feedbackReady: false,
     /** Vrai entre la fin d'une partie et le retour à l'accueil : déclenche le compte à rebours. */
     returningFromGame: false,
     soundEnabled: useCases.isSoundEnabled(),
@@ -129,10 +134,13 @@ function createAppMachine(useCases, options = {}) {
         on: { [AppEvent.REVEALED]: FEEDBACK, [AppEvent.QUIT]: quit },
       },
       [FEEDBACK]: {
+        entry: [ctx => { ctx.feedbackReady = false; }],
+        after: { delay: FEEDBACK_MIN_MS, event: AppEvent.FEEDBACK_READY },
         on: {
+          [AppEvent.FEEDBACK_READY]: { actions: [ctx => { ctx.feedbackReady = true; }] },
           [AppEvent.CONTINUE]: [
-            { target: RESULTS, guard: ctx => ctx.session.isComplete, actions: [finishGame] },
-            { target: QUESTION, actions: [ctx => { useCases.nextQuestion(ctx.session); }] },
+            { target: RESULTS, guard: ctx => ctx.feedbackReady && ctx.session.isComplete, actions: [finishGame] },
+            { target: QUESTION, guard: ctx => ctx.feedbackReady, actions: [ctx => { useCases.nextQuestion(ctx.session); }] },
           ],
           [AppEvent.QUIT]: quit,
         },
@@ -158,5 +166,5 @@ function createAppMachine(useCases, options = {}) {
   }, options);
 }
 
-Object.assign(Conjugo, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createAppMachine });
+Object.assign(JeuxFr, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createAppMachine });
 })(globalThis.JeuxFr ??= {});

@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError } = LeOuLa;
+const { DomainError } = JeuxFr;
 
 /**
  * Niveau de difficulté adaptatif, de 0 à 100. Il monte à chaque bonne réponse,
@@ -43,5 +43,5 @@ class Difficulty {
   }
 }
 
-Object.assign(LeOuLa, { Difficulty });
+Object.assign(JeuxFr, { Difficulty });
 })(globalThis.JeuxFr ??= {});

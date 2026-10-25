@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank, seededRandom, sequence } from './helpers.js';
-import { Conjugo } from './game.js';
+import { JeuxFr } from './game.js';
 
-const { QuestionPicker, Tense, Person, DomainError } = Conjugo;
+const { QuestionPicker, Tense, Person, DomainError } = JeuxFr;
 
 const bank = realBank();
 

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { memoryStorage } from './helpers.js';
-import { Conjugo } from './game.js';
+import { JeuxFr } from './game.js';
 
-const { LocalStorageProfileRepository, LocalStoragePreferences, PROFILE_KEY, PlayerProfile, GameRecord } = Conjugo;
+const { LocalStorageProfileRepository, LocalStoragePreferences, PROFILE_KEY, PlayerProfile, GameRecord } = JeuxFr;
 
 const record = (endedAt = new Date(2026, 9, 18, 9)) => new GameRecord({
   endedAt, durationMs: 41_000, maxCombo: 1,
@@ -66,7 +66,7 @@ test('les préférences sont conservées à part', () => {
 test('des préférences illisibles reviennent aux réglages par défaut', () => {
   const storage = memoryStorage();
   for (const raw of ['"on"', '{"soundEnabled":"no"}', '[1]']) {
-    storage.setItem(Conjugo.PREFERENCES_KEY, raw);
+    storage.setItem(JeuxFr.PREFERENCES_KEY, raw);
     assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: true }, raw);
   }
 });

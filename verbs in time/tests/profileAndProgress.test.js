@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank } from './helpers.js';
-import { Conjugo } from './game.js';
+import { JeuxFr } from './game.js';
 
 const {
   PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
   AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps, ACHIEVEMENTS, Tense,
-} = Conjugo;
+} = JeuxFr;
 
 const bank = realBank();
 const day = (d, h = 14, m = 0) => new Date(2026, 9, d, h, m);
@@ -55,7 +55,7 @@ test('série quotidienne : en cours jusqu’à hier, la plus longue est conserv�
 });
 
 test('la chronologie est verrouillée avant 3 parties', () => {
-  const report = new ProgressReport([game({ correct: 3 })], day(18));
+  const report = new ProgressReport([game({ correct: 3 })], day(18), bank);
   assert.equal(report.isUnlocked, false);
   assert.equal(report.gamesUntilUnlock, 2);
   assert.deepEqual(report.firstAccuracies, [60]);
@@ -63,7 +63,7 @@ test('la chronologie est verrouillée avant 3 parties', () => {
 
 test('rapport de progression : moyenne, tendance et message', () => {
   const games = [game({ endedAt: day(1), correct: 2 }), game({ endedAt: day(15), correct: 4 }), game({ endedAt: day(18), correct: 5 })];
-  const report = new ProgressReport(games, day(18));
+  const report = new ProgressReport(games, day(18), bank);
   assert.ok(report.isUnlocked);
   assert.equal(report.averageAccuracy, 73);
   assert.deepEqual(report.trend, { delta: 50, window: TrendWindow.TWO_WEEKS });
@@ -76,7 +76,7 @@ test('commentaire de la chronologie : le constat le plus parlant l’emporte', (
   // Verbes différents à chaque partie, pour qu'aucun piège ne ressorte.
   const fresh = i => Array.from({ length: 5 }, (_, k) => ask(bank.verbs[(5 * i + k) % bank.verbs.length].infinitive, Tense.ALL[i % 5].id));
   const insight = (scores, questionsOf = fresh) =>
-    new ProgressReport(scores.map((correct, i) => game({ endedAt: day(1 + i), correct, questions: questionsOf(i) })), day(18)).insight;
+    new ProgressReport(scores.map((correct, i) => game({ endedAt: day(1 + i), correct, questions: questionsOf(i) })), day(18), bank).insight;
 
   assert.deepEqual(insight([2, 2, 2, 4, 4, 4]), { kind: InsightKind.RISING, count: 3, accuracy: 80, delta: 40 });
   assert.deepEqual(insight([5, 5, 5, 3]), { kind: InsightKind.DIP, accuracy: 60, average: 90 });
@@ -89,7 +89,7 @@ test('commentaire de la chronologie : le constat le plus parlant l’emporte', (
   assert.equal(trap.misses, 4);
 
   const faster = Array.from({ length: 6 }, (_, i) => game({ endedAt: day(1 + i), correct: 4, questions: fresh(i), timeMs: i < 3 ? 3000 : 2000 }));
-  assert.deepEqual(new ProgressReport(faster, day(18)).insight, { kind: InsightKind.FASTER, beforeMs: 3000, nowMs: 2000 });
+  assert.deepEqual(new ProgressReport(faster, day(18), bank).insight, { kind: InsightKind.FASTER, beforeMs: 3000, nowMs: 2000 });
 
   assert.deepEqual(insight([4, 4, 4]), { kind: InsightKind.STEADY, count: 3, threshold: 70, all: true });
   assert.equal(insight([4, 4, 4], () => firstFive).kind, InsightKind.TRAP, 'un piège passe avant la régularité');
@@ -118,7 +118,7 @@ test('succès : paliers franchis détectés après une partie', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
   assert.equal(earnedSteps(before), 0);
-  assert.equal(totalSteps(before), 46 + Conjugo.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
+  assert.equal(totalSteps(before), 46 + JeuxFr.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   profile.recordGame(game({ correct: 5, durationMs: 50_000 }));
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
   const unlocked = newlyUnlocked(before, after).map(p => `${p.id}:${p.reached}`);
@@ -198,10 +198,10 @@ test('Miroir, Accord parfait et Dompteur : selon le type de verbe et l’auxilia
 });
 
 test('Pâques et les fêtes mobiles', () => {
-  const { easterSunday, holidaysOn } = Conjugo;
-  assert.equal(Conjugo.dayKey(easterSunday(2024)), '2024-03-31');
-  assert.equal(Conjugo.dayKey(easterSunday(2025)), '2025-04-20');
-  assert.equal(Conjugo.dayKey(easterSunday(2026)), '2026-04-05');
+  const { easterSunday, holidaysOn } = JeuxFr;
+  assert.equal(JeuxFr.dayKey(easterSunday(2024)), '2024-03-31');
+  assert.equal(JeuxFr.dayKey(easterSunday(2025)), '2025-04-20');
+  assert.equal(JeuxFr.dayKey(easterSunday(2026)), '2026-04-05');
   assert.deepEqual(holidaysOn(new Date(2026, 3, 6, 23, 59)), ['easterMonday']);
   assert.deepEqual(holidaysOn(new Date(2026, 4, 14)), ['ascension']);
   assert.deepEqual(holidaysOn(new Date(2026, 4, 25)), ['pentecost']);
@@ -211,7 +211,7 @@ test('Pâques et les fêtes mobiles', () => {
 
 test('succès cachés : 18 jours de fête, invisibles tant qu’ils ne sont pas obtenus', () => {
   const hidden = ACHIEVEMENTS.filter(a => a.hidden);
-  assert.equal(hidden.length, Conjugo.HOLIDAYS.length);
+  assert.equal(hidden.length, JeuxFr.HOLIDAYS.length);
   const october = progressAfter('holiday-christmas', [game({ endedAt: new Date(2026, 9, 18) })]);
   assert.equal(october.isVisible, false);
   const noel = progressAfter('holiday-christmas', [game({ endedAt: new Date(2025, 11, 25, 10) })]);

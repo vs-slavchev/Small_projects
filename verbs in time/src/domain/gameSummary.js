@@ -1,7 +1,7 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { addDays, GameRecord } = Conjugo;
+const { addDays, GameRecord } = JeuxFr;
 
 /** Appréciation d'une partie, du meilleur au moins bon. */
 const Verdict = Object.freeze({
@@ -44,5 +44,5 @@ class GameSummary {
   }
 }
 
-Object.assign(Conjugo, { Verdict, rateGame, GameSummary });
+Object.assign(JeuxFr, { Verdict, rateGame, GameSummary });
 })(globalThis.JeuxFr ??= {});

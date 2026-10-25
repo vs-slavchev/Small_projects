@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError, Gender, Difficulty, GameRecord } = LeOuLa;
+const { DomainError, Gender, Difficulty, GameRecord } = JeuxFr;
 
 const DEFAULT_GAME_LENGTH = 10;
 
@@ -138,5 +138,5 @@ class GameSession {
   }
 }
 
-Object.assign(LeOuLa, { DEFAULT_GAME_LENGTH, Answer, GameSession });
+Object.assign(JeuxFr, { DEFAULT_GAME_LENGTH, Answer, GameSession });
 })(globalThis.JeuxFr ??= {});

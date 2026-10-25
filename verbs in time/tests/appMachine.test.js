@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realBank, seededRandom, fakeClock, fakeScheduler, memoryStorage } from './helpers.js';
-import { Conjugo } from './game.js';
+import { JeuxFr } from './game.js';
 
 const {
-  createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, createUseCases,
+  createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createUseCases,
   LocalStorageProfileRepository, LocalStoragePreferences, DEFAULT_GAME_LENGTH, ACHIEVEMENTS,
-} = Conjugo;
+} = JeuxFr;
 
 function setup({ storage = memoryStorage(), seed = 3 } = {}) {
   const clock = fakeClock();
@@ -28,6 +28,7 @@ function answerQuestion({ machine, clock, scheduler }, correct) {
   assert.equal(machine.state, AppState.REVEALING);
   scheduler.advance(correct ? REVEAL_DELAY_MS.correct : REVEAL_DELAY_MS.wrong);
   assert.equal(machine.state, AppState.FEEDBACK);
+  scheduler.advance(FEEDBACK_MIN_MS);
 }
 
 function playGame(env, pattern = Array(DEFAULT_GAME_LENGTH).fill(true)) {
@@ -60,6 +61,18 @@ test('un double appui sur une réponse est ignoré', () => {
   env.machine.send(AppEvent.ANSWER, { text: 'xyz' });
   assert.equal(env.machine.context.session.answers.length, 1);
   assert.ok(env.machine.context.session.lastAnswer.correct);
+});
+
+test('l’explication ne se quitte pas dans la foulée de la réponse', () => {
+  const env = setup();
+  env.machine.send(AppEvent.START);
+  env.machine.send(AppEvent.ANSWER, { text: 'xyz' });
+  env.scheduler.advance(REVEAL_DELAY_MS.wrong);
+  env.machine.send(AppEvent.CONTINUE);
+  assert.equal(env.machine.state, AppState.FEEDBACK, 'second appui sur Entrée ignoré');
+  env.scheduler.advance(FEEDBACK_MIN_MS);
+  env.machine.send(AppEvent.CONTINUE);
+  assert.equal(env.machine.state, AppState.QUESTION);
 });
 
 test('retour à l’accueil après une partie : compte à rebours de 5 s puis nouvelle partie', () => {
@@ -146,9 +159,10 @@ test('succès : sélection et fermeture d’un badge, index hors limites refusé
 
 test('une partie plus longue que la banque de verbes est refusée dès le départ', () => {
   const storage = memoryStorage();
+  const bank = realBank();
   assert.throws(() => createUseCases({
-    bank: realBank(), profiles: new LocalStorageProfileRepository({ storage }), preferences: new LocalStoragePreferences({ storage }),
-    clock: fakeClock(), gameLength: realBank().verbs.length + 1,
+    bank, profiles: new LocalStorageProfileRepository({ storage }), preferences: new LocalStoragePreferences({ storage }),
+    clock: fakeClock(), gameLength: bank.verbs.length + 1,
   }), /impossible/);
 });
 

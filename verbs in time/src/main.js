@@ -1,12 +1,12 @@
 // Point d'assemblage : relie le domaine, les cas d'utilisation, l'automate et les adaptateurs.
 
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
 const {
   VerbBank, createUseCases, createAppMachine, LocalStorageProfileRepository,
-  LocalStoragePreferences, browserStorage, WebAudioSound, VIEWS, createRenderer, createEffects, bindController,
-} = Conjugo;
+  LocalStoragePreferences, browserStorage, WebAudioSound, VIEWS, AppState, AppEvent, createRenderer, createEffects, bindController,
+} = JeuxFr;
 
 const clock = { now: () => Date.now() };
 const storage = browserStorage();
@@ -25,6 +25,8 @@ machine.subscribe(createRenderer(root, { views: VIEWS, now: clock.now }));
 machine.subscribe(createEffects({
   sound: new WebAudioSound({ enabled: useCases.isSoundEnabled() }),
   vibrate: ms => navigator.vibrate?.(ms),
+  AppState,
+  AppEvent,
 }));
 bindController(root, machine);
 machine.start();

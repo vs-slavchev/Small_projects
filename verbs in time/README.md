@@ -1,6 +1,6 @@
 # Verbes dans le temps
 
-Jeu mobile pour apprendre la conjugaison des verbes français, dérivé de « Le ou la ? » (`../jeu de genres de noms français`). Il est écrit en JavaScript pur, sans dépendance ni service externe. Tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `fonts/`.
+Jeu mobile pour apprendre la conjugaison des verbes français, dérivé de « Le ou la ? » (`../jeu de genres de noms français`). Il est écrit en JavaScript pur, sans dépendance ni service externe. Tout est stocké dans le navigateur, et les polices (Young Serif, Manrope — licence SIL OFL 1.1) sont hébergées dans `../jeux-francais-commun/fonts/`.
 
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
@@ -32,7 +32,7 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
 
 ## Architecture
 
-L'architecture est celle de « Le ou la ? ». Les dépendances vont toujours vers le centre : l'interface connaît l'application, l'application connaît le domaine, et le domaine ne connaît personne. Le moteur commun aux deux jeux (automate, calendrier et série, jours de fête, sons, rendu, effets, erreurs du domaine) vit dans `../jeux-francais-commun/` : le dossier doit rester à côté de celui-ci. Les fichiers sont des scripts classiques qui publient leurs exports dans l'espace de noms global commun `JeuxFr` (nommé `Conjugo` à l'intérieur des fichiers). `index.html` les charge dans l'ordre des dépendances, et les tests (`tests/game.js`) suivent ce même ordre.
+L'architecture est celle de « Le ou la ? ». Les dépendances vont toujours vers le centre : l'interface connaît l'application, l'application connaît le domaine, et le domaine ne connaît personne. Le moteur commun aux deux jeux vit dans `../jeux-francais-commun/` (voir son README) : le dossier doit rester à côté de celui-ci. Les fichiers sont des scripts classiques qui publient leurs exports dans l'espace de noms global commun `JeuxFr`. `index.html` les charge dans l'ordre des dépendances, et les tests (`tests/game.js`) suivent ce même ordre.
 
 ```
 src/
@@ -40,7 +40,6 @@ src/
 ├── domain/
 │   ├── conjugation.js           Person, Tense, Verb.conjugate, Conjugation.check, Question, VerbBank
 │   ├── questionSelection.js     QuestionPicker : triplet aléatoire verbe × temps × personne
-│   ├── practiceStats.js         statistiques par verbe et par temps
 │   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
 │   ├── gameRecord.js            GameRecord : partie terminée, archivée
 │   ├── playerProfile.js         PlayerProfile : joueur
@@ -49,7 +48,7 @@ src/
 │   └── gameSummary.js           verdict et bilan de fin de partie
 ├── application/                 cas d'utilisation et automate de l'application (ANSWER porte { text })
 ├── infrastructure/              stockage local (clés conjugo.*)
-└── ui/                          vues, contrôleur (saisie et touches d'accent), textes
+└── ui/                          vues, contrôleur (saisie et touches d'accent), verdicts et commentaires
 ```
 
 Seuls le présent, le participe passé et les radicaux irréguliers sont stockés. Les autres formes sont calculées :

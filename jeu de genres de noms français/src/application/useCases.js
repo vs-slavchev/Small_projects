@@ -1,10 +1,10 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
 const {
   GameSession, DEFAULT_GAME_LENGTH, WordSelectionPolicy, AchievementFacts, evaluateAchievements, newlyUnlocked,
   earnedSteps, totalSteps, ProgressReport, GameSummary, rateGame,
-} = LeOuLa;
+} = JeuxFr;
 
 /**
  * Cas d'utilisation du jeu. Ils orchestrent les objets du domaine et les ports
@@ -104,5 +104,5 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
   });
 }
 
-Object.assign(LeOuLa, { createUseCases });
+Object.assign(JeuxFr, { createUseCases });
 })(globalThis.JeuxFr ??= {});

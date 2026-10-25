@@ -1,7 +1,7 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { addDays, GameRecord, PracticeStatsBook } = Conjugo;
+const { addDays, GameRecord, AnswerStatsBook } = JeuxFr;
 
 const PROGRESS_UNLOCK_GAMES = 3;
 const TIMELINE_SIZE = 12;
@@ -33,13 +33,12 @@ const meanAccuracy = games => mean(games.map(g => g.accuracy));
 class ProgressReport {
   #games;
   #now;
-
   #bank;
 
   /**
    * @param {import('./gameRecord.js').GameRecord[]} games triées de la plus ancienne à la plus récente
    * @param {Date | number} now
-   * @param {import('./conjugation.js').VerbBank} [bank] pour nommer les verbes comme ailleurs (« se lever »)
+   * @param {import('./conjugation.js').VerbBank} bank pour nommer les verbes comme ailleurs (« se lever »)
    */
   constructor(games, now, bank) {
     this.#games = games;
@@ -125,7 +124,7 @@ function dip(last, average) {
 
 /** Verbe le plus souvent raté à un même temps sur la chronologie, s'il l'a encore été à sa dernière apparition. */
 function trap(timeline, bank) {
-  const book = new PracticeStatsBook();
+  const book = new AnswerStatsBook();
   for (const a of timeline.flatMap(g => g.answers)) book.record(GameRecord.practiceKeyOf(a), a.correct);
   let found = null;
   for (const [key, stat] of book.entries()) {
@@ -135,7 +134,7 @@ function trap(timeline, bank) {
   }
   if (!found) return null;
   const [infinitive, tense] = found.key.split('|');
-  return { kind: InsightKind.TRAP, verb: bank?.verb(infinitive)?.label ?? infinitive, tense, misses: found.misses };
+  return { kind: InsightKind.TRAP, verb: bank.verb(infinitive)?.label ?? infinitive, tense, misses: found.misses };
 }
 
 /** Temps de réponse moyen des dernières parties nettement plus court qu'au début de la chronologie. */
@@ -151,7 +150,7 @@ function faster(timeline) {
   return { kind: InsightKind.FASTER, beforeMs: Math.round(before), nowMs: Math.round(now) };
 }
 
-Object.assign(Conjugo, {
+Object.assign(JeuxFr, {
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });

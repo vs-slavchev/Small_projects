@@ -1,9 +1,8 @@
-import { Conjugo } from './game.js';
+import { JeuxFr } from './game.js';
 
-export { seededRandom, sequence, fakeClock, fakeScheduler } from '../../jeux-francais-commun/tests/testKit.js';
+export { seededRandom, sequence, fakeClock, fakeScheduler, memoryStorage } from '../../jeux-francais-commun/tests/testKit.js';
 
-const { VerbBank, MemoryStorage } = Conjugo;
+const { VerbBank } = JeuxFr;
 
 export const realBank = () => VerbBank.fromData();
 
-export const memoryStorage = () => new MemoryStorage();

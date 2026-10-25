@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError } = LeOuLa;
+const { DomainError } = JeuxFr;
 
 /**
  * Genre grammatical d'un nom. Objet valeur : seules deux instances existent,
@@ -35,5 +35,5 @@ class Gender {
   }
 }
 
-Object.assign(LeOuLa, { Gender });
+Object.assign(JeuxFr, { Gender });
 })(globalThis.JeuxFr ??= {});

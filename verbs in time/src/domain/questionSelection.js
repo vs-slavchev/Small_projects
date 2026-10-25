@@ -1,7 +1,7 @@
-(function (Conjugo) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError, Person, Tense, Question } = Conjugo;
+const { DomainError, Person, Tense, Question } = JeuxFr;
 
 /**
  * Tirage d'une question : un triplet aléatoire verbe + temps + personne,
@@ -18,6 +18,11 @@ class QuestionPicker {
     this.#random = random;
   }
 
+  /** Nombre de questions possibles dans une partie : un verbe n'y revient pas. */
+  get capacity() {
+    return this.#bank.verbs.length;
+  }
+
   /** @param {{ excludedVerbs?: Set<string> }} [request] @returns {Question} */
   pick({ excludedVerbs = new Set() } = {}) {
     const verbs = this.#bank.verbs.filter(v => !excludedVerbs.has(v.infinitive));
@@ -30,5 +35,5 @@ class QuestionPicker {
   }
 }
 
-Object.assign(Conjugo, { QuestionPicker });
+Object.assign(JeuxFr, { QuestionPicker });
 })(globalThis.JeuxFr ??= {});

@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { addDays, GameRecord, Gender, WordStatsBook } = LeOuLa;
+const { addDays, GameRecord, Gender, WordStatsBook } = JeuxFr;
 
 const PROGRESS_UNLOCK_GAMES = 3;
 const TIMELINE_SIZE = 12;
@@ -147,7 +147,7 @@ function faster(timeline) {
   return { kind: InsightKind.FASTER, beforeMs: Math.round(before), nowMs: Math.round(now) };
 }
 
-Object.assign(LeOuLa, {
+Object.assign(JeuxFr, {
   PROGRESS_UNLOCK_GAMES, TIMELINE_SIZE, RECENT_SIZE, TREND_WINDOW_DAYS, STEADY_THRESHOLD,
   TrendWindow, InsightKind, ProgressReport,
 });

@@ -1,7 +1,7 @@
-(function (LeOuLa) {
+(function (JeuxFr) {
 'use strict';
 
-const { DomainError } = LeOuLa;
+const { DomainError } = JeuxFr;
 
 /**
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée,
@@ -88,5 +88,5 @@ class GameRecord {
   }
 }
 
-Object.assign(LeOuLa, { GameRecord });
+Object.assign(JeuxFr, { GameRecord });
 })(globalThis.JeuxFr ??= {});
