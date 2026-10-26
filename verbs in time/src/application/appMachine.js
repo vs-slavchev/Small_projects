@@ -164,7 +164,9 @@ function createAppMachine(useCases, options = {}) {
             guard: (ctx, e) => !ctx.retyped && typeof e.text === 'string' && e.text.trim() !== '',
             actions: [(ctx, e) => {
               ctx.retypeTried = true;
-              ctx.retyped = ctx.session.lastAnswer.question.expected.check(e.text).correct;
+              // Sans touches d'accent à l'écran, un clavier sans accents ne doit pas bloquer la suite.
+              const { correct, accentsOnly } = ctx.session.lastAnswer.question.expected.check(e.text);
+              ctx.retyped = correct || accentsOnly;
             }],
           },
           [AppEvent.CONTINUE]: [

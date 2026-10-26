@@ -58,6 +58,7 @@ class Person {
 class Tense {
   /**
    * @param {{ id: string, label: string, withPreposition: string, rule: string, markers: string[] }} props
+   *   `rule` : explication affichée après une réponse, ou chaîne vide pour n'en afficher aucune.
    *   `markers` : expressions de temps qui situent la phrase (« Hier, »), pour donner un sens au temps demandé.
    */
   constructor({ id, label, withPreposition, rule, markers }) {

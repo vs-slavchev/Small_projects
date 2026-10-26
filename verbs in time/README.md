@@ -16,14 +16,14 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
   - **verbe** : un des 20 verbes de la banque, sans répétition dans une partie (tant que les réglages le permettent) ;
   - **temps** : présent, imparfait, passé composé, futur proche, futur simple.
 - La question est située par une expression de temps (« Hier, nous … », « L’année prochaine, je … ») : le temps se comprend par son usage, pas seulement par son nom.
-- **Révisions** : environ 30 % des tirages reviennent sur une conjugaison faible (verbe + temps déjà raté et pas encore acquis). En fin de partie, « Rejouer mes erreurs » repose les questions ratées.
+- **Révisions** : environ 30 % des tirages reviennent sur une conjugaison faible (verbe + temps déjà raté et pas encore acquis ; acquis = au moins 3 réponses, la dernière juste, 80 % de réussite). En fin de partie, « Rejouer mes erreurs » repose les questions ratées.
 - **Réglages** (⚙ sur l'accueil) : choisir les temps et les types de verbes à travailler ; il en reste toujours au moins un de chaque.
-- Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »), sauf pour un verbe pronominal avec nous ou vous : « nous levons » serait un oubli du pronom réfléchi, il faut taper « nous nous levons ». La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ». Des touches d'accent (é è ê à â ç î ï ô û ù ë ’) sont affichées sous le champ.
+- Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »), sauf pour un verbe pronominal avec nous ou vous : « nous levons » serait un oubli du pronom réfléchi, il faut taper « nous nous levons ». La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ».
 - Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous et vous n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
 - Après chaque réponse, l'écran d'explication montre :
   - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, accord), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
   - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, pronom réfléchi manquant, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
-  - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée ;
+  - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée (les accents n'y sont pas exigés) ;
   - la règle du temps (avec ce que l'oral ne distingue pas : parle / parles / parlent), la particularité du verbe, les verbes qui **se conjuguent comme lui**, et la conjugaison complète du verbe à ce temps, découpée elle aussi.
 - **Progrès** : en plus de la chronologie, une grille de maîtrise verbe × temps (pas encore vu, à revoir, en cours, acquis).
 
@@ -74,7 +74,7 @@ src/
 │   ├── format.js                verdicts, commentaires de la chronologie, diagnostics
 │   ├── views.js                 une vue par état, HTML pur
 │   ├── renderer.js              rendu complet ou ciblé selon la transition
-│   ├── controller.js            clics, saisie, recopie, touches d'accent → événements
+│   ├── controller.js            clics, saisie, recopie → événements
 │   └── effects.js               sons et vibrations selon les transitions
 └── main.js                      point d'assemblage
 ```
