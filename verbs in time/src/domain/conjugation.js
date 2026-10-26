@@ -247,8 +247,8 @@ const stripAccents = text => text.normalize('NFD').replace(/\p{M}/gu, '');
  * Forme conjuguée attendue. `forms` liste toutes les écritures justes avec leur sujet
  * (accords possibles, orthographe rectifiée) ; `display` est celle qu'on montre au joueur,
  * et `segments` la même, découpée (sujet, radical, terminaison…).
- * Le joueur peut aussi répondre sans le pronom sujet (« finirai » vaut « je finirai »), sauf si la forme
- * commence par un pronom identique au sujet (« nous nous levons ») : voir le constructeur.
+ * Le joueur peut aussi répondre sans le pronom sujet (« finirai » vaut « je finirai », « nous levons » vaut
+ * « nous nous levons »).
  */
 class Conjugation {
   #accepted;
@@ -265,11 +265,8 @@ class Conjugation {
     this.display = textOf(this.segments);
     /** Autres écritures acceptées, à signaler après la réponse. */
     this.others = Object.freeze(this.forms.slice(variants.length));
-    // Quand la forme commence par un pronom identique au sujet (« nous nous levons »), la réponse
-    // sans sujet (« nous levons ») ne se distingue pas d'un oubli du pronom réfléchi : le sujet est alors obligatoire.
-    const subjectRequired = bare.some(rest => rest.startsWith(`${subject} `));
     /** Écritures acceptées telles qu'on les montre, avec ou sans sujet. */
-    this.accepted = Object.freeze([...this.forms, ...(subjectRequired ? [] : bare)]);
+    this.accepted = Object.freeze([...this.forms, ...bare]);
     this.#accepted = this.accepted.map(normalizeAnswer);
     Object.freeze(this);
   }
