@@ -374,8 +374,7 @@ const results = {
         </div>
         <div class="grow"></div>
         <div class="end-actions">
-          ${missed.length ? `<button class="replay press" data-event="${AppEvent.START_REVIEW}">Rejouer mes erreurs (${missed.length})</button>` : ''}
-          <button class="${missed.length ? 'ghost' : 'replay press'}" data-event="${AppEvent.START}">${missed.length ? 'Nouvelle partie' : 'Rejouer'}</button>
+          <button class="replay press" data-event="${AppEvent.START}">Rejouer</button>
           <button class="ghost" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.PROGRESS}">Voir ma progression</button>
         </div>
       </div>

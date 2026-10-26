@@ -58,14 +58,13 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 
     /**
      * Démarre une partie : chaque tour tire un verbe, un temps et une personne parmi les réglages du joueur.
-     * @param {import('../domain/conjugation.js').Question[]} [review] questions à reposer d'abord (« Rejouer mes erreurs »)
+     * Les conjugaisons ratées reviennent d'elles-mêmes plus souvent (voir `QuestionPicker`).
      */
-    startGame(review = []) {
+    startGame() {
       const picker = new QuestionPicker({ bank, random, stats: profile.practice, tenses: prefs.tenses, types: prefs.types });
-      const queue = review.slice(0, gameLength);
       return GameSession.start({
         length: gameLength,
-        drawQuestion: request => queue.shift() ?? picker.pick(request),
+        drawQuestion: request => picker.pick(request),
         now: clock.now(),
       });
     },
