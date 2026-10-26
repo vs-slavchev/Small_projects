@@ -258,7 +258,7 @@ const feedback = {
     } else if (answer.accentsOnly) {
       [title, subtitle] = ['Presque.', 'Attention aux accents.'];
     } else {
-      [title, subtitle] = ['Pas cette fois.', 'La règle ci-dessous va t’aider.'];
+      [title, subtitle] = ['Pas cette fois.', 'Compare avec la conjugaison ci-dessous.'];
     }
     const others = expected.others.length
       ? `<div class="also">Aussi accepté : ${expected.others.map(esc).join(', ')}</div>`
@@ -291,10 +291,6 @@ const feedback = {
         </div>
         ${diagnosis}
         ${answer.correct ? '' : retypeBlock(context)}
-        ${tense.rule ? `<div class="rule">
-          <div class="rule-tags"><span class="lbl">Temps</span><span class="chip tense">${esc(tense.label)}</span></div>
-          <div class="rule-text">${tense.rule}</div>
-        </div>` : ''}
         <div class="fun">
           <div class="rule-tags"><span class="lbl">${esc(verb.label)}</span><span class="chip type">${esc(verb.type.label)}</span></div>
           <div class="fun-text">${verb.note || verb.type.rule}</div>

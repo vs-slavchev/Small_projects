@@ -24,7 +24,7 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
   - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, accord), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
   - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, pronom réfléchi manquant, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
   - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée (les accents n'y sont pas exigés) ;
-  - la règle du temps (avec ce que l'oral ne distingue pas : parle / parles / parlent), la particularité du verbe, les verbes qui **se conjuguent comme lui**, et la conjugaison complète du verbe à ce temps, découpée elle aussi.
+  - la particularité du verbe, les verbes qui **se conjuguent comme lui**, et la conjugaison complète du verbe à ce temps, découpée elle aussi.
 - **Progrès** : en plus de la chronologie, une grille de maîtrise verbe × temps (pas encore vu, à revoir, en cours, acquis).
 
 ## Un verbe par type de conjugaison
@@ -47,7 +47,7 @@ src/
 ├── data/verbs.js                Types de verbes et 20 verbes (présent, participe, radicaux irréguliers, modèles, note)
 ├── domain/
 │   ├── errors.js                DomainError
-│   ├── conjugation.js           Person, Tense (règles, expressions de temps), Verb.conjugate (formes découpées),
+│   ├── conjugation.js           Person, Tense (expressions de temps), Verb.conjugate (formes découpées),
 │   │                            Conjugation.check, Question, VerbBank
 │   ├── diagnosis.js             diagnose : nature d'une erreur (autre temps, autre personne, auxiliaire…)
 │   ├── calendar.js              dayKey, addDays, ActivityCalendar (série quotidienne)

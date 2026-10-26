@@ -57,33 +57,26 @@ class Person {
 /** Temps de conjugaison. Objet valeur : les cinq instances sont fixes. */
 class Tense {
   /**
-   * @param {{ id: string, label: string, withPreposition: string, rule: string, markers: string[] }} props
-   *   `rule` : explication affichée après une réponse, ou chaîne vide pour n'en afficher aucune.
+   * @param {{ id: string, label: string, withPreposition: string, markers: string[] }} props
    *   `markers` : expressions de temps qui situent la phrase (« Hier, »), pour donner un sens au temps demandé.
    */
-  constructor({ id, label, withPreposition, rule, markers }) {
+  constructor({ id, label, withPreposition, markers }) {
     this.id = id;
     this.label = label;
     this.withPreposition = withPreposition;
-    this.rule = rule;
     this.markers = Object.freeze([...markers]);
     Object.freeze(this);
   }
 
   static PRESENT = new Tense({ id: 'present', label: 'présent', withPreposition: 'au présent',
-    rule: '',
     markers: ['En ce moment,', 'Aujourd’hui,', 'Tous les jours,'] });
   static IMPERFECT = new Tense({ id: 'imperfect', label: 'imparfait', withPreposition: 'à l’imparfait',
-    rule: 'Radical de « nous » au présent, sans -ons, + <b>-ais, -ais, -ait, -ions, -iez, -aient</b>. Seule exception : être (j’étais). Il décrit une habitude ou un décor du passé. À l’oral, -ais, -ait et -aient se prononcent pareil.',
     markers: ['Autrefois,', 'À l’époque,', 'Chaque été, avant,'] });
   static PASSE_COMPOSE = new Tense({ id: 'passeCompose', label: 'passé composé', withPreposition: 'au passé composé',
-    rule: 'Auxiliaire <b>avoir</b> ou <b>être</b> au présent + participe passé. Avec être, le participe s’accorde avec le sujet : elle est allé<b>e</b>, ils sont allé<b>s</b>. Il raconte une action terminée.',
     markers: ['Hier,', 'La semaine dernière,', 'Ce matin,'] });
   static FUTUR_PROCHE = new Tense({ id: 'futurProche', label: 'futur proche', withPreposition: 'au futur proche',
-    rule: '<b>Aller</b> au présent + infinitif : je vais parler, nous allons finir. Il annonce ce qui va arriver bientôt.',
     markers: ['Tout à l’heure,', 'Ce soir,', 'Dans cinq minutes,'] });
   static FUTUR_SIMPLE = new Tense({ id: 'futurSimple', label: 'futur simple', withPreposition: 'au futur simple',
-    rule: 'Infinitif (sans le e final des verbes en -re) + <b>-ai, -as, -a, -ons, -ez, -ont</b>. Certains radicaux sont irréguliers : ser-, aur-, ir-, fer-, viendr-, verr-, pourr-. Il situe l’action dans un avenir plus lointain.',
     markers: ['L’année prochaine,', 'Un jour,', 'Dans dix ans,'] });
   static ALL = Object.freeze([Tense.PRESENT, Tense.IMPERFECT, Tense.PASSE_COMPOSE, Tense.FUTUR_PROCHE, Tense.FUTUR_SIMPLE]);
 }
