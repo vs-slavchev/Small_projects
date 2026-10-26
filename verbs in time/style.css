@@ -147,12 +147,16 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 /* Saisie dans peu de hauteur (clavier du téléphone ouvert) : la carte se resserre pour rester entière à l'écran. */
 @container app (max-height: 560px) {
   .play:has(#answer:focus) {
-    .play-top { padding: 4px 20px; gap: 6px; }
-    .sub-row { min-height: 0; }
-    .count { display: none; }
-    .combo { padding: 3px 10px 3px 8px; font-size: 12px; }
-    .card { padding: 12px 14px; gap: 4px; border-radius: 22px; overflow: hidden; }
-    .card .word { font-size: min(var(--word-size), 36px); }
+    .top-safe { height: 4px; }
+    .play-top { padding: 2px 20px; gap: 0; }
+    .bar-row { gap: 8px; }
+    .close { width: 24px; height: 24px; font-size: 11px; }
+    .seg { height: 4px; }
+    .timer { font-size: 12px; min-width: 34px; }
+    .sub-row { display: none; }
+    .card-wrap { padding-top: 6px; }
+    .card { padding: 10px 14px; gap: 2px; border-radius: 22px; overflow: hidden; }
+    .card .word { font-size: min(var(--word-size), 34px); }
     .card .en { display: none; }
     .card .chip.pill { padding: 3px 10px; font-size: 11px; }
     .person { font-size: 18px; margin-top: 0; }
@@ -317,7 +321,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .retype #retype { flex: 1; min-width: 0; height: 50px; border-radius: 14px; border: 2px solid var(--line); background: var(--paper); padding: 0 14px; font-family: var(--serif); font-size: 20px; color: var(--ink); outline: none; }
 .retype #retype:focus { border-color: var(--ink); }
 .retype.again #retype { border-color: var(--red); animation: shake .42s ease; }
-.retype.done #retype { border-color: var(--green); -webkit-text-fill-color: var(--ink); opacity: 1; }
 .retype .submit { height: 50px; }
 .retype-status { font-size: 13px; font-weight: 700; color: var(--muted); }
 .retype.done .retype-status { color: var(--green); }

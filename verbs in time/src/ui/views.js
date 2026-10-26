@@ -232,12 +232,13 @@ function answerDiff(given, expected) {
 /** Après une erreur : recopier la bonne forme pour pouvoir continuer. */
 function retypeBlock({ retyped, retypeTried }) {
   const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
+  // Une fois la forme recopiée, le champ et son bouton ne servent plus : seul le message reste.
   return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
-    <label class="${retyped ? 'sr-only' : 'lbl'}" for="retype">À toi</label>
+    ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
     <div class="input-row">
-      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
-      <button class="submit press" type="submit"${retyped ? ' disabled' : ''}>OK</button>
-    </div>
+      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      <button class="submit press" type="submit">OK</button>
+    </div>`}
     <div class="retype-status" aria-live="polite">${status}</div>
   </form>`;
 }
