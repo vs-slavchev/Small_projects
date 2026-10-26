@@ -1,0 +1,12 @@
+{
+  "name": "verbes-dans-le-temps",
+  "private": true,
+  "description": "Jeu mobile pour apprendre la conjugaison des verbes français.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
