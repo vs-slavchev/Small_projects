@@ -233,9 +233,9 @@ function answerDiff(given, expected) {
 function retypeBlock({ retyped, retypeTried }) {
   const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
   return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
-    ${retyped ? '' : '<label class="lbl" for="retype">À toi</label>'}
+    <label class="${retyped ? 'sr-only' : 'lbl'}" for="retype">À toi</label>
     <div class="input-row">
-      <input id="retype" type="text" aria-label="Recopie la bonne forme" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
+      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
       <button class="submit press" type="submit"${retyped ? ' disabled' : ''}>OK</button>
     </div>
     <div class="retype-status" aria-live="polite">${status}</div>

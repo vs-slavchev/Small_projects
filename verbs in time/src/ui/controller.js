@@ -7,7 +7,8 @@ const { AppEvent } = Conjugo;
  * Traduit les gestes du joueur en événements de l'automate.
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
  * La réponse est saisie dans le champ `#answer` et envoyée par le formulaire ; après une erreur,
- * la bonne forme est recopiée dans `#retype`. Les boutons `data-speak` font lire une forme à voix haute (`speak`). L'automate ignore de lui-même les événements
+ * la bonne forme est recopiée dans `#retype`. Les boutons `data-speak` font lire une forme à voix haute (`speak`).
+ * L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
  * @param {HTMLElement} root
