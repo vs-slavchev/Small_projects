@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Person, Tense, dayKey, PROGRESS_UNLOCK_GAMES,
+  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Tense, dayKey, PROGRESS_UNLOCK_GAMES,
   escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, trendText, insightText, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
@@ -208,15 +208,6 @@ function sparks(count = 10, radius = 34) {
   }).join('');
 }
 
-/** Les huit personnes du temps demandé, découpées ; la ligne de la question est mise en valeur. */
-function conjugationTable(question) {
-  const rows = Person.ALL.map(p => {
-    const form = question.verb.conjugate(question.tense, p);
-    return `<div class="cj-row${p === question.person ? ' on' : ''}">${segmented(form.segments)}</div>`;
-  }).join('');
-  return `<div class="cj-table">${rows}</div>`;
-}
-
 /**
  * Réponse comparée lettre à lettre à la forme juste la plus proche (avec ou sans sujet) :
  * lettres en trop barrées dans la réponse, lettres manquantes soulignées dans la forme juste.
@@ -250,7 +241,7 @@ const feedback = {
     const { combo } = session;
     const answer = session.lastAnswer;
     const { question } = answer;
-    const { verb, tense, expected } = question;
+    const { verb, expected } = question;
     let title, subtitle;
     if (answer.correct) {
       title = 'Exact.';
@@ -258,7 +249,7 @@ const feedback = {
     } else if (answer.accentsOnly) {
       [title, subtitle] = ['Presque.', 'Attention aux accents.'];
     } else {
-      [title, subtitle] = ['Pas cette fois.', 'Compare avec la conjugaison ci-dessous.'];
+      [title, subtitle] = ['Pas cette fois.', 'Compare avec la bonne forme en haut.'];
     }
     const others = expected.others.length
       ? `<div class="also">Aussi accepté : ${expected.others.map(esc).join(', ')}</div>`
@@ -295,10 +286,6 @@ const feedback = {
           <div class="rule-tags"><span class="lbl">${esc(verb.label)}</span><span class="chip type">${esc(verb.type.label)}</span></div>
           <div class="fun-text">${verb.note || verb.type.rule}</div>
           ${alsoLike}
-        </div>
-        <div class="rule">
-          <div class="lbl">${esc(verb.label)} ${esc(tense.withPreposition)}</div>
-          ${conjugationTable(question)}
         </div>
         <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}"${locked ? ' aria-disabled="true"' : ''}>${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
       </div>

@@ -24,7 +24,7 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
   - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, accord), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
   - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, pronom réfléchi manquant, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
   - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée (les accents n'y sont pas exigés) ;
-  - la particularité du verbe, les verbes qui **se conjuguent comme lui**, et la conjugaison complète du verbe à ce temps, découpée elle aussi.
+  - la particularité du verbe, et les verbes qui **se conjuguent comme lui**.
 - **Progrès** : en plus de la chronologie, une grille de maîtrise verbe × temps (pas encore vu, à revoir, en cours, acquis).
 
 ## Un verbe par type de conjugaison
