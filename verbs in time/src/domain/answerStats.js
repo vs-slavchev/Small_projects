@@ -12,6 +12,8 @@ class AnswerStat {
 
   /** Taux de réussite à partir duquel un élément est considéré comme acquis. */
   static MASTERY_ACCURACY = 0.8;
+  /** Nombre de réponses en dessous duquel un élément n'est jamais considéré comme acquis. */
+  static MASTERY_MIN_SEEN = 3;
 
   /**
    * @param {number} seen @param {number} correct
@@ -35,12 +37,13 @@ class AnswerStat {
   }
 
   /**
-   * Élément acquis : dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
+   * Élément acquis : au moins MASTERY_MIN_SEEN réponses, dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
+   * Une seule bonne réponse ne suffit donc pas.
    * Une erreur ancienne, suivie d'assez de bonnes réponses, ne le fait plus revenir en révision ;
    * une erreur toute récente, si.
    */
   get isMastered() {
-    return this.lastCorrect === true && this.accuracy >= AnswerStat.MASTERY_ACCURACY;
+    return this.seen >= AnswerStat.MASTERY_MIN_SEEN && this.lastCorrect === true && this.accuracy >= AnswerStat.MASTERY_ACCURACY;
   }
 
   /** @param {boolean} correct @returns {this} une statistique de la même classe */

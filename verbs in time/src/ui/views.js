@@ -16,8 +16,6 @@ const {
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-/** Caractères difficiles à taper sur certains claviers, insérés d'un appui. */
-const ACCENT_KEYS = ['é', 'è', 'ê', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'ë', '’'];
 
 /* ---------- Éléments communs ---------- */
 
@@ -50,10 +48,6 @@ const segmented = segments => segments
 const SEGMENT_LEGEND = `<div class="sg-legend" aria-hidden="true">
   <span class="sg sg-stem">radical</span><span class="sg sg-ending">terminaison</span><span class="sg sg-aux">auxiliaire</span><span class="sg sg-agreement">accord</span>
 </div>`;
-
-/** Touches d'accent, insérées dans le champ du même formulaire. */
-const accentKeys = disabled => `<div class="keys">${ACCENT_KEYS
-  .map(k => `<button type="button" class="key" data-insert="${k}" tabindex="-1"${disabled ? ' disabled' : ''}>${k}</button>`).join('')}</div>`;
 
 /** Bouton qui fait lire une forme à voix haute (masqué si le navigateur ne sait pas parler). */
 const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
@@ -189,7 +183,7 @@ const question = {
         <div class="card${result}">
           <div class="chip tense pill">${esc(tense.label)}</div>
           <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
-          <div class="word" style="font-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
+          <div class="word" style="--word-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
           <div class="en">${esc(verb.translation)}</div>
         </div>
       </div>
@@ -200,7 +194,6 @@ const question = {
             enterkeyhint="done" placeholder="${esc(person.subject)} …" value="${revealing ? esc(answer.given) : ''}"${revealing ? ' disabled' : ''}>
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
-        ${accentKeys(revealing)}
       </form>
     </div>`;
   },
@@ -240,13 +233,12 @@ function answerDiff(given, expected) {
 function retypeBlock({ retyped, retypeTried }) {
   const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
   return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
-    <label class="lbl" for="retype">À toi</label>
+    ${retyped ? '' : '<label class="lbl" for="retype">À toi</label>'}
     <div class="input-row">
-      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
+      <input id="retype" type="text" aria-label="Recopie la bonne forme" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
       <button class="submit press" type="submit"${retyped ? ' disabled' : ''}>OK</button>
     </div>
     <div class="retype-status" aria-live="polite">${status}</div>
-    ${retyped ? '' : accentKeys(false)}
   </form>`;
 }
 
@@ -298,10 +290,10 @@ const feedback = {
         </div>
         ${diagnosis}
         ${answer.correct ? '' : retypeBlock(context)}
-        <div class="rule">
+        ${tense.rule ? `<div class="rule">
           <div class="rule-tags"><span class="lbl">Temps</span><span class="chip tense">${esc(tense.label)}</span></div>
           <div class="rule-text">${tense.rule}</div>
-        </div>
+        </div>` : ''}
         <div class="fun">
           <div class="rule-tags"><span class="lbl">${esc(verb.label)}</span><span class="chip type">${esc(verb.type.label)}</span></div>
           <div class="fun-text">${verb.note || verb.type.rule}</div>

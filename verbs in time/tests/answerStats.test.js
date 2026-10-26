@@ -26,3 +26,11 @@ test('un carnet produit les statistiques de sa sous-classe', () => {
   assert.ok(book.get('x') instanceof Tagged);
   assert.equal(book.get('x').seen, 1);
 });
+
+test('acquis : au moins trois réponses, la dernière juste, 80 % de réussite', () => {
+  const right = n => Array.from({ length: n }).reduce(s => s.record(true), AnswerStat.EMPTY);
+  assert.equal(right(1).isMastered, false);
+  assert.equal(right(2).isMastered, false);
+  assert.equal(right(3).isMastered, true);
+  assert.equal(right(3).record(false).isMastered, false);
+});

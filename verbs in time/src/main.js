@@ -33,6 +33,18 @@ const speaker = createSpeaker();
 // Sans synthèse vocale, les boutons « écouter » sont masqués.
 document.documentElement.classList.toggle('no-speech', !speaker.available);
 bindController(root, machine, { speak: speaker.speak });
+
+// Clavier du téléphone ouvert : l'application prend la hauteur visible, pour que la question reste à l'écran.
+const viewport = globalThis.visualViewport;
+if (viewport) {
+  const fit = () => {
+    root.style.setProperty('--app-h', `${viewport.height}px`);
+    if (globalThis.scrollY) globalThis.scrollTo(0, 0);
+  };
+  viewport.addEventListener('resize', fit);
+  viewport.addEventListener('scroll', fit);
+  fit();
+}
 machine.start();
 
 })(globalThis.Conjugo ??= {});

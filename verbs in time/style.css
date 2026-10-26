@@ -36,7 +36,7 @@ button { font-family: var(--sans); color: inherit; cursor: pointer; touch-action
 button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
 #app {
-  position: relative; max-width: 430px; height: 100vh; height: 100dvh; margin: 0 auto;
+  position: relative; max-width: 430px; height: 100vh; height: var(--app-h, 100dvh); margin: 0 auto;
   background: var(--paper); overflow: hidden;
 }
 @media (min-width: 520px) {
@@ -125,7 +125,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 28px 16px;
   animation: cardIn .4s cubic-bezier(.2,1.2,.4,1) both; transition: border-color .2s, box-shadow .2s;
 }
-.card .word { font-family: var(--serif); letter-spacing: -.01em; text-align: center; line-height: 1.05; }
+.card .word { font-size: var(--word-size); font-family: var(--serif); letter-spacing: -.01em; text-align: center; line-height: 1.05; }
 .card .en { font-size: 14px; color: var(--muted-2); font-style: italic; }
 .card.good { border-color: var(--green); box-shadow: 0 0 0 4px rgba(47,143,91,.18), 0 18px 40px -20px rgba(31,36,48,.35); animation: good .4s cubic-bezier(.3,1.6,.5,1); }
 .card.bad { border-color: var(--red); box-shadow: 0 0 0 4px rgba(196,85,58,.15), 0 18px 40px -20px rgba(31,36,48,.35); animation: shake .42s ease; }
@@ -144,10 +144,20 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .answer-form.bad #answer { border-color: var(--red); }
 .submit { --sh: #000; height: 58px; padding: 0 18px; border-radius: 18px; background: var(--ink); color: #fff; font-size: 16px; font-weight: 800; box-shadow: 0 5px 0 #000; flex: none; }
 .submit:disabled { filter: saturate(.3) opacity(.55); }
-.keys { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.key { height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-family: var(--serif); font-size: 18px; padding: 0; }
-.key:active { transform: scale(.92); }
-.key:disabled { opacity: .5; }
+/* Peu de hauteur (clavier du téléphone ouvert) : la carte se resserre pour rester entière à l'écran. */
+@media (max-height: 560px) {
+  .play .play-top { padding: 4px 20px; gap: 6px; }
+  .play .sub-row { min-height: 0; }
+  .play .count { display: none; }
+  .play .combo { padding: 3px 10px 3px 8px; font-size: 12px; }
+  .card { padding: 12px 14px; gap: 4px; border-radius: 22px; overflow: hidden; }
+  .card .word { font-size: min(var(--word-size), 36px); }
+  .card .en { display: none; }
+  .card .chip.pill { padding: 3px 10px; font-size: 11px; }
+  .person { font-size: 18px; margin-top: 0; }
+  .answer-form { margin-top: 8px; padding-bottom: 8px; }
+  #answer, .answer-form .submit { height: 50px; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- Retour sur réponse ---------- */

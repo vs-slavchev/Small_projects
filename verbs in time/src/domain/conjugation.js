@@ -70,7 +70,7 @@ class Tense {
   }
 
   static PRESENT = new Tense({ id: 'present', label: 'présent', withPreposition: 'au présent',
-    rule: 'Radical + terminaisons. 1er groupe : <b>-e, -es, -e, -ons, -ez, -ent</b>. 2e groupe : <b>-is, -is, -it, -issons, -issez, -issent</b>. 3e groupe : le plus souvent <b>-s, -s, -t</b> au singulier. À l’oral, je parl<b>e</b>, tu parl<b>es</b>, il parl<b>e</b> et ils parl<b>ent</b> se prononcent pareil : seule l’orthographe les distingue.',
+    rule: '',
     markers: ['En ce moment,', 'Aujourd’hui,', 'Tous les jours,'] });
   static IMPERFECT = new Tense({ id: 'imperfect', label: 'imparfait', withPreposition: 'à l’imparfait',
     rule: 'Radical de « nous » au présent, sans -ons, + <b>-ais, -ais, -ait, -ions, -iez, -aient</b>. Seule exception : être (j’étais). Il décrit une habitude ou un décor du passé. À l’oral, -ais, -ait et -aient se prononcent pareil.',
