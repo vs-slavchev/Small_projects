@@ -46,7 +46,7 @@ test('diagnostic : chaque type d’erreur est reconnu', () => {
   assert.deepEqual(diagnose(ask('prendre', Tense.PASSE_COMPOSE, Person.NOUS), 'nous sommes pris'), { kind: ErrorKind.AUXILIARY, auxiliary: 'avoir' });
   assert.equal(kindOf(ask('aller', Tense.PASSE_COMPOSE, Person.ELLE), 'elle est allé'), ErrorKind.AGREEMENT);
   assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.JE), 'je lève'), ErrorKind.MISSING_REFLEXIVE);
-  assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.NOUS), 'nous levons'), ErrorKind.MISSING_REFLEXIVE);
+  assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.NOUS), 'levons'), ErrorKind.MISSING_REFLEXIVE);
   assert.deepEqual(diagnose(ask('parler', Tense.IMPERFECT, Person.IL), 'il parlerait'), { kind: ErrorKind.ENDING, stem: 'parl', ending: 'ait' });
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je mange'), null, 'erreur sans nom');
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je parle'), null, 'réponse juste');

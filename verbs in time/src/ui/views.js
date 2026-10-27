@@ -9,15 +9,13 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Person, Tense, dayKey, PROGRESS_UNLOCK_GAMES,
+  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Tense, dayKey, PROGRESS_UNLOCK_GAMES,
   escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, trendText, insightText, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-/** Caractères difficiles à taper sur certains claviers, insérés d'un appui. */
-const ACCENT_KEYS = ['é', 'è', 'ê', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'ë', '’'];
 
 /* ---------- Éléments communs ---------- */
 
@@ -50,10 +48,6 @@ const segmented = segments => segments
 const SEGMENT_LEGEND = `<div class="sg-legend" aria-hidden="true">
   <span class="sg sg-stem">radical</span><span class="sg sg-ending">terminaison</span><span class="sg sg-aux">auxiliaire</span><span class="sg sg-agreement">accord</span>
 </div>`;
-
-/** Touches d'accent, insérées dans le champ du même formulaire. */
-const accentKeys = disabled => `<div class="keys">${ACCENT_KEYS
-  .map(k => `<button type="button" class="key" data-insert="${k}" tabindex="-1"${disabled ? ' disabled' : ''}>${k}</button>`).join('')}</div>`;
 
 /** Bouton qui fait lire une forme à voix haute (masqué si le navigateur ne sait pas parler). */
 const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
@@ -189,7 +183,7 @@ const question = {
         <div class="card${result}">
           <div class="chip tense pill">${esc(tense.label)}</div>
           <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
-          <div class="word" style="font-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
+          <div class="word" style="--word-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
           <div class="en">${esc(verb.translation)}</div>
         </div>
       </div>
@@ -200,7 +194,6 @@ const question = {
             enterkeyhint="done" placeholder="${esc(person.subject)} …" value="${revealing ? esc(answer.given) : ''}"${revealing ? ' disabled' : ''}>
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
-        ${accentKeys(revealing)}
       </form>
     </div>`;
   },
@@ -213,15 +206,6 @@ function sparks(count = 10, radius = 34) {
     const angle = (i / count) * Math.PI * 2;
     return `<i class="spark" style="--dx:${Math.round(Math.cos(angle) * radius)}px;--dy:${Math.round(Math.sin(angle) * radius)}px"></i>`;
   }).join('');
-}
-
-/** Les huit personnes du temps demandé, découpées ; la ligne de la question est mise en valeur. */
-function conjugationTable(question) {
-  const rows = Person.ALL.map(p => {
-    const form = question.verb.conjugate(question.tense, p);
-    return `<div class="cj-row${p === question.person ? ' on' : ''}">${segmented(form.segments)}</div>`;
-  }).join('');
-  return `<div class="cj-table">${rows}</div>`;
 }
 
 /**
@@ -239,14 +223,14 @@ function answerDiff(given, expected) {
 /** Après une erreur : recopier la bonne forme pour pouvoir continuer. */
 function retypeBlock({ retyped, retypeTried }) {
   const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
+  // Une fois la forme recopiée, le champ et son bouton ne servent plus : seul le message reste.
   return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
-    <label class="lbl" for="retype">À toi</label>
+    ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
     <div class="input-row">
-      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"${retyped ? ' disabled' : ''}>
-      <button class="submit press" type="submit"${retyped ? ' disabled' : ''}>OK</button>
-    </div>
+      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      <button class="submit press" type="submit">OK</button>
+    </div>`}
     <div class="retype-status" aria-live="polite">${status}</div>
-    ${retyped ? '' : accentKeys(false)}
   </form>`;
 }
 
@@ -257,7 +241,7 @@ const feedback = {
     const { combo } = session;
     const answer = session.lastAnswer;
     const { question } = answer;
-    const { verb, tense, expected } = question;
+    const { verb, expected } = question;
     let title, subtitle;
     if (answer.correct) {
       title = 'Exact.';
@@ -265,7 +249,7 @@ const feedback = {
     } else if (answer.accentsOnly) {
       [title, subtitle] = ['Presque.', 'Attention aux accents.'];
     } else {
-      [title, subtitle] = ['Pas cette fois.', 'La règle ci-dessous va t’aider.'];
+      [title, subtitle] = ['Pas cette fois.', 'Compare avec la bonne forme en haut.'];
     }
     const others = expected.others.length
       ? `<div class="also">Aussi accepté : ${expected.others.map(esc).join(', ')}</div>`
@@ -298,18 +282,10 @@ const feedback = {
         </div>
         ${diagnosis}
         ${answer.correct ? '' : retypeBlock(context)}
-        <div class="rule">
-          <div class="rule-tags"><span class="lbl">Temps</span><span class="chip tense">${esc(tense.label)}</span></div>
-          <div class="rule-text">${tense.rule}</div>
-        </div>
         <div class="fun">
           <div class="rule-tags"><span class="lbl">${esc(verb.label)}</span><span class="chip type">${esc(verb.type.label)}</span></div>
           <div class="fun-text">${verb.note || verb.type.rule}</div>
           ${alsoLike}
-        </div>
-        <div class="rule">
-          <div class="lbl">${esc(verb.label)} ${esc(tense.withPreposition)}</div>
-          ${conjugationTable(question)}
         </div>
         <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}"${locked ? ' aria-disabled="true"' : ''}>${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
       </div>
@@ -381,8 +357,7 @@ const results = {
         </div>
         <div class="grow"></div>
         <div class="end-actions">
-          ${missed.length ? `<button class="replay press" data-event="${AppEvent.START_REVIEW}">Rejouer mes erreurs (${missed.length})</button>` : ''}
-          <button class="${missed.length ? 'ghost' : 'replay press'}" data-event="${AppEvent.START}">${missed.length ? 'Nouvelle partie' : 'Rejouer'}</button>
+          <button class="replay press" data-event="${AppEvent.START}">Rejouer</button>
           <button class="ghost" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.PROGRESS}">Voir ma progression</button>
         </div>
       </div>

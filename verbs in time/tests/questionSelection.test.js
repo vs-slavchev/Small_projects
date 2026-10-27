@@ -57,7 +57,7 @@ test('réglages vides ou inconnus : tous les temps et tous les verbes', () => {
 test('révision : une partie des tirages revient sur une conjugaison faible', () => {
   const stats = new AnswerStatsBook();
   stats.record('voir|imperfect', false);
-  stats.record('parler|present', true); // acquise : jamais révisée
+  for (let i = 0; i < 3; i++) stats.record('parler|present', true); // acquise : jamais révisée
   const picker = new QuestionPicker({ bank, random: seededRandom(11), stats });
   const picks = Array.from({ length: 1000 }, () => picker.pick());
   const reviewed = picks.filter(q => q.verb.infinitive === 'voir' && q.tense === Tense.IMPERFECT).length / picks.length;

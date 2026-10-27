@@ -18,7 +18,6 @@ const AppState = Object.freeze({
 
 const AppEvent = Object.freeze({
   START: 'START',
-  START_REVIEW: 'START_REVIEW', // nouvelle partie avec les conjugaisons ratées à la précédente
   NAVIGATE: 'NAVIGATE',         // { to: Destination }
   TICK: 'TICK',
   CANCEL: 'CANCEL',
@@ -79,8 +78,8 @@ function createAppMachine(useCases, options = {}) {
 
   // --- Actions ---
   const loadHome = ctx => { ctx.home = useCases.getHomeOverview(); ctx.settings = useCases.getSettings(); };
-  const beginGame = (ctx, review = []) => {
-    ctx.session = useCases.startGame(review);
+  const beginGame = ctx => {
+    ctx.session = useCases.startGame();
     ctx.summary = null;
     ctx.returningFromGame = false;
   };
@@ -94,11 +93,6 @@ function createAppMachine(useCases, options = {}) {
 
   // --- Transitions partagées ---
   const start = { target: QUESTION, actions: [ctx => beginGame(ctx)] };
-  const startReview = {
-    target: QUESTION,
-    guard: ctx => ctx.summary?.missed.length > 0,
-    actions: [ctx => beginGame(ctx, ctx.summary.missed.map(m => m.question))],
-  };
   const refreshSettings = ctx => { ctx.settings = useCases.getSettings(); };
   const quit = { target: HOME, actions: [leaveGame] };
   const selectBadge = {
@@ -164,7 +158,9 @@ function createAppMachine(useCases, options = {}) {
             guard: (ctx, e) => !ctx.retyped && typeof e.text === 'string' && e.text.trim() !== '',
             actions: [(ctx, e) => {
               ctx.retypeTried = true;
-              ctx.retyped = ctx.session.lastAnswer.question.expected.check(e.text).correct;
+              // Sans touches d'accent à l'écran, un clavier sans accents ne doit pas bloquer la suite.
+              const { correct, accentsOnly } = ctx.session.lastAnswer.question.expected.check(e.text);
+              ctx.retyped = correct || accentsOnly;
             }],
           },
           [AppEvent.CONTINUE]: [
@@ -175,7 +171,7 @@ function createAppMachine(useCases, options = {}) {
         },
       },
       [RESULTS]: {
-        on: { [AppEvent.START]: start, [AppEvent.START_REVIEW]: startReview, [AppEvent.NAVIGATE]: navigate },
+        on: { [AppEvent.START]: start, [AppEvent.NAVIGATE]: navigate },
       },
       [PROGRESS]: {
         entry: [ctx => { ctx.progress = useCases.getProgress(); ctx.mastery = useCases.getMastery(); }],

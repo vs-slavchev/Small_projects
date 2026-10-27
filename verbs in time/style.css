@@ -37,7 +37,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 
 #app {
   position: relative; max-width: 430px; height: 100vh; height: 100dvh; margin: 0 auto;
-  background: var(--paper); overflow: hidden;
+  background: var(--paper); overflow: hidden; container: app / size;
 }
 @media (min-width: 520px) {
   #app { box-shadow: 0 0 0 1px rgba(31,36,48,.06), 0 30px 80px -30px rgba(31,36,48,.35); }
@@ -64,7 +64,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .tab:active .ico { transform: scale(.88); }
 
 /* ---------- Accueil ---------- */
-.home-body { flex: 1; min-height: 0; padding: 12px 24px 0; display: flex; flex-direction: column; gap: 28px; }
+.home-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 24px 16px; display: flex; flex-direction: column; gap: 28px; }
 .home-head { display: flex; justify-content: space-between; align-items: center; }
 .logo { font-family: var(--serif); font-size: 22px; }
 .logo span { color: var(--muted); }
@@ -96,6 +96,13 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .cd-sub { position: relative; font-size: 14px; font-weight: 600; color: #C9CED8; }
 .cd-sub b { display: inline-block; min-width: .7em; }
 .cd-sub b.tick { animation: tick .35s ease-out; }
+/* Écran bas : la série se resserre pour que « Nouvelle partie » reste au-dessus de la barre d'onglets. */
+@container app (max-height: 760px) {
+  .home-body { gap: 16px; }
+  .streak-hero .flame { font-size: 44px; }
+  .streak-num { font-size: 76px; }
+  .big-btn { height: 72px; }
+}
 .start-wrap { display: flex; flex-direction: column; gap: 10px; flex: none; }
 .link-btn { height: 44px; border: none; background: transparent; color: var(--ink-3); font-size: 15px; font-weight: 700; }
 
@@ -125,7 +132,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 28px 16px;
   animation: cardIn .4s cubic-bezier(.2,1.2,.4,1) both; transition: border-color .2s, box-shadow .2s;
 }
-.card .word { font-family: var(--serif); letter-spacing: -.01em; text-align: center; line-height: 1.05; }
+.card .word { font-size: var(--word-size); font-family: var(--serif); letter-spacing: -.01em; text-align: center; line-height: 1.05; }
 .card .en { font-size: 14px; color: var(--muted-2); font-style: italic; }
 .card.good { border-color: var(--green); box-shadow: 0 0 0 4px rgba(47,143,91,.18), 0 18px 40px -20px rgba(31,36,48,.35); animation: good .4s cubic-bezier(.3,1.6,.5,1); }
 .card.bad { border-color: var(--red); box-shadow: 0 0 0 4px rgba(196,85,58,.15), 0 18px 40px -20px rgba(31,36,48,.35); animation: shake .42s ease; }
@@ -144,10 +151,26 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .answer-form.bad #answer { border-color: var(--red); }
 .submit { --sh: #000; height: 58px; padding: 0 18px; border-radius: 18px; background: var(--ink); color: #fff; font-size: 16px; font-weight: 800; box-shadow: 0 5px 0 #000; flex: none; }
 .submit:disabled { filter: saturate(.3) opacity(.55); }
-.keys { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.key { height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-family: var(--serif); font-size: 18px; padding: 0; }
-.key:active { transform: scale(.92); }
-.key:disabled { opacity: .5; }
+/* Saisie dans peu de hauteur (clavier du téléphone ouvert) : la carte se resserre pour rester entière à l'écran. */
+@container app (max-height: 560px) {
+  .play:has(#answer:focus) {
+    .top-safe { height: 4px; }
+    .play-top { padding: 2px 20px; gap: 0; }
+    .bar-row { gap: 8px; }
+    .close { width: 24px; height: 24px; font-size: 11px; }
+    .seg { height: 4px; }
+    .timer { font-size: 12px; min-width: 34px; }
+    .sub-row { display: none; }
+    .card-wrap { padding-top: 6px; }
+    .card { padding: 10px 14px; gap: 2px; border-radius: 22px; overflow: hidden; }
+    .card .word { font-size: min(var(--word-size), 34px); }
+    .card .en { display: none; }
+    .card .chip.pill { padding: 3px 10px; font-size: 11px; }
+    .person { font-size: 18px; margin-top: 0; }
+    .answer-form { margin-top: 8px; padding-bottom: 8px; }
+    #answer, .answer-form .submit { height: 50px; }
+  }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- Retour sur réponse ---------- */
@@ -170,16 +193,11 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .verdict.ok .t1 { color: var(--green); }
 .verdict .t2 { font-size: 13px; color: var(--muted); font-weight: 600; }
 .spark { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; background: var(--green); animation: spark .7s cubic-bezier(.2,.8,.3,1) both .25s; pointer-events: none; }
-.rule { display: flex; flex-direction: column; gap: 8px; animation: fadeUp .4s ease both .22s; }
 .rule-tags { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .lbl { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .chip { border-radius: 8px; padding: 3px 9px; font-weight: 800; font-size: 14px; }
 .chip.tense { background: var(--ink); color: var(--amber); font-size: 13px; }
 .chip.type { background: var(--blue-tint); color: var(--blue-d); font-size: 13px; }
-.cj-table { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
-.cj-row { font-size: 15px; padding: 5px 8px; border-radius: 8px; color: var(--ink-2); }
-.cj-row.on { background: var(--purple-tint); color: var(--purple-d); font-weight: 800; }
-.rule-text { font-size: 16px; line-height: 1.45; color: var(--ink-2); text-wrap: pretty; }
 .fun { background: var(--paper); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; animation: fadeUp .4s ease both .32s; }
 .fun-text { font-size: 15px; line-height: 1.45; color: var(--ink-2); text-wrap: pretty; }
 .next-btn { --sh: #000; height: 58px; border-radius: 18px; background: var(--ink); color: #fff; font-size: 17px; font-weight: 800; box-shadow: 0 5px 0 #000; flex: none; }
@@ -305,7 +323,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .retype #retype { flex: 1; min-width: 0; height: 50px; border-radius: 14px; border: 2px solid var(--line); background: var(--paper); padding: 0 14px; font-family: var(--serif); font-size: 20px; color: var(--ink); outline: none; }
 .retype #retype:focus { border-color: var(--ink); }
 .retype.again #retype { border-color: var(--red); animation: shake .42s ease; }
-.retype.done #retype { border-color: var(--green); -webkit-text-fill-color: var(--ink); opacity: 1; }
 .retype .submit { height: 50px; }
 .retype-status { font-size: 13px; font-weight: 700; color: var(--muted); }
 .retype.done .retype-status { color: var(--green); }

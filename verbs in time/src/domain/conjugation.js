@@ -57,32 +57,26 @@ class Person {
 /** Temps de conjugaison. Objet valeur : les cinq instances sont fixes. */
 class Tense {
   /**
-   * @param {{ id: string, label: string, withPreposition: string, rule: string, markers: string[] }} props
+   * @param {{ id: string, label: string, withPreposition: string, markers: string[] }} props
    *   `markers` : expressions de temps qui situent la phrase (« Hier, »), pour donner un sens au temps demandé.
    */
-  constructor({ id, label, withPreposition, rule, markers }) {
+  constructor({ id, label, withPreposition, markers }) {
     this.id = id;
     this.label = label;
     this.withPreposition = withPreposition;
-    this.rule = rule;
     this.markers = Object.freeze([...markers]);
     Object.freeze(this);
   }
 
   static PRESENT = new Tense({ id: 'present', label: 'présent', withPreposition: 'au présent',
-    rule: 'Radical + terminaisons. 1er groupe : <b>-e, -es, -e, -ons, -ez, -ent</b>. 2e groupe : <b>-is, -is, -it, -issons, -issez, -issent</b>. 3e groupe : le plus souvent <b>-s, -s, -t</b> au singulier. À l’oral, je parl<b>e</b>, tu parl<b>es</b>, il parl<b>e</b> et ils parl<b>ent</b> se prononcent pareil : seule l’orthographe les distingue.',
     markers: ['En ce moment,', 'Aujourd’hui,', 'Tous les jours,'] });
   static IMPERFECT = new Tense({ id: 'imperfect', label: 'imparfait', withPreposition: 'à l’imparfait',
-    rule: 'Radical de « nous » au présent, sans -ons, + <b>-ais, -ais, -ait, -ions, -iez, -aient</b>. Seule exception : être (j’étais). Il décrit une habitude ou un décor du passé. À l’oral, -ais, -ait et -aient se prononcent pareil.',
     markers: ['Autrefois,', 'À l’époque,', 'Chaque été, avant,'] });
   static PASSE_COMPOSE = new Tense({ id: 'passeCompose', label: 'passé composé', withPreposition: 'au passé composé',
-    rule: 'Auxiliaire <b>avoir</b> ou <b>être</b> au présent + participe passé. Avec être, le participe s’accorde avec le sujet : elle est allé<b>e</b>, ils sont allé<b>s</b>. Il raconte une action terminée.',
     markers: ['Hier,', 'La semaine dernière,', 'Ce matin,'] });
   static FUTUR_PROCHE = new Tense({ id: 'futurProche', label: 'futur proche', withPreposition: 'au futur proche',
-    rule: '<b>Aller</b> au présent + infinitif : je vais parler, nous allons finir. Il annonce ce qui va arriver bientôt.',
     markers: ['Tout à l’heure,', 'Ce soir,', 'Dans cinq minutes,'] });
   static FUTUR_SIMPLE = new Tense({ id: 'futurSimple', label: 'futur simple', withPreposition: 'au futur simple',
-    rule: 'Infinitif (sans le e final des verbes en -re) + <b>-ai, -as, -a, -ons, -ez, -ont</b>. Certains radicaux sont irréguliers : ser-, aur-, ir-, fer-, viendr-, verr-, pourr-. Il situe l’action dans un avenir plus lointain.',
     markers: ['L’année prochaine,', 'Un jour,', 'Dans dix ans,'] });
   static ALL = Object.freeze([Tense.PRESENT, Tense.IMPERFECT, Tense.PASSE_COMPOSE, Tense.FUTUR_PROCHE, Tense.FUTUR_SIMPLE]);
 }
@@ -253,8 +247,8 @@ const stripAccents = text => text.normalize('NFD').replace(/\p{M}/gu, '');
  * Forme conjuguée attendue. `forms` liste toutes les écritures justes avec leur sujet
  * (accords possibles, orthographe rectifiée) ; `display` est celle qu'on montre au joueur,
  * et `segments` la même, découpée (sujet, radical, terminaison…).
- * Le joueur peut aussi répondre sans le pronom sujet (« finirai » vaut « je finirai »), sauf si la forme
- * commence par un pronom identique au sujet (« nous nous levons ») : voir le constructeur.
+ * Le joueur peut aussi répondre sans le pronom sujet (« finirai » vaut « je finirai », « nous levons » vaut
+ * « nous nous levons »).
  */
 class Conjugation {
   #accepted;
@@ -271,11 +265,8 @@ class Conjugation {
     this.display = textOf(this.segments);
     /** Autres écritures acceptées, à signaler après la réponse. */
     this.others = Object.freeze(this.forms.slice(variants.length));
-    // Quand la forme commence par un pronom identique au sujet (« nous nous levons »), la réponse
-    // sans sujet (« nous levons ») ne se distingue pas d'un oubli du pronom réfléchi : le sujet est alors obligatoire.
-    const subjectRequired = bare.some(rest => rest.startsWith(`${subject} `));
     /** Écritures acceptées telles qu'on les montre, avec ou sans sujet. */
-    this.accepted = Object.freeze([...this.forms, ...(subjectRequired ? [] : bare)]);
+    this.accepted = Object.freeze([...this.forms, ...bare]);
     this.#accepted = this.accepted.map(normalizeAnswer);
     Object.freeze(this);
   }

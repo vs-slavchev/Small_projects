@@ -5,7 +5,7 @@ import { Conjugo } from './game.js';
 
 const {
   createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createUseCases,
-  LocalStorageProfileRepository, LocalStoragePreferences, DEFAULT_GAME_LENGTH, ACHIEVEMENTS,
+  LocalStorageProfileRepository, LocalStoragePreferences, DEFAULT_GAME_LENGTH, ACHIEVEMENTS, stripAccents,
 } = Conjugo;
 
 function setup({ storage = memoryStorage(), seed = 3 } = {}) {
@@ -79,6 +79,16 @@ test('l’explication ne se quitte pas dans la foulée de la réponse', () => {
   assert.equal(env.machine.state, AppState.QUESTION);
 });
 
+test('la recopie accepte la forme juste sans ses accents', () => {
+  const env = setup();
+  env.machine.send(AppEvent.START);
+  const { expected } = env.machine.context.session.currentQuestion;
+  env.machine.send(AppEvent.ANSWER, { text: 'xyz' });
+  env.scheduler.advance(REVEAL_DELAY_MS.wrong + FEEDBACK_MIN_MS);
+  env.machine.send(AppEvent.RETYPE, { text: stripAccents(expected.forms[0]) });
+  assert.equal(env.machine.context.retyped, true);
+});
+
 test('après une erreur, il faut recopier la bonne forme pour continuer', () => {
   const env = setup();
   env.machine.send(AppEvent.START);
@@ -93,25 +103,6 @@ test('après une erreur, il faut recopier la bonne forme pour continuer', () => 
   assert.equal(env.machine.context.retyped, true);
   env.machine.send(AppEvent.CONTINUE);
   assert.equal(env.machine.state, AppState.QUESTION);
-});
-
-test('« Rejouer mes erreurs » repose d’abord les questions ratées', () => {
-  const env = setup();
-  playGame(env, [false, true, false, true, true]);
-  const missed = env.machine.context.summary.missed.map(m => m.question);
-  env.machine.send(AppEvent.START_REVIEW);
-  assert.equal(env.machine.state, AppState.QUESTION);
-  assert.equal(env.machine.context.session.currentQuestion, missed[0]);
-  answerQuestion(env, true);
-  env.machine.send(AppEvent.CONTINUE);
-  assert.equal(env.machine.context.session.currentQuestion, missed[1]);
-});
-
-test('« Rejouer mes erreurs » n’est pas proposé après un sans-faute', () => {
-  const env = setup();
-  playGame(env);
-  env.machine.send(AppEvent.START_REVIEW);
-  assert.equal(env.machine.state, AppState.RESULTS);
 });
 
 test('réglages : les temps choisis sont les seuls demandés, et il en reste toujours un', () => {

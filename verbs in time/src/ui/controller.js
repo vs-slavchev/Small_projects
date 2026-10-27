@@ -7,8 +7,8 @@ const { AppEvent } = Conjugo;
  * Traduit les gestes du joueur en événements de l'automate.
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
  * La réponse est saisie dans le champ `#answer` et envoyée par le formulaire ; après une erreur,
- * la bonne forme est recopiée dans `#retype`. Les touches `data-insert` ajoutent un caractère accentué
- * au curseur, les boutons `data-speak` font lire une forme à voix haute (`speak`). L'automate ignore de lui-même les événements
+ * la bonne forme est recopiée dans `#retype`. Les boutons `data-speak` font lire une forme à voix haute (`speak`).
+ * L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
  * @param {HTMLElement} root
@@ -37,17 +37,7 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     else if (retype) machine.send(AppEvent.RETYPE, { text: retype.value });
   });
 
-  // Une touche d'accent ne doit pas prendre le focus : le clavier du téléphone resterait fermé.
-  root.addEventListener('mousedown', event => {
-    if (event.target.closest('[data-insert]')) event.preventDefault();
-  });
-
   root.addEventListener('click', event => {
-    const key = event.target.closest('[data-insert]');
-    if (key) {
-      insertAtCursor(key.closest('form')?.querySelector('input'), key.dataset.insert);
-      return;
-    }
     const spoken = event.target.closest('[data-speak]');
     if (spoken) {
       speak(spoken.dataset.speak);
@@ -83,16 +73,6 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
         break;
     }
   });
-}
-
-/** Insère `text` à la place de la sélection du champ et garde le focus. */
-function insertAtCursor(input, text) {
-  if (!input || input.disabled) return;
-  const start = input.selectionStart ?? input.value.length;
-  const end = input.selectionEnd ?? input.value.length;
-  input.value = input.value.slice(0, start) + text + input.value.slice(end);
-  input.focus();
-  input.setSelectionRange(start + text.length, start + text.length);
 }
 
 Object.assign(Conjugo, { bindController });
