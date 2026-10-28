@@ -5,7 +5,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { Gender, GameRecord, WordStatsBook, dayKey, HOLIDAYS, holidaysOn } = LeOuLa;
+const { Gender, GameRecord, WordStatsBook, dayKey, addDays, fromKey, HOLIDAYS, holidaysOn } = LeOuLa;
 
 const TIER_NAMES = Object.freeze(['Bronze', 'Argent', 'Or']);
 const MAX_TIER = TIER_NAMES.length;
@@ -26,6 +26,13 @@ const READ_MIN_MS = 5000;
 const EXTREME_DIFFICULTY = 95;
 /** Intouchable : parties sans faute à enchaîner, sans aucune autre partie entre elles. */
 const EXTREME_PERFECT_GAMES = 7;
+/** Marathonien : parties à jouer dans une même journée pour qu'elle compte. */
+const BUSY_DAY_GAMES = 10;
+/** Du matin au soir : heures d'horloge différentes (9 h, 14 h…) à jouer dans une même journée. */
+const SPREAD_DAY_HOURS = 3;
+/** Frénésie : il faut dépasser ce nombre de parties sur une fenêtre glissante de jours consécutifs. */
+const FRENZY_GAMES = 100;
+const FRENZY_WINDOW_DAYS = 7;
 
 /** Faits mesurables tirés du profil, calculés une fois pour tous les succès. */
 class AchievementFacts {
@@ -47,6 +54,7 @@ class AchievementFacts {
     let unhurriedGames = 0;
     const hWordsFound = new Set();
     const gamesByDay = new Map();
+    const hoursByDay = new Map();
     // Équilibriste : bilan { juste, total } par genre de chacune des dernières parties.
     const genders = [Gender.MASCULINE.code, Gender.FEMININE.code];
     const recentTallies = [];
@@ -66,7 +74,10 @@ class AchievementFacts {
       const hour = game.endedAt.getHours();
       if (hour < NIGHT_END_HOUR) playedAtNight = true;
       else if (hour < MORNING_END_HOUR) playedEarly = true;
-      bump(gamesByDay, dayKey(game.endedAt));
+      const today = dayKey(game.endedAt);
+      bump(gamesByDay, today);
+      if (!hoursByDay.has(today)) hoursByDay.set(today, new Set());
+      hoursByDay.get(today).add(hour);
       if (game.isPerfect) perfectGames++;
       for (const id of holidaysOn(game.endedAt)) holidaysPlayed.add(id);
       maxCombo = Math.max(maxCombo, game.maxCombo);
@@ -126,6 +137,12 @@ class AchievementFacts {
       recoveries: profile.recoveries,
       playedEarly, unhurriedGames, holidaysPlayed,
       mostGamesInADay: Math.max(0, ...gamesByDay.values()),
+      busyDays: [...gamesByDay.values()].filter(n => n >= BUSY_DAY_GAMES).length,
+      spreadDays: [...hoursByDay.values()].filter(hours => hours.size >= SPREAD_DAY_HOURS).length,
+      // La meilleure fenêtre commence forcément un jour joué.
+      mostGamesInAWeek: Math.max(0, ...[...gamesByDay.keys()].map(fromKey).map(start =>
+        Array.from({ length: FRENZY_WINDOW_DAYS }, (_, i) => gamesByDay.get(dayKey(addDays(start, i))) ?? 0)
+          .reduce((sum, n) => sum + n, 0))),
       longestPreciseRun: Math.max(0, ...GameRecord.accuracyRuns(profile.games, PRECISE_ACCURACY)),
       longestExtremePerfectRun: Math.max(0, ...GameRecord.runs(profile.games, g => g.isPerfect && g.difficultyStart > EXTREME_DIFFICULTY)),
       gameCount: profile.gameCount,
@@ -187,6 +204,14 @@ const ACHIEVEMENTS = Object.freeze([
     measure: f => f.longestPreciseRun, thresholds: [3, 7, 15], goal: n => `${n} parties d’affilée à ${PRECISE_ACCURACY} % ou plus` },
   { id: 'untouchable', emoji: '💎', name: 'Intouchable', description: `Terminer ${EXTREME_PERFECT_GAMES} parties d’affilée sans une seule erreur face aux mots les plus coriaces.`,
     measure: f => f.longestExtremePerfectRun, thresholds: [EXTREME_PERFECT_GAMES], goal: n => `${n} parties d’affilée sans faute face aux mots les plus coriaces` },
+  // Succès cachés du jeu intensif.
+  { id: 'marathon', emoji: '🏃', name: 'Marathonien', hidden: true, description: `Jouer au moins ${BUSY_DAY_GAMES} parties dans une même journée, plusieurs jours.`,
+    measure: f => f.busyDays, thresholds: [2, 5, 10], goal: n => `${n} jours à ${BUSY_DAY_GAMES} parties ou plus` },
+  { id: 'allDay', emoji: '🕰️', name: 'Du matin au soir', hidden: true, description: `Jouer à au moins ${SPREAD_DAY_HOURS} heures différentes d’une même journée.`,
+    measure: f => f.spreadDays, thresholds: [1, 2, 5],
+    goal: n => (n === 1 ? `Une journée jouée à ${SPREAD_DAY_HOURS} heures différentes` : `${n} journées jouées à ${SPREAD_DAY_HOURS} heures différentes`) },
+  { id: 'frenzy', emoji: '🌪️', name: 'Frénésie', hidden: true, description: `Jouer plus de ${FRENZY_GAMES} parties en ${FRENZY_WINDOW_DAYS} jours.`,
+    measure: f => f.mostGamesInAWeek, thresholds: [FRENZY_GAMES + 1], goal: () => `Plus de ${FRENZY_GAMES} parties en ${FRENZY_WINDOW_DAYS} jours` },
   ...holidayAchievements(),
 ].map(Object.freeze));
 

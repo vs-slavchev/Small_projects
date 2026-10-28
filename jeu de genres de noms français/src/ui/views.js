@@ -49,6 +49,8 @@ function articled(word, tag = 'span') {
   return `${article}${word.separator}${esc(word.text)}`;
 }
 
+const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
+
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
 
 /* ---------- Accueil (avec ou sans compte à rebours) ---------- */
@@ -194,7 +196,7 @@ function sparks(count = 10, radius = 34) {
 const feedback = {
   screen: 'feedback',
   render({ context }, env) {
-    const { session } = context;
+    const { session, soundEnabled } = context;
     const { combo } = session;
     const answer = session.lastAnswer;
     const { word } = answer;
@@ -223,7 +225,10 @@ const feedback = {
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
       <div class="fb-word">
-        <div class="big" data-fit="52">${articled(word)}</div>
+        <div class="big-row">
+          <div class="big" data-fit="52">${articled(word)}</div>
+          ${soundEnabled ? speakButton(word.withArticle) : ''}
+        </div>
         ${word.elides ? `<div class="gender-note ${word.gender.code}">nom ${word.gender.label}</div>` : ''}
         ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${word.elides ? answer.chosen.label : answer.chosen.article}</s></div>`}
       </div>
@@ -286,7 +291,7 @@ const results = {
         </div>
         <div class="grow"></div>
         <div class="end-actions">
-          <button class="replay press" data-event="${AppEvent.START}">Rejouer</button>
+          <button class="replay press" data-event="${AppEvent.START}">Nouvelle partie</button>
           <button class="ghost" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.PROGRESS}">Voir ma progression</button>
         </div>
       </div>

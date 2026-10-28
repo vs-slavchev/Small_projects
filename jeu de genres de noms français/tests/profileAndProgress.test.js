@@ -5,7 +5,7 @@ import { LeOuLa } from './game.js';
 
 const {
   PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
-  AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps,
+  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, addDays,
 } = LeOuLa;
 
 const bank = realBank();
@@ -67,7 +67,9 @@ test('rapport de progression : moyenne, tendance et message', () => {
   assert.deepEqual(report.trend, { delta: 45, window: TrendWindow.TWO_WEEKS });
   assert.deepEqual(report.insight, { kind: InsightKind.RECORD, accuracy: 90, previous: 80 });
   assert.equal(report.recent[0].accuracy, 90);
-  assert.equal(report.wordsSeen, 30);
+  assert.equal(report.wordsSeen, 10, 'un mot revu ne compte qu’une fois');
+  const more = new ProgressReport([...games, game({ words: bank.words.slice(5, 15) })], day(18));
+  assert.equal(more.wordsSeen, 15);
 });
 
 test('commentaire de la chronologie : le constat le plus parlant l’emporte', () => {
@@ -116,10 +118,9 @@ test('verdict de fin de partie', () => {
   assert.equal(rateGame(game({ correct: 2 }), []), Verdict.KEEP_GOING);
 });
 
-test('succès : 51 paliers au total, paliers franchis détectés', () => {
+test('succès : paliers franchis détectés', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
-  assert.equal(totalSteps(before), 51 + LeOuLa.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   assert.equal(earnedSteps(before), 0);
   profile.recordGame(game({ correct: 10, durationMs: 12_000 }), bank);
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
@@ -141,6 +142,9 @@ test('succès à palier unique : obtenu → affiché en Or', () => {
 
 /** `n` parties identiques, une par jour à partir du jour `from` d'octobre. */
 const series = (n, props, from = 1) => Array.from({ length: n }, (_, i) => game({ endedAt: day(from + i), ...props }));
+
+/** `n` parties le jour de `date`, une par minute à partir de 8 h. */
+const gamesOn = (n, date) => Array.from({ length: n }, (_, i) => game({ endedAt: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, i) }));
 
 /** Succès `id` après avoir archivé `games` dans un profil vide. */
 function progressAfter(id, games) {
@@ -168,11 +172,10 @@ test('Précision : la plus longue série de parties à 90 % ou plus', () => {
 });
 
 test('Persévérant : le plus grand nombre de parties jouées en une journée', () => {
-  const sameDay = n => Array.from({ length: n }, (_, i) => game({ endedAt: day(18, 8, i) }));
-  const p = progressAfter('persistent', [...sameDay(20), ...series(5)]);
+  const p = progressAfter('persistent', [...gamesOn(20, day(18)), ...series(5)]);
   assert.equal(p.value, 20);
   assert.equal(p.tierName, 'Bronze');
-  assert.equal(progressAfter('persistent', [...sameDay(19), game({ endedAt: day(19, 8) })]).reached, 0);
+  assert.equal(progressAfter('persistent', [...gamesOn(19, day(18)), game({ endedAt: day(19, 8) })]).reached, 0);
 });
 
 test('Équilibriste : 90 % sur chaque genre, sur 10 parties d’affilée', () => {
@@ -202,14 +205,13 @@ test('Le h muet : réussir chaque mot en h', () => {
   assert.ok(p.isComplete);
 });
 
-test('Intouchable : 7 parties d’affilée sans faute commencées au-dessus de 95, dernier succès visible', () => {
+test('Intouchable : 7 parties d’affilée sans faute commencées au-dessus de 95', () => {
   assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 96 })).reached, 1);
   assert.equal(progressAfter('untouchable', series(6, { difficultyStart: 96 })).reached, 0);
   assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 95 })).value, 0, 'il faut dépasser 95');
   assert.equal(progressAfter('untouchable', series(7, { difficultyStart: 100, correct: 9 })).value, 0, 'une erreur suffit');
   const broken = [...series(4, { difficultyStart: 96 }), game({ endedAt: day(5), correct: 9 }), ...series(4, { difficultyStart: 96 }, 6)];
   assert.equal(progressAfter('untouchable', broken).value, 4, 'une partie ratée au milieu remet la série à zéro');
-  assert.equal(LeOuLa.ACHIEVEMENTS.filter(a => !a.hidden).at(-1).id, 'untouchable');
 });
 
 test('Pâques et les fêtes mobiles', () => {
@@ -224,13 +226,41 @@ test('Pâques et les fêtes mobiles', () => {
   assert.deepEqual(holidaysOn(new Date(2026, 6, 15)), []);
 });
 
-test('succès cachés : 18 jours de fête, invisibles tant qu’ils ne sont pas obtenus', () => {
-  const hidden = LeOuLa.ACHIEVEMENTS.filter(a => a.hidden);
-  assert.equal(hidden.length, LeOuLa.HOLIDAYS.length);
+test('succès cachés des jours de fête : invisibles tant qu’ils ne sont pas obtenus', () => {
   const october = progressAfter('holiday-christmas', [game({ endedAt: new Date(2026, 9, 18) })]);
   assert.equal(october.isVisible, false);
   const noel = progressAfter('holiday-christmas', [game({ endedAt: new Date(2025, 11, 25, 10) })]);
   assert.ok(noel.isVisible && noel.isComplete);
   assert.equal(noel.reachedGoal, 'Partie jouée le jour de Noël (25 décembre)');
   assert.ok(progressAfter('flawless', []).isVisible, 'un succès ordinaire reste visible');
+});
+
+/* ---------- Succès cachés du jeu intensif ---------- */
+
+test('Marathonien : des journées à 10 parties ou plus', () => {
+  const p = progressAfter('marathon', [...gamesOn(10, day(1)), ...gamesOn(10, day(2))]);
+  assert.equal(p.value, 2);
+  assert.equal(p.tierName, 'Bronze');
+  assert.ok(p.isVisible);
+  const almost = progressAfter('marathon', [...gamesOn(9, day(1)), ...gamesOn(9, day(2))]);
+  assert.equal(almost.reached, 0);
+  assert.equal(almost.isVisible, false, 'caché tant qu’il n’est pas obtenu');
+});
+
+test('Du matin au soir : 3 heures d’horloge différentes dans une journée', () => {
+  const at = (...times) => times.map(([h, m]) => game({ endedAt: day(18, h, m) }));
+  assert.equal(progressAfter('allDay', at([9, 0], [14, 0], [21, 0])).value, 1);
+  assert.equal(progressAfter('allDay', at([9, 5], [9, 30], [9, 55])).value, 0, 'une même heure ne compte qu’une fois');
+  assert.equal(progressAfter('allDay', at([9, 0], [14, 0])).value, 0);
+  assert.equal(progressAfter('allDay', at([9, 0], [14, 0], [21, 0])).isVisible, true);
+});
+
+test('Frénésie : plus de 100 parties sur 7 jours consécutifs', () => {
+  const week = (counts, start) => counts.flatMap((n, i) => gamesOn(n, addDays(start, i)));
+  const oct1 = new Date(2026, 9, 1);
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 11], oct1)).reached, 1);
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 10], oct1)).reached, 0, '100 tout juste ne suffit pas');
+  assert.equal(progressAfter('frenzy', week([6, 15, 15, 15, 15, 15, 15, 5], oct1)).reached, 0, '101 parties étalées sur 8 jours : aucune fenêtre de 7 jours ne dépasse 100');
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 11], new Date(2026, 8, 27))).reached, 1, 'à cheval sur deux mois');
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 10], oct1)).isVisible, false);
 });

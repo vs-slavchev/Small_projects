@@ -8,12 +8,13 @@ const { AppEvent, Gender } = LeOuLa;
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`,
  * `data-gender`, `data-index`). L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
+ * Les boutons `data-speak` font lire un mot à voix haute (`speak`) ; ils l'emportent sur un parent cliquable.
  *
  * @param {HTMLElement} root
  * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
- * @param {{ confirm?: (message: string) => boolean }} [options]
+ * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => void }} [options]
  */
-function bindController(root, machine, { confirm = message => globalThis.confirm(message) } = {}) {
+function bindController(root, machine, { confirm = message => globalThis.confirm(message), speak = () => {} } = {}) {
   const payloadOf = el => {
     const { to, gender, index } = el.dataset;
     if (to) return { to };
@@ -28,6 +29,11 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
   };
 
   root.addEventListener('click', event => {
+    const spoken = event.target.closest('[data-speak]');
+    if (spoken && root.contains(spoken)) {
+      speak(spoken.dataset.speak);
+      return;
+    }
     const el = event.target.closest('[data-event]');
     if (!el || !root.contains(el)) return;
     const type = el.dataset.event;
@@ -51,6 +57,8 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
       case 'Escape': machine.send(AppEvent.CLOSE_BADGE); break;
       case 'Enter':
       case ' ':
+        // Sur le bouton « écouter », la touche l'active au lieu de passer au mot suivant.
+        if (event.target.closest?.('[data-speak]')) break;
         if (machine.can(AppEvent.CONTINUE)) {
           event.preventDefault();
           machine.send(AppEvent.CONTINUE);

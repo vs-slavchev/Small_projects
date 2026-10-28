@@ -7,13 +7,20 @@ const MIN_FIT_SIZE = 18;
 /**
  * Réduit la police d'un élément `data-fit="<taille max>"` pour qu'il tienne sur une ligne
  * dans la largeur de son parent : un mot long ne déborde jamais de la carte.
+ * Dans une rangée flex, les éléments voisins (le bouton « écouter ») gardent leur place.
  * Sous MIN_FIT_SIZE, le texte reste lisible et passe à la ligne plutôt que de rapetisser encore.
  */
 function fitToWidth(el) {
   const max = Number(el.dataset.fit);
   const box = el.parentElement;
   const style = getComputedStyle(box);
-  const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const inRow = style.display.includes('flex') && style.flexDirection.startsWith('row');
+  const gap = parseFloat(style.columnGap) || 0;
+  const besides = inRow ? [...box.children].reduce((sum, c) => {
+    const width = c === el ? 0 : c.offsetWidth;
+    return width ? sum + width + gap : sum;
+  }, 0) : 0;
+  const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - besides;
   el.style.whiteSpace = '';
   el.style.fontSize = `${max}px`;
   const width = el.scrollWidth;
@@ -27,7 +34,7 @@ function fitToWidth(el) {
 
 /**
  * Ajuste les éléments `data-fit` de l'écran avant son premier affichage, puis quand la largeur
- * change ou que les polices finissent de charger. Retourne la fonction qui arrête le suivi.
+ * change, qu'un voisin d'un texte ajusté change de taille ou que les polices finissent de charger. Retourne la fonction qui arrête le suivi.
  */
 function fitText(root) {
   const els = root.querySelectorAll('[data-fit]');
@@ -42,9 +49,13 @@ function fitText(root) {
   const fonts = root.ownerDocument.fonts;
   if (fonts && fonts.status !== 'loaded') fonts.ready.then(() => fit(true));
   // L'observateur se déclenche une première fois avant l'affichage : c'est l'ajustement initial.
-  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
-  if (observer) observer.observe(root);
-  else fit();
+  const observer = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(entries => fit(entries.some(e => e.target !== root)))
+    : null;
+  if (observer) {
+    observer.observe(root);
+    els.forEach(el => [...el.parentElement.children].forEach(c => { if (c !== el) observer.observe(c); }));
+  } else fit();
   return () => { stopped = true; observer?.disconnect(); };
 }
 

@@ -157,6 +157,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 /* ---------- Retour sur réponse ---------- */
 .fb { overflow-y: auto; }
 .fb-word { padding: 28px 20px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; flex: none; }
+.big-row { display: flex; align-items: center; gap: 8px; justify-content: center; align-self: stretch; }
+.speak { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: 16px; padding: 0; flex: none; }
+.no-speech .speak { display: none; }
 .fb-word .big { white-space: nowrap; overflow-wrap: anywhere; font-family: var(--serif); line-height: 1.1; animation: popIn .45s cubic-bezier(.3,1.6,.5,1) both; }
 .art-m { color: var(--masc); }
 .art-f { color: var(--fem); }
