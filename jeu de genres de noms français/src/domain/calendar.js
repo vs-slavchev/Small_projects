@@ -86,5 +86,5 @@ class ActivityCalendar {
   }
 }
 
-Object.assign(LeOuLa, { dayKey, addDays, startOfWeek, ActivityCalendar });
+Object.assign(LeOuLa, { dayKey, addDays, startOfWeek, fromKey, ActivityCalendar });
 })(globalThis.LeOuLa ??= {});

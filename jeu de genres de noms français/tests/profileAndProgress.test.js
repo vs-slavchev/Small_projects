@@ -143,6 +143,9 @@ test('succès à palier unique : obtenu → affiché en Or', () => {
 /** `n` parties identiques, une par jour à partir du jour `from` d'octobre. */
 const series = (n, props, from = 1) => Array.from({ length: n }, (_, i) => game({ endedAt: day(from + i), ...props }));
 
+/** `n` parties le jour de `date`, une par minute à partir de 8 h. */
+const gamesOn = (n, date) => Array.from({ length: n }, (_, i) => game({ endedAt: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, i) }));
+
 /** Succès `id` après avoir archivé `games` dans un profil vide. */
 function progressAfter(id, games) {
   const profile = PlayerProfile.empty();
@@ -169,11 +172,10 @@ test('Précision : la plus longue série de parties à 90 % ou plus', () => {
 });
 
 test('Persévérant : le plus grand nombre de parties jouées en une journée', () => {
-  const sameDay = n => Array.from({ length: n }, (_, i) => game({ endedAt: day(18, 8, i) }));
-  const p = progressAfter('persistent', [...sameDay(20), ...series(5)]);
+  const p = progressAfter('persistent', [...gamesOn(20, day(18)), ...series(5)]);
   assert.equal(p.value, 20);
   assert.equal(p.tierName, 'Bronze');
-  assert.equal(progressAfter('persistent', [...sameDay(19), game({ endedAt: day(19, 8) })]).reached, 0);
+  assert.equal(progressAfter('persistent', [...gamesOn(19, day(18)), game({ endedAt: day(19, 8) })]).reached, 0);
 });
 
 test('Équilibriste : 90 % sur chaque genre, sur 10 parties d’affilée', () => {
@@ -234,9 +236,6 @@ test('succès cachés des jours de fête : invisibles tant qu’ils ne sont pas 
 });
 
 /* ---------- Succès cachés du jeu intensif ---------- */
-
-/** `n` parties le jour de `date`, une par minute à partir de 8 h. */
-const gamesOn = (n, date) => Array.from({ length: n }, (_, i) => game({ endedAt: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, i) }));
 
 test('Marathonien : des journées à 10 parties ou plus', () => {
   const p = progressAfter('marathon', [...gamesOn(10, day(1)), ...gamesOn(10, day(2))]);

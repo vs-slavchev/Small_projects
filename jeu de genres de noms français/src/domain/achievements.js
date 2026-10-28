@@ -5,7 +5,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { Gender, GameRecord, WordStatsBook, dayKey, addDays, HOLIDAYS, holidaysOn } = LeOuLa;
+const { Gender, GameRecord, WordStatsBook, dayKey, addDays, fromKey, HOLIDAYS, holidaysOn } = LeOuLa;
 
 const TIER_NAMES = Object.freeze(['Bronze', 'Argent', 'Or']);
 const MAX_TIER = TIER_NAMES.length;
@@ -55,7 +55,6 @@ class AchievementFacts {
     const hWordsFound = new Set();
     const gamesByDay = new Map();
     const hoursByDay = new Map();
-    const playedDays = new Map(); // clé du jour → une date de ce jour
     // Équilibriste : bilan { juste, total } par genre de chacune des dernières parties.
     const genders = [Gender.MASCULINE.code, Gender.FEMININE.code];
     const recentTallies = [];
@@ -79,7 +78,6 @@ class AchievementFacts {
       bump(gamesByDay, today);
       if (!hoursByDay.has(today)) hoursByDay.set(today, new Set());
       hoursByDay.get(today).add(hour);
-      if (!playedDays.has(today)) playedDays.set(today, game.endedAt);
       if (game.isPerfect) perfectGames++;
       for (const id of holidaysOn(game.endedAt)) holidaysPlayed.add(id);
       maxCombo = Math.max(maxCombo, game.maxCombo);
@@ -142,7 +140,7 @@ class AchievementFacts {
       busyDays: [...gamesByDay.values()].filter(n => n >= BUSY_DAY_GAMES).length,
       spreadDays: [...hoursByDay.values()].filter(hours => hours.size >= SPREAD_DAY_HOURS).length,
       // La meilleure fenêtre commence forcément un jour joué.
-      mostGamesInAWeek: Math.max(0, ...[...playedDays.values()].map(start =>
+      mostGamesInAWeek: Math.max(0, ...[...gamesByDay.keys()].map(fromKey).map(start =>
         Array.from({ length: FRENZY_WINDOW_DAYS }, (_, i) => gamesByDay.get(dayKey(addDays(start, i))) ?? 0)
           .reduce((sum, n) => sum + n, 0))),
       longestPreciseRun: Math.max(0, ...GameRecord.accuracyRuns(profile.games, PRECISE_ACCURACY)),
