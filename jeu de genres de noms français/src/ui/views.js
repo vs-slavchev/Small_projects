@@ -10,7 +10,7 @@
 
 const {
   AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
-  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
+  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, VERDICT_TEXT,
   trendText, insightText, achievementStatus, unlockedLabel,
 } = LeOuLa;
 
@@ -50,30 +50,6 @@ function articled(word, tag = 'span') {
 }
 
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
-
-/**
- * Réduit la police d'un élément `data-fit="<taille max>"` pour qu'il tienne sur une ligne
- * dans la largeur de son parent : le mot ne déborde jamais de la carte, quel que soit l'écran.
- */
-function fitToWidth(el) {
-  const max = Number(el.dataset.fit);
-  const box = el.parentElement;
-  const style = getComputedStyle(box);
-  const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-  el.style.fontSize = `${max}px`;
-  const width = el.scrollWidth;
-  if (width > room) el.style.fontSize = `${Math.floor((max * room) / width)}px`;
-}
-
-/** Ajuste les mots de l'écran maintenant, après le chargement des polices et à chaque redimensionnement. */
-function fitWords(root) {
-  const fit = () => root.querySelectorAll('[data-fit]').forEach(fitToWidth);
-  fit();
-  root.ownerDocument.fonts?.ready.then(fit);
-  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
-  observer?.observe(root);
-  return () => observer?.disconnect();
-}
 
 /* ---------- Accueil (avec ou sans compte à rebours) ---------- */
 
@@ -158,13 +134,12 @@ const home = {
 
 const question = {
   screen: 'question',
-  /** Le mot tient dans la carte ; le chrono tourne tant que le mot attend sa réponse. */
+  /** Le chrono tourne tant que le mot attend sa réponse. */
   mounted(root, { state, context }, env) {
-    const unfit = fitWords(root);
-    if (state !== AppState.QUESTION) return unfit;
+    if (state !== AppState.QUESTION) return undefined;
     const el = root.querySelector('#timer');
     const id = setInterval(() => { el.textContent = formatClock(context.session.thinkingTime(env.now())); }, 250);
-    return () => { clearInterval(id); unfit(); };
+    return () => clearInterval(id);
   },
   render({ state, context }, env) {
     const { session } = context;
@@ -196,7 +171,7 @@ const question = {
       <div class="card-wrap">
         <div class="card${cardState}">
           ${blank}
-          <div class="word" data-fit="56" style="font-size:${fitFontSize(word.text, 56, 560)}px">${esc(word.text)}</div>
+          <div class="word" data-fit="56">${esc(word.text)}</div>
           <div class="en">${esc(word.translation)}</div>
         </div>
       </div>
@@ -248,7 +223,7 @@ const feedback = {
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
       <div class="fb-word">
-        <div class="big" data-fit="52" style="font-size:${fitFontSize(word.withArticle, 52, 600)}px">${articled(word)}</div>
+        <div class="big" data-fit="52">${articled(word)}</div>
         ${word.elides ? `<div class="gender-note ${word.gender.code}">nom ${word.gender.label}</div>` : ''}
         ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${word.elides ? answer.chosen.label : answer.chosen.article}</s></div>`}
       </div>
@@ -267,7 +242,6 @@ const feedback = {
       </div>
     </div>`;
   },
-  mounted: fitWords,
 };
 
 /* ---------- Bilan ---------- */
