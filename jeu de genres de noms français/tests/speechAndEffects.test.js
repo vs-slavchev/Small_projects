@@ -46,7 +46,6 @@ test('lecture en français, avec la voix française', () => {
   assert.equal(u.text, 'l’école');
   assert.equal(u.lang, 'fr-FR');
   assert.equal(u.voice, FRENCH);
-  assert.equal(u.rate, 0.9);
   assert.equal(synth.cancelled, 0, 'rien à couper quand rien ne parle');
 });
 

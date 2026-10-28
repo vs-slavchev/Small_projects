@@ -5,7 +5,7 @@ Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune d�
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
 ```sh
-npm test    # 81 tests, avec le lanceur intégré de Node (≥ 20)
+npm test    # 79 tests, avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture

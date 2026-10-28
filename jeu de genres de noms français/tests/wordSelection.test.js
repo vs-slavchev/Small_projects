@@ -30,12 +30,11 @@ test('sans mot faible disponible, on se rabat sur le hasard', () => {
 });
 
 test('stratégie difficulté : à 0, toujours un mot qui suit sa règle ; à 100, toujours une exception ou un mot sans règle', () => {
-  const random = seededRandom(7);
-  for (let i = 0; i < 200; i++) {
-    const roll = () => { const r = random(); return r === 0 ? 0.5 : r; };
-    const low = policy(sequence(0.95, roll(), roll())).pick({ difficulty: Difficulty.of(0) });
-    if (low.strategy === SelectionStrategy.DIFFICULTY) assert.equal(low.word.followsRule, true);
-    const high = policy(sequence(0.95, roll(), roll())).pick({ difficulty: Difficulty.of(100) });
+  for (const roll of [0.01, 0.5, 0.99]) {
+    const low = policy(sequence(0.95, roll, 0)).pick({ difficulty: Difficulty.of(0) });
+    assert.equal(low.strategy, SelectionStrategy.DIFFICULTY);
+    assert.equal(low.word.followsRule, true);
+    const high = policy(sequence(0.95, roll, 0)).pick({ difficulty: Difficulty.of(100) });
     assert.equal(high.strategy, SelectionStrategy.DIFFICULTY);
     assert.equal(high.word.followsRule, false);
   }

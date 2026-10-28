@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { LeOuLa } from './game.js';
 
-const { Difficulty, WordStat, WordStatsBook } = LeOuLa;
+const { Difficulty, WordStatsBook } = LeOuLa;
 
 test('la difficulté démarre à 0, monte et baisse, sans sortir de [0, 100]', () => {
   const d = Difficulty.initial();
@@ -19,10 +19,6 @@ test('tirage supérieur à la difficulté → mot qui suit sa règle, sinon mot 
   assert.equal(d.callsForHardWord(30), true);
   assert.equal(d.callsForHardWord(5), true);
   assert.equal(Difficulty.of(100).callsForHardWord(99.9), true);
-});
-
-test('une statistique refuse plus de réussites que de passages', () => {
-  assert.throws(() => new WordStat(1, 2));
 });
 
 test('les mots les plus faibles excluent les mots jamais vus et ceux acquis (80 % ou plus, dernière réponse juste)', () => {

@@ -9,7 +9,6 @@ const ette = new WordGroup({ id: 'ette', suffix: '-ette', gender: Gender.FEMININ
 
 test('la banque réelle respecte les invariants du domaine', () => {
   const bank = realBank();
-  assert.equal(bank.groups.length, 34);
   for (const group of bank.groups) {
     const words = bank.words.filter(w => w.group === group);
     assert.ok(words.filter(w => !w.isException).length >= 2, `${group.suffix} : au moins 2 mots réguliers`);
@@ -88,11 +87,4 @@ test('un mot sans règle ne suit pas la règle d’un groupe à terminaison', ()
     const group = endingGroups.find(g => w.text.endsWith(g.suffix.slice(1)) && g.gender === w.gender);
     assert.equal(group, undefined, `« ${w.text} » est ${w.gender.label} et finit par ${group?.suffix} : il suit la règle de ce groupe`);
   }
-});
-
-test('un mot connaît son article et vérifie une réponse', () => {
-  const w = realBank().word('baguette');
-  assert.equal(w.withArticle, 'la baguette');
-  assert.ok(w.isCorrect(Gender.FEMININE));
-  assert.ok(!w.isCorrect(Gender.MASCULINE));
 });

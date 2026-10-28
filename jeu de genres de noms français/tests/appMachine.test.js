@@ -133,7 +133,7 @@ test('les succès reflètent la partie qui vient de se terminer', () => {
 test('succès : sélection et fermeture d’un badge, index hors limites refusé', () => {
   const env = setup();
   env.machine.send(AppEvent.NAVIGATE, { to: Destination.ACHIEVEMENTS });
-  assert.equal(env.machine.context.achievements.total, 51, 'les succès cachés non obtenus ne sont pas listés');
+  assert.ok(!env.machine.context.achievements.list.some(p => p.definition.hidden), 'les succès cachés non obtenus ne sont pas listés');
   env.machine.send(AppEvent.SELECT_BADGE, { index: 1 });
   assert.equal(env.machine.context.selectedBadge, 1);
   env.machine.send(AppEvent.SELECT_BADGE, { index: 99 });
