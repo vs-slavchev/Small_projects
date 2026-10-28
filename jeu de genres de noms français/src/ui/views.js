@@ -196,7 +196,7 @@ function sparks(count = 10, radius = 34) {
 const feedback = {
   screen: 'feedback',
   render({ context }, env) {
-    const { session } = context;
+    const { session, soundEnabled } = context;
     const { combo } = session;
     const answer = session.lastAnswer;
     const { word } = answer;
@@ -227,7 +227,7 @@ const feedback = {
       <div class="fb-word">
         <div class="big-row">
           <div class="big" data-fit="52">${articled(word)}</div>
-          ${speakButton(word.withArticle)}
+          ${soundEnabled ? speakButton(word.withArticle) : ''}
         </div>
         ${word.elides ? `<div class="gender-note ${word.gender.code}">nom ${word.gender.label}</div>` : ''}
         ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${word.elides ? answer.chosen.label : answer.chosen.article}</s></div>`}

@@ -45,7 +45,7 @@ class ProgressReport {
   get gamesUntilUnlock() { return Math.max(0, PROGRESS_UNLOCK_GAMES - this.#games.length); }
   /** Réussite des premières parties, pour l'écran verrouillé. */
   get firstAccuracies() { return this.#games.slice(0, PROGRESS_UNLOCK_GAMES).map(g => g.accuracy); }
-  /** Nombre de mots différents rencontrés, toutes parties confondues. */
+  /** Nombre de mots différents rencontrés, toutes parties confondues (le texte d'un mot est unique dans la banque). */
   get wordsSeen() { return new Set(this.#games.flatMap(g => g.answers.map(a => a.word))).size; }
   get averageAccuracy() { return Math.round(meanAccuracy(this.#games)); }
 

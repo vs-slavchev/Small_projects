@@ -4,9 +4,8 @@
 const { AppState, AppEvent } = LeOuLa;
 
 const BADGE_SOUND_DELAY_S = 0.9;
-/** Le carillon sans faute suit l'arpège de fin ; le son de badge passe alors après lui. */
+/** Le carillon sans faute suit l'arpège de fin ; le son de badge attend alors qu'il se termine. */
 const FLAWLESS_SOUND_DELAY_S = 0.65;
-const BADGE_AFTER_FLAWLESS_DELAY_S = 1.6;
 const TAP_EVENTS = new Set([
   AppEvent.START, AppEvent.NAVIGATE, AppEvent.CANCEL, AppEvent.CONTINUE,
   AppEvent.SELECT_BADGE, AppEvent.CLOSE_BADGE, AppEvent.TOGGLE_SOUND,
@@ -28,8 +27,8 @@ function createEffects({ sound, vibrate = () => {} }) {
     } else if (changed && state === AppState.RESULTS) {
       const { record, unlocked } = context.summary;
       sound.gameOver(record.accuracy);
-      if (record.isPerfect) sound.flawless(FLAWLESS_SOUND_DELAY_S);
-      if (unlocked.length) sound.badge(record.isPerfect ? BADGE_AFTER_FLAWLESS_DELAY_S : BADGE_SOUND_DELAY_S);
+      const chimeEnd = record.isPerfect ? sound.flawless(FLAWLESS_SOUND_DELAY_S) : 0;
+      if (unlocked.length) sound.badge(Math.max(BADGE_SOUND_DELAY_S, chimeEnd));
     } else if (!changed && state === AppState.COUNTDOWN && event.type === AppEvent.TICK) {
       sound.tick();
     } else if (TAP_EVENTS.has(event.type)) {

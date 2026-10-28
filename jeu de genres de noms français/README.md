@@ -5,7 +5,7 @@ Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune d�
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
 ```sh
-npm test    # 73 tests, avec le lanceur intégré de Node (≥ 20)
+npm test    # 81 tests, avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture
@@ -36,7 +36,7 @@ src/
 ├── infrastructure/            Adaptateurs des ports
 │   ├── localStorageRepository.js   profil + préférences, migration v1 → v2
 │   ├── webAudioSound.js            sons de xylophone synthétisés (carillon en plus après une partie sans faute)
-│   └── speech.js                   lecture à voix haute du mot avec son article, après la réponse
+│   └── speech.js                   lecture à voix haute du mot avec son article, après la réponse (voix française requise)
 ├── ui/                        Abonnés et pilotes de l'automate
 │   ├── views.js               une vue par état, HTML pur
 │   ├── renderer.js            rendu complet ou ciblé selon la transition

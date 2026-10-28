@@ -8,7 +8,7 @@ const { AppEvent, Gender } = LeOuLa;
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`,
  * `data-gender`, `data-index`). L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
- * Les boutons `data-speak` font lire un mot à voix haute (`speak`).
+ * Les boutons `data-speak` font lire un mot à voix haute (`speak`) ; ils l'emportent sur un parent cliquable.
  *
  * @param {HTMLElement} root
  * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
@@ -30,7 +30,7 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
 
   root.addEventListener('click', event => {
     const spoken = event.target.closest('[data-speak]');
-    if (spoken) {
+    if (spoken && root.contains(spoken)) {
       speak(spoken.dataset.speak);
       return;
     }
@@ -57,6 +57,8 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
       case 'Escape': machine.send(AppEvent.CLOSE_BADGE); break;
       case 'Enter':
       case ' ':
+        // Sur le bouton « écouter », la touche l'active au lieu de passer au mot suivant.
+        if (event.target.closest?.('[data-speak]')) break;
         if (machine.can(AppEvent.CONTINUE)) {
           event.preventDefault();
           machine.send(AppEvent.CONTINUE);

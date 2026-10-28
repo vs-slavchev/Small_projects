@@ -27,8 +27,10 @@ machine.subscribe(createEffects({
   vibrate: ms => navigator.vibrate?.(ms),
 }));
 const speaker = createSpeaker();
-// Sans synthèse vocale, les boutons « écouter » sont masqués.
-document.documentElement.classList.toggle('no-speech', !speaker.available);
+// Sans synthèse vocale ni voix française, les boutons « écouter » sont masqués.
+const syncSpeech = () => document.documentElement.classList.toggle('no-speech', !speaker.available);
+speaker.onAvailabilityChange(syncSpeech);
+syncSpeech();
 bindController(root, machine, { speak: speaker.speak });
 machine.start();
 
