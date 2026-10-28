@@ -10,7 +10,7 @@
 
 const {
   AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Gender, dayKey, PROGRESS_UNLOCK_GAMES,
-  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT,
+  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, VERDICT_TEXT,
   trendText, insightText, achievementStatus, unlockedLabel,
 } = LeOuLa;
 
@@ -171,7 +171,7 @@ const question = {
       <div class="card-wrap">
         <div class="card${cardState}">
           ${blank}
-          <div class="word" style="font-size:${fitFontSize(word.text, 56, 560)}px">${esc(word.text)}</div>
+          <div class="word" data-fit="56">${esc(word.text)}</div>
           <div class="en">${esc(word.translation)}</div>
         </div>
       </div>
@@ -223,7 +223,7 @@ const feedback = {
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
       <div class="fb-word">
-        <div class="big" style="font-size:${fitFontSize(word.withArticle, 52, 600)}px">${articled(word)}</div>
+        <div class="big" data-fit="52">${articled(word)}</div>
         ${word.elides ? `<div class="gender-note ${word.gender.code}">nom ${word.gender.label}</div>` : ''}
         ${answer.correct ? '' : `<div class="you-said">Tu as répondu <s>${word.elides ? answer.chosen.label : answer.chosen.article}</s></div>`}
       </div>
@@ -427,7 +427,7 @@ const achievements = {
         <div class="badges">${grid}</div>
         <div class="pop-room"></div>
       </div>
-      <div id="pop"></div>
+      <div id="pop" class="pop-anchor"></div>
       ${tabbar(Destination.ACHIEVEMENTS)}
     </div>`;
   },

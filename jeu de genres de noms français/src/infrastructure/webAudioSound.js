@@ -3,7 +3,9 @@
 (function (LeOuLa) {
 'use strict';
 
-const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760, 2093];
+// Gamme pentatonique de do à partir du do5 : la n-ième note, sans limite vers l'aigu.
+const PENTATONIC_STEPS = [0, 2, 4, 7, 9];
+const note = n => 523.25 * 2 ** ((PENTATONIC_STEPS[n % 5] + 12 * Math.floor(n / 5)) / 12);
 
 class WebAudioSound {
   #context = null;
@@ -18,9 +20,9 @@ class WebAudioSound {
 
   /** La note monte avec le combo. */
   correct(combo) {
-    const i = Math.min(Math.max(combo - 1, 0), PENTATONIC.length - 3);
-    this.#tone(PENTATONIC[i], 0, 0.5, 0.15);
-    this.#tone(PENTATONIC[i + 2], 0.09, 0.7, 0.14);
+    const i = Math.max(combo - 1, 0);
+    this.#tone(note(i), 0, 0.5, 0.15);
+    this.#tone(note(i + 2), 0.09, 0.7, 0.14);
   }
 
   wrong() {
@@ -31,11 +33,11 @@ class WebAudioSound {
   /** Arpège d'autant plus long que la partie est réussie. */
   gameOver(accuracy) {
     const notes = accuracy >= 80 ? [0, 2, 4, 5, 7] : accuracy >= 50 ? [0, 2, 4] : [0, 2];
-    notes.forEach((n, k) => this.#tone(PENTATONIC[n], k * 0.11, 0.8, 0.13));
+    notes.forEach((n, k) => this.#tone(note(n), k * 0.11, 0.8, 0.13));
   }
 
   badge(delay = 0) {
-    [7, 8, 9, 10].forEach((n, k) => this.#tone(PENTATONIC[n], delay + k * 0.07, 0.9, 0.08));
+    [7, 8, 9, 10].forEach((n, k) => this.#tone(note(n), delay + k * 0.07, 0.9, 0.08));
   }
 
   #audio() {

@@ -33,7 +33,6 @@ function relativeDay(date, today) {
 }
 
 /** Taille de police pour qu'un mot tienne sur une ligne de l'écran. */
-const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
 
 const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Sans faute. Impeccable.',
@@ -98,5 +97,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(LeOuLa, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel });
+Object.assign(LeOuLa, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, VERDICT_TEXT, trendText, insightText, achievementStatus, unlockedLabel });
 })(globalThis.LeOuLa ??= {});

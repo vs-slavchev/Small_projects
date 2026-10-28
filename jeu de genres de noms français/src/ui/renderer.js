@@ -2,10 +2,56 @@
 'use strict';
 
 const DEFAULT_THEME = '--paper';
+const MIN_FIT_SIZE = 18;
+
+/**
+ * Réduit la police d'un élément `data-fit="<taille max>"` pour qu'il tienne sur une ligne
+ * dans la largeur de son parent : un mot long ne déborde jamais de la carte.
+ * Sous MIN_FIT_SIZE, le texte reste lisible et passe à la ligne plutôt que de rapetisser encore.
+ */
+function fitToWidth(el) {
+  const max = Number(el.dataset.fit);
+  const box = el.parentElement;
+  const style = getComputedStyle(box);
+  const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  el.style.whiteSpace = '';
+  el.style.fontSize = `${max}px`;
+  const width = el.scrollWidth;
+  if (width <= room) return;
+  // La largeur ne suit pas exactement la taille (arrondis, crénage) : on retire un pixel tant que ça déborde.
+  let size = Math.max(MIN_FIT_SIZE, Math.floor((max * room) / width));
+  el.style.fontSize = `${size}px`;
+  while (el.scrollWidth > room && size > MIN_FIT_SIZE) el.style.fontSize = `${--size}px`;
+  if (el.scrollWidth > room) el.style.whiteSpace = 'normal';
+}
+
+/**
+ * Ajuste les éléments `data-fit` de l'écran avant son premier affichage, puis quand la largeur
+ * change ou que les polices finissent de charger. Retourne la fonction qui arrête le suivi.
+ */
+function fitText(root) {
+  const els = root.querySelectorAll('[data-fit]');
+  if (!els.length) return null;
+  let fittedWidth = null;
+  let stopped = false;
+  const fit = (force = false) => {
+    if (stopped || (!force && root.clientWidth === fittedWidth)) return;
+    fittedWidth = root.clientWidth;
+    els.forEach(fitToWidth);
+  };
+  const fonts = root.ownerDocument.fonts;
+  if (fonts && fonts.status !== 'loaded') fonts.ready.then(() => fit(true));
+  // L'observateur se déclenche une première fois avant l'affichage : c'est l'ajustement initial.
+  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
+  if (observer) observer.observe(root);
+  else fit();
+  return () => { stopped = true; observer?.disconnect(); };
+}
 
 /**
  * Abonné de l'automate qui affiche la vue de l'état courant. Il ne connaît aucun état
- * en particulier : tout ce qui est propre à un écran passe par les crochets de sa vue.
+ * en particulier : tout ce qui est propre à un écran passe par les crochets de sa vue,
+ * sauf l'ajustement des textes marqués `data-fit`, commun à tous les écrans.
  * - changement d'écran       → rendu complet avec animation d'entrée ;
  * - même écran, nouvel état  → rendu complet sans animation d'entrée (question → retour visuel) ;
  * - transition interne       → `patch` de la vue (compte à rebours, badge sélectionné, son) ;
@@ -33,7 +79,9 @@ function createRenderer(root, { views, now }) {
     cleanup?.();
     root.innerHTML = view.render(snapshot, env);
     if (view.screen !== screen) root.firstElementChild?.classList.add('enter');
-    cleanup = view.mounted?.(root, snapshot, env) ?? null;
+    const unmount = view.mounted?.(root, snapshot, env);
+    const unfit = fitText(root);
+    cleanup = () => { unmount?.(); unfit?.(); };
     screen = view.screen;
     if (themeMeta) themeMeta.content = rootStyle.getPropertyValue(view.theme ?? DEFAULT_THEME).trim();
   };
