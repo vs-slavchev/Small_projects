@@ -5,7 +5,7 @@ Jeu mobile pour apprendre le genre des noms français. JavaScript pur, aucune d�
 Pour jouer, ouvrir `index.html` dans le navigateur : ni serveur ni Node ne sont nécessaires.
 
 ```sh
-npm test    # 79 tests, avec le lanceur intégré de Node (≥ 20)
+npm test    # 82 tests, avec le lanceur intégré de Node (≥ 20)
 ```
 
 ## Architecture
@@ -26,7 +26,7 @@ src/
 │   ├── playerProfile.js       PlayerProfile    agrégat « joueur »
 │   ├── calendar.js            ActivityCalendar série quotidienne
 │   ├── holidays.js            HOLIDAYS          18 jours de fête (dates fixes, ou calculées depuis Pâques)
-│   ├── achievements.js        succès et paliers Bronze / Argent / Or ; succès cachés des jours de fête
+│   ├── achievements.js        succès et paliers Bronze / Argent / Or ; succès cachés des jours de fête et du jeu intensif
 │   ├── progressReport.js      chronologie, tendance, message du coach
 │   └── gameSummary.js         verdict et bilan de fin de partie
 ├── application/

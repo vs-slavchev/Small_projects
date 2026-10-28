@@ -5,7 +5,7 @@ import { LeOuLa } from './game.js';
 
 const {
   PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
-  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps,
+  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, addDays,
 } = LeOuLa;
 
 const bank = realBank();
@@ -231,4 +231,37 @@ test('succès cachés des jours de fête : invisibles tant qu’ils ne sont pas 
   assert.ok(noel.isVisible && noel.isComplete);
   assert.equal(noel.reachedGoal, 'Partie jouée le jour de Noël (25 décembre)');
   assert.ok(progressAfter('flawless', []).isVisible, 'un succès ordinaire reste visible');
+});
+
+/* ---------- Succès cachés du jeu intensif ---------- */
+
+/** `n` parties le jour de `date`, une par minute à partir de 8 h. */
+const gamesOn = (n, date) => Array.from({ length: n }, (_, i) => game({ endedAt: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, i) }));
+
+test('Marathonien : des journées à 10 parties ou plus', () => {
+  const p = progressAfter('marathon', [...gamesOn(10, day(1)), ...gamesOn(10, day(2))]);
+  assert.equal(p.value, 2);
+  assert.equal(p.tierName, 'Bronze');
+  assert.ok(p.isVisible);
+  const almost = progressAfter('marathon', [...gamesOn(9, day(1)), ...gamesOn(9, day(2))]);
+  assert.equal(almost.reached, 0);
+  assert.equal(almost.isVisible, false, 'caché tant qu’il n’est pas obtenu');
+});
+
+test('Du matin au soir : 3 heures d’horloge différentes dans une journée', () => {
+  const at = (...times) => times.map(([h, m]) => game({ endedAt: day(18, h, m) }));
+  assert.equal(progressAfter('allDay', at([9, 0], [14, 0], [21, 0])).value, 1);
+  assert.equal(progressAfter('allDay', at([9, 5], [9, 30], [9, 55])).value, 0, 'une même heure ne compte qu’une fois');
+  assert.equal(progressAfter('allDay', at([9, 0], [14, 0])).value, 0);
+  assert.equal(progressAfter('allDay', at([9, 0], [14, 0], [21, 0])).isVisible, true);
+});
+
+test('Frénésie : plus de 100 parties sur 7 jours consécutifs', () => {
+  const week = (counts, start) => counts.flatMap((n, i) => gamesOn(n, addDays(start, i)));
+  const oct1 = new Date(2026, 9, 1);
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 11], oct1)).reached, 1);
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 10], oct1)).reached, 0, '100 tout juste ne suffit pas');
+  assert.equal(progressAfter('frenzy', week([6, 15, 15, 15, 15, 15, 15, 5], oct1)).reached, 0, '101 parties étalées sur 8 jours : aucune fenêtre de 7 jours ne dépasse 100');
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 11], new Date(2026, 8, 27))).reached, 1, 'à cheval sur deux mois');
+  assert.equal(progressAfter('frenzy', week([15, 15, 15, 15, 15, 15, 10], oct1)).isVisible, false);
 });
