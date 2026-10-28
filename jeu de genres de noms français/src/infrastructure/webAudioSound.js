@@ -36,6 +36,12 @@ class WebAudioSound {
     notes.forEach((n, k) => this.#tone(note(n), k * 0.11, 0.8, 0.13));
   }
 
+  /** Carillon de fête après une partie sans faute. */
+  flawless(delay = 0) {
+    [10, 12, 14].forEach((n, k) => this.#tone(note(n), delay + k * 0.12, 0.9, 0.11));
+    this.#tone(note(15), delay + 0.42, 1.2, 0.12);
+  }
+
   badge(delay = 0) {
     [7, 8, 9, 10].forEach((n, k) => this.#tone(note(n), delay + k * 0.07, 0.9, 0.08));
   }

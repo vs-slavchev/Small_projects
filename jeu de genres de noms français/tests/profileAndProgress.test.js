@@ -67,7 +67,9 @@ test('rapport de progression : moyenne, tendance et message', () => {
   assert.deepEqual(report.trend, { delta: 45, window: TrendWindow.TWO_WEEKS });
   assert.deepEqual(report.insight, { kind: InsightKind.RECORD, accuracy: 90, previous: 80 });
   assert.equal(report.recent[0].accuracy, 90);
-  assert.equal(report.wordsSeen, 30);
+  assert.equal(report.wordsSeen, 10, 'un mot revu ne compte qu’une fois');
+  const more = new ProgressReport([...games, game({ words: bank.words.slice(5, 15) })], day(18));
+  assert.equal(more.wordsSeen, 15);
 });
 
 test('commentaire de la chronologie : le constat le plus parlant l’emporte', () => {

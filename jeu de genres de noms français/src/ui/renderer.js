@@ -7,13 +7,17 @@ const MIN_FIT_SIZE = 18;
 /**
  * Réduit la police d'un élément `data-fit="<taille max>"` pour qu'il tienne sur une ligne
  * dans la largeur de son parent : un mot long ne déborde jamais de la carte.
+ * Les éléments voisins sur la même ligne (le bouton « écouter ») gardent leur place.
  * Sous MIN_FIT_SIZE, le texte reste lisible et passe à la ligne plutôt que de rapetisser encore.
  */
 function fitToWidth(el) {
   const max = Number(el.dataset.fit);
   const box = el.parentElement;
   const style = getComputedStyle(box);
-  const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const siblings = [...box.children].filter(c => c !== el && c.offsetWidth);
+  const gap = parseFloat(style.columnGap) || 0;
+  const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    - siblings.reduce((sum, c) => sum + c.offsetWidth + gap, 0);
   el.style.whiteSpace = '';
   el.style.fontSize = `${max}px`;
   const width = el.scrollWidth;

@@ -5,7 +5,7 @@
 
 const {
   WORD_DATA, WordBank, createUseCases, createAppMachine, LocalStorageProfileRepository,
-  LocalStoragePreferences, browserStorage, WebAudioSound, VIEWS, createRenderer, createEffects, bindController,
+  LocalStoragePreferences, browserStorage, WebAudioSound, createSpeaker, VIEWS, createRenderer, createEffects, bindController,
 } = LeOuLa;
 
 const clock = { now: () => Date.now() };
@@ -26,7 +26,10 @@ machine.subscribe(createEffects({
   sound: new WebAudioSound({ enabled: useCases.isSoundEnabled() }),
   vibrate: ms => navigator.vibrate?.(ms),
 }));
-bindController(root, machine);
+const speaker = createSpeaker();
+// Sans synthèse vocale, les boutons « écouter » sont masqués.
+document.documentElement.classList.toggle('no-speech', !speaker.available);
+bindController(root, machine, { speak: speaker.speak });
 machine.start();
 
 })(globalThis.LeOuLa ??= {});
