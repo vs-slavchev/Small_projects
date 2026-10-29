@@ -264,7 +264,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .submit:disabled { filter: saturate(.3) opacity(.55); }
 /* Saisie dans peu de hauteur (clavier du téléphone ouvert) : la carte se resserre pour rester entière à l'écran. */
 @container app (max-height: 560px) {
-  .play:has(.answer-input:focus) {
+  .play:has(.answer-form .answer-input:focus) {
     .top-safe { height: 4px; }
     .play-top { padding: 2px 20px; gap: 0; }
     .bar-row { gap: 8px; }
@@ -279,7 +279,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
     .card .chip.pill { padding: 3px 10px; font-size: 11px; }
     .person { font-size: 18px; margin-top: 0; }
     .answer-form { margin-top: 8px; padding-bottom: 8px; }
-    .answer-input, .answer-form .submit { height: 50px; }
+    .answer-form .answer-input, .answer-form .submit { height: 50px; }
   }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

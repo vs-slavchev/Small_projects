@@ -53,18 +53,23 @@ class PlacementTest {
     return this.#question.expected.check(given).correct;
   }
 
-  /** @param {string} given forme saisie */
+  /** @param {string} given forme saisie ; vide ou absente, elle compte comme fausse */
   answer(given) {
-    this.#step(given.trim() !== '' && this.isCorrect(given));
+    this.#ensureOpen();
+    this.#step(typeof given === 'string' && given.trim() !== '' && this.isCorrect(given));
   }
 
   /** « Je ne sais pas » : compte comme une réponse fausse. */
   skip() {
+    this.#ensureOpen();
     this.#step(false);
   }
 
-  #step(correct) {
+  #ensureOpen() {
     if (this.isComplete) throw new DomainError('Le test de placement est terminé.');
+  }
+
+  #step(correct) {
     const mid = this.#mid();
     if (correct && this.#probes.length) {
       this.#ask(this.#probes.shift());

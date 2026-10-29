@@ -86,6 +86,11 @@ class LevelLadder {
     return level;
   }
 
+  /** Le parcours a-t-il un niveau `number` ? */
+  has(number) {
+    return Number.isInteger(number) && number >= 1 && number <= this.#levels.length;
+  }
+
   /** Niveaux qui précèdent le niveau `number`. @returns {Level[]} */
   before(number) {
     return this.#levels.slice(0, Math.max(0, number - 1));

@@ -72,6 +72,8 @@ function createAppMachine(useCases, options = {}) {
     /** Après une erreur, faux tant que la bonne forme n'a pas été recopiée ; `retypeTried` : une copie a été proposée. */
     retyped: true,
     retypeTried: false,
+    /** Nombre de questions d'une partie, pour les libellés. */
+    gameLength: useCases.gameLength,
     soundEnabled: useCases.isSoundEnabled(),
   };
 

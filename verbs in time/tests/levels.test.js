@@ -133,3 +133,24 @@ test('accueil : sans partie dans le niveau, une partie est estimée à deux form
   assert.equal(home.todayPercent, 0);
   assert.equal(home.isLevelComplete, false);
 });
+
+test('placement : réponse absente comptée fausse ; après la fin, une erreur claire', () => {
+  const placement = new PlacementTest({ ladder, random: sequence(0) });
+  placement.answer(undefined);
+  assert.equal(placement.position, 2, 'réponse absente : fausse, question suivante');
+  while (!placement.isComplete) placement.skip();
+  assert.throws(() => placement.answer('je parle'), /terminé/);
+  assert.throws(() => placement.skip(), /terminé/);
+});
+
+test('accueil : une partie d’un niveau qui n’existe plus est ignorée', () => {
+  const profile = profileWith({ games: [[18, 0, 2]] });
+  profile.recordGame(new GameRecord({
+    endedAt: day(18), durationMs: 1, maxCombo: 0, level: 40, masteredBefore: 0, masteredAfter: 3,
+    answers: [{ verb: 'finir', tense: 'present', person: 'je', given: 'x', correct: true, timeMs: 1 }],
+  }));
+  const home = homeOverview(profile, ladder, day(18, 20));
+  assert.equal(home.todayPercent, 33);
+  assert.equal(ladder.has(40), false);
+  assert.ok(ladder.has(22));
+});

@@ -42,7 +42,8 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
       speak(spoken.dataset.speak);
       return;
     }
-    const el = event.target.closest('[data-event]');
+    // Un formulaire porte aussi data-event, mais il n'agit qu'à l'envoi (voir `submit`).
+    const el = event.target.closest('[data-event]:not(form)');
     if (!el || !root.contains(el)) return;
     const type = el.dataset.event;
     if (type === AppEvent.QUIT && !confirmQuit()) return;

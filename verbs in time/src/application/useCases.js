@@ -39,6 +39,9 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
   const currentLevel = () => ladder.level(profile.level);
 
   return Object.freeze({
+    /** Nombre de questions d'une partie. */
+    gameLength,
+
     /** Vrai tant que le joueur n'a pas choisi son point de départ (premier lancement, ou ancien profil). */
     needsOnboarding() {
       return profile.level === null;

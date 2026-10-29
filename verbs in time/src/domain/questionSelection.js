@@ -67,10 +67,10 @@ class QuestionPicker {
       return c => !keys.has(c.key);
     };
     this.#buckets = Object.freeze({
-      current: current.filter(outside(currentMistakes)),
-      currentMistakes,
-      previousMistakes,
-      previousReview: previous.filter(outside(previousMistakes)),
+      current: Object.freeze(current.filter(outside(currentMistakes))),
+      currentMistakes: Object.freeze(currentMistakes),
+      previousMistakes: Object.freeze(previousMistakes),
+      previousReview: Object.freeze(previous.filter(outside(previousMistakes))),
     });
     return this.#buckets;
   }

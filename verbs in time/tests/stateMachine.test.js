@@ -144,3 +144,8 @@ test('always : la destination se choisit après les actions, et seul l’état f
   assert.equal(other.start(), 'b', 'aussi au démarrage');
   assert.throws(() => createMachine({ initial: 'a', context: {}, states: { a: { always: 'z' } } }), /inconnu/);
 });
+
+test('always : une boucle de transitions est signalée au lieu de bloquer la page', () => {
+  const loop = createMachine({ initial: 'a', context: {}, states: { a: { always: 'b' }, b: { always: 'a' } } });
+  assert.throws(() => loop.start(), /bouclent/);
+});

@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState, DEFAULT_GAME_LENGTH,
+  AppState, AppEvent, Destination, HomeState,
   escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
@@ -398,12 +398,12 @@ function journeyDots(home) {
   </div>`;
 }
 
-const GAME_LENGTH_TEXT = `${DEFAULT_GAME_LENGTH} questions · ≈ 2 min`;
+/** Bouton de l'accueil selon son état : libellé, et précision (`null` : la longueur de la partie). */
 const PLAY_CTA = Object.freeze({
   [HomeState.PLAYED_TODAY]: ['Nouvelle partie', 'Battez votre record du jour'],
-  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', GAME_LENGTH_TEXT],
-  [HomeState.BACK]: ['Reprendre', GAME_LENGTH_TEXT],
-  [HomeState.AWAY]: ['Reprendre', GAME_LENGTH_TEXT],
+  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', null],
+  [HomeState.BACK]: ['Reprendre', null],
+  [HomeState.AWAY]: ['Reprendre', null],
 });
 
 /** Bouton de partie : libellé, précision éventuelle, et ce qu'une partie rapporte. */
@@ -419,6 +419,7 @@ const home = {
   render({ context }) {
     const h = context.home;
     const [label, sub] = PLAY_CTA[h.state];
+    const length = `${context.gameLength} questions · ≈ 2 min`;
     return `<div class="screen home">
       <div class="top-safe"></div>
       <div class="home-body">
@@ -428,7 +429,7 @@ const home = {
         ${levelCard(h)}
         ${h.state === HomeState.AWAY ? journeyDots(h) : weekChart(h)}
         <div class="grow"></div>
-        ${playButton(label, sub, h.nextGamePercent)}
+        ${playButton(label, sub ?? length, h.nextGamePercent)}
       </div>
       ${tabbar(Destination.HOME)}
     </div>`;
@@ -508,7 +509,7 @@ function retypeBlock({ retyped, retypeTried }) {
   return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
     ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
     <div class="input-row">
-      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      ${answerInput('retype')}
       <button class="submit press" type="submit">OK</button>
     </div>`}
     <div class="retype-status" aria-live="polite">${status}</div>

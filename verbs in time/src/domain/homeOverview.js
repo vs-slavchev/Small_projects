@@ -53,12 +53,13 @@ function homeOverview(profile, ladder, now) {
     : daysOff === 1 ? HomeState.NOT_YET_TODAY
       : daysOff <= AWAY_AFTER_DAYS ? HomeState.BACK : HomeState.AWAY;
 
-  // Parties mesurées (avec un niveau), regroupées par jour en un seul passage.
+  // Parties mesurées dans un niveau du parcours actuel, regroupées par jour en un seul passage.
   const byDay = new Map();
   for (const g of profile.games) {
-    if (g.masteredGain === null) continue;
+    if (g.masteredGain === null || !ladder.has(g.level)) continue;
     const key = dayKey(g.endedAt);
-    byDay.set(key, [...(byDay.get(key) ?? []), g]);
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push(g);
   }
   const onDay = date => byDay.get(dayKey(date)) ?? [];
   /** Gain d'une journée en pourcentage : formes gagnées dans chaque niveau, rapportées à la taille du niveau. */

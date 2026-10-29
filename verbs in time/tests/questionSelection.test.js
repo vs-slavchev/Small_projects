@@ -51,6 +51,7 @@ test('les paniers : les erreurs sont retirées des formes ordinaires, et limité
   assert.equal(b.previousMistakes.length, PREVIOUS_MISTAKE_POOL);
   assert.equal(b.previousReview.length, previous.length - PREVIOUS_MISTAKE_POOL);
   assert.ok(b.previousReview.every(c => !b.previousMistakes.includes(c)));
+  assert.ok(Object.values(b).every(Object.isFrozen), 'les paniers partagés par les tirages ne se modifient pas');
 
   const many = ladder.level(22);
   const crowded = statsWith(many.combos.map(c => [c.key, 2, 1]));

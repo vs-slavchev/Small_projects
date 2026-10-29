@@ -252,6 +252,16 @@ test('succès : sélection et fermeture d’un badge, index hors limites refusé
   assert.equal(env.machine.context.selectedBadge, null);
 });
 
+test('la longueur de partie configurée arrive jusqu’aux libellés', () => {
+  const storage = memoryStorage();
+  const bank = realBank();
+  const useCases = createUseCases({
+    bank, profiles: new LocalStorageProfileRepository({ storage }), preferences: new LocalStoragePreferences({ storage }),
+    clock: fakeClock(), gameLength: 4,
+  });
+  assert.equal(createAppMachine(useCases, { scheduler: fakeScheduler() }).context.gameLength, 4);
+});
+
 test('une partie plus longue que le nombre de questions garanties est refusée dès le départ', () => {
   const storage = memoryStorage();
   const bank = realBank();

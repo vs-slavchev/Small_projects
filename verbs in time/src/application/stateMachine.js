@@ -117,15 +117,23 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
     for (const listener of [...listeners]) listener(snapshot);
   }
 
-  /** Suit les transitions `always` de l'état courant tant qu'une garde est vraie. */
+  /**
+   * Suit les transitions `always` de l'état courant tant qu'une garde est vraie.
+   * Une chaîne plus longue que le nombre d'états tourne en rond : c'est une erreur de définition.
+   */
   function settle(event) {
+    const visited = [state];
     for (;;) {
       const transition = normalize(definition.states[state].always).find(t => !t.guard || t.guard(context, event));
       if (!transition) return;
+      if (visited.length > Object.keys(definition.states).length) {
+        throw new Error(`Automate : les transitions always bouclent (${visited.join(' → ')}).`);
+      }
       exit(state, event);
       run(transition.actions, event);
       state = transition.target;
       enter(state, event);
+      visited.push(state);
     }
   }
 
