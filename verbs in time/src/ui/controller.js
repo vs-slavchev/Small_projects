@@ -25,8 +25,10 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
   };
 
   const confirmQuit = () => {
-    const session = machine.context.session;
-    return !session || !session.answers.length || confirm('Quitter la partie ? Elle ne sera pas enregistrée.');
+    const { session, placement } = machine.context;
+    if (session) return !session.answers.length || confirm('Quitter la partie ? Elle ne sera pas enregistrée.');
+    if (placement) return placement.position <= 1 || confirm('Quitter le test ? Il faudra le recommencer.');
+    return true;
   };
 
   root.addEventListener('submit', event => {

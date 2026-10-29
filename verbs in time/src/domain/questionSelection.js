@@ -17,8 +17,11 @@ const PREVIOUS_MISTAKE_POOL = 10;
 /** Panier de repli quand celui tiré est vide : le niveau en cours d'abord, puis les précédents. */
 const FALLBACK_ORDER = Object.freeze(['current', 'currentMistakes', 'previousReview', 'previousMistakes']);
 
+/** Rang au hasard dans une liste de `length` éléments. @param {number} length @param {() => number} random */
+const randomIndex = (length, random) => Math.min(length - 1, Math.floor(random() * length));
+
 /** Élément de `list` au hasard. @template T @param {T[]} list @param {() => number} random @returns {T} */
-const randomItem = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
+const randomItem = (list, random) => list[randomIndex(list.length, random)];
 
 /**
  * Question sur une forme à acquérir : un sujet de sa case (il, elle ou on…) et une expression de temps, au hasard.
@@ -100,5 +103,5 @@ class QuestionPicker {
   }
 }
 
-Object.assign(Conjugo, { QUESTION_MIX, CURRENT_MISTAKE_POOL, PREVIOUS_MISTAKE_POOL, randomItem, questionFor, QuestionPicker });
+Object.assign(Conjugo, { QUESTION_MIX, CURRENT_MISTAKE_POOL, PREVIOUS_MISTAKE_POOL, randomIndex, randomItem, questionFor, QuestionPicker });
 })(globalThis.Conjugo ??= {});

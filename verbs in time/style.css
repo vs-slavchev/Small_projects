@@ -150,6 +150,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .cele-copy { display: flex; flex-direction: column; gap: 10px; animation: fadeUp .5s ease both .2s; }
 .cele-copy h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.08; text-wrap: balance; }
 .cele-copy p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--night-t2); }
+.cele-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.cele .link-btn { color: var(--night-t2); }
+.cele .re-unlocked span { background: var(--night-2); border-color: var(--night-2); color: #fff; }
 
 /* ---------- Accueil ---------- */
 .home-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 20px 16px; display: flex; flex-direction: column; gap: 16px; }

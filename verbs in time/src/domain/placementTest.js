@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, randomItem, questionFor } = Conjugo;
+const { DomainError, randomIndex, questionFor } = Conjugo;
 
 /** Formes posées par niveau testé : toutes justes, le niveau est connu. */
 const PROBES_PER_LEVEL = 2;
@@ -91,7 +91,7 @@ class PlacementTest {
     }
     const pool = [...this.#ladder.level(this.#mid()).combos];
     const picks = [];
-    while (picks.length < PROBES_PER_LEVEL && pool.length) picks.push(pool.splice(pool.indexOf(randomItem(pool, this.#random)), 1)[0]);
+    while (picks.length < PROBES_PER_LEVEL && pool.length) picks.push(pool.splice(randomIndex(pool.length, this.#random), 1)[0]);
     this.#ask(picks.shift());
     this.#probes = picks;
   }

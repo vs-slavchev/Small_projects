@@ -200,6 +200,32 @@ test('après le bilan : « Encore une » relance une partie, « Accueil » montr
   assert.ok(home.todayPercent > 0);
 });
 
+test('un niveau déjà entièrement acquis se termine à la partie suivante', () => {
+  const storage = memoryStorage();
+  const profiles = new LocalStorageProfileRepository({ storage });
+  const profile = profiles.load();
+  profile.startAt(1, new Date(2026, 9, 1));
+  for (const slot of [0, 1, 2, 3, 4, 5]) profile.practice.record(`finir|present|${slot}`, true);
+  profiles.save(profile);
+  const env = setup({ storage, ladder: TINY_LADDER });
+  playGame(env);
+  assert.equal(env.machine.state, AppState.LEVEL_UP);
+  assert.equal(env.profiles.load().level, 2);
+});
+
+test('le dernier niveau ne se termine qu’une fois ; ensuite, on révise', () => {
+  const env = setup({ ladder: TINY_LADDER });
+  let games = 0;
+  while (env.profiles.load().levelHistory.length < 2 && games++ < 30) playGame(env);
+  assert.deepEqual(env.profiles.load().levelHistory.map(h => h.level), [1, 2]);
+  for (let i = 0; i < 3; i++) {
+    playGame(env);
+    assert.equal(env.machine.state, AppState.RESULTS, 'pas de seconde fête');
+  }
+  assert.equal(env.profiles.load().levelHistory.length, 2);
+  assert.equal(env.machine.context.summary.nextGamePercent, 0, 'rien à gagner : pas de « +1 % »');
+});
+
 test('Progrès : le parcours montre le niveau en cours et les niveaux terminés', () => {
   const env = setup({ ladder: TINY_LADDER });
   env.machine.send(AppEvent.NAVIGATE, { to: Destination.JOURNEY });

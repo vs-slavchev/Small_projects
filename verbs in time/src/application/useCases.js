@@ -128,7 +128,8 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
       const earlierGames = profile.games;
       const achievementsBefore = achievements();
       profile.recordGame(record);
-      const levelCompleted = before.mastered < before.total && after.mastered === after.total;
+      // Terminé dès que toutes ses formes sont acquises, une seule fois par niveau (le dernier reste ouvert aux révisions).
+      const levelCompleted = after.mastered === after.total && !profile.hasCompleted(level.number);
       if (levelCompleted) profile.completeLevel(now, ladder.count);
       achievementsCache = null;
       profiles.save(profile);

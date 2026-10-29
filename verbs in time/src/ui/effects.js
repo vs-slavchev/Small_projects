@@ -27,7 +27,7 @@ function createEffects({ sound, vibrate = () => {}, AppState, AppEvent, extraTap
       if (context.summary.unlocked.length) sound.badge(BADGE_SOUND_DELAY_S);
     } else if (changed && state === AppState.LEVEL_UP) {
       sound.gameOver(100);
-      sound.badge(BADGE_SOUND_DELAY_S);
+      if (context.summary.unlocked.length) sound.badge(BADGE_SOUND_DELAY_S);
     } else if (tapEvents.has(event.type)) {
       sound.tap();
     }

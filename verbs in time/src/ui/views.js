@@ -179,7 +179,7 @@ const SPARKS_SVG = `<svg class="cele-sparks" viewBox="0 0 220 200" aria-hidden="
 </svg>`;
 
 /** Écran de fête sur fond nuit : anneau du niveau (plein, ou pointillé s'il commence), titre, phrase et un seul bouton. */
-function celebration({ number, full, title, text, button }) {
+function celebration({ number, full, title, text, button, extra = '', home = false }) {
   return `<div class="screen cele">
     <div class="top-safe"></div>
     <div class="cele-body">
@@ -193,8 +193,12 @@ function celebration({ number, full, title, text, button }) {
           <div class="cele-num"><span>Niveau</span><b>${number}</b></div>
         </div>
         <div class="cele-copy"><h1>${title}</h1><p>${text}</p></div>
+        ${extra}
       </div>
-      <button class="cta amber press" data-event="${AppEvent.START}">${button}</button>
+      <div class="cele-actions">
+        <button class="cta amber press" data-event="${AppEvent.START}">${button}</button>
+        ${home ? `<button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>` : ''}
+      </div>
     </div>
   </div>`;
 }
@@ -212,6 +216,11 @@ const placementResult = {
   },
 };
 
+/** Succès débloqués pendant la partie, en pastilles. */
+const unlockedChips = list => (list.length
+  ? `<div class="re-unlocked">${list.map(p => `<span>${p.emoji} ${esc(unlockedLabel(p))}</span>`).join('')}</div>`
+  : '');
+
 const NUMBER_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
   'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf', 'vingt', 'vingt et un', 'vingt-deux'];
 
@@ -219,16 +228,17 @@ const levelUp = {
   screen: 'levelUp',
   theme: '--night',
   render({ context }) {
-    const { level } = context.summary;
-    const { verbs } = level;
+    const { level, unlocked } = context.summary;
     const { from, to } = level.span;
-    const title = `${esc(verbs.map(v => v.label).join(' et '))} ${verbs.length > 1 ? 'sont' : 'est'} à vous&nbsp;!`;
+    const title = `${esc(level.verbList)} ${level.verbs.length > 1 ? 'sont' : 'est'} à vous&nbsp;!`;
     const count = NUMBER_WORDS[level.number] ?? level.number;
     const next = context.summary.nextLevel;
     return celebration({
       number: level.number, full: true, title,
       text: `De <i>${esc(from)}</i> à <i>${esc(to)}</i>.<br>Et de ${count}&nbsp;!`,
       button: next > level.number ? `Jouer le niveau ${next}` : 'Rejouer',
+      extra: unlockedChips(unlocked),
+      home: true,
     });
   },
 };
@@ -410,7 +420,7 @@ const PLAY_CTA = Object.freeze({
 function playButton(label, sub, percent) {
   return `<button class="play-btn press" data-event="${AppEvent.START}">
     <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
-    <span class="pb-tag">≈ +${percent}&nbsp;%</span>
+    ${percent > 0 ? `<span class="pb-tag">≈ +${percent}&nbsp;%</span>` : ''}
   </button>`;
 }
 
@@ -615,9 +625,7 @@ const results = {
           <b>${mastered.map(q => esc(q.expected.display)).join(', ')}</b></span>
         </div>`
       : '';
-    const unlocked = s.unlocked.length
-      ? `<div class="re-unlocked">${s.unlocked.map(p => `<span>${p.emoji} ${esc(unlockedLabel(p))}</span>`).join('')}</div>`
-      : '';
+    const unlocked = unlockedChips(s.unlocked);
     return `<div class="screen end">
       <div class="top-safe"></div>
       <div class="end-body">

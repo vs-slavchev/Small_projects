@@ -6,6 +6,8 @@ const { DomainError, Person, Tense, comboKey, LEVEL_DATA } = Conjugo;
 /** Une forme à acquérir : un verbe, à un temps, dans une case de personne. */
 const combo = (verb, tense, slot) => Object.freeze({ verb, tense, slot, key: comboKey(verb.infinitive, tense.id, slot) });
 
+const VERB_LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
+
 /** Part entière en pourcentage : 2 sur 6 → 33. */
 const percentOf = (part, total) => Math.round((part / total) * 100);
 
@@ -30,6 +32,11 @@ class Level {
   /** Verbes du niveau, à l'infinitif : « être, avoir ». */
   get title() {
     return this.verbs.map(v => v.label).join(', ');
+  }
+
+  /** Verbes du niveau en une phrase : « être et avoir », « aller, faire et prendre ». */
+  get verbList() {
+    return VERB_LIST.format(this.verbs.map(v => v.label));
   }
 
   /** Première et dernière formes du niveau, à afficher : « je finis » … « elles finissent ». */

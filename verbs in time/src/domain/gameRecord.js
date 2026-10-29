@@ -3,6 +3,9 @@
 
 const { DomainError, Person, comboKey } = Conjugo;
 
+/** Entier positif ou nul, sinon `fallback` : lecture tolérante d'un compte enregistré. */
+const nonNegativeInt = (value, fallback) => (Number.isInteger(value) && value >= 0 ? value : fallback);
+
 /**
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée et réponses.
  * Le pourcentage de réussite en est dérivé.
@@ -37,10 +40,9 @@ class GameRecord {
       });
     }));
     this.correctCount = this.answers.filter(a => a.correct).length;
-    const count = value => (Number.isInteger(value) && value >= 0 ? value : null);
-    this.level = count(level);
-    const before = count(masteredBefore);
-    const after = count(masteredAfter);
+    this.level = nonNegativeInt(level, null);
+    const before = nonNegativeInt(masteredBefore, null);
+    const after = nonNegativeInt(masteredAfter, null);
     // Les deux comptes vont ensemble : un seul ne permet pas de mesurer un gain.
     [this.masteredBefore, this.masteredAfter] = this.level !== null && before !== null && after !== null ? [before, after] : [null, null];
     Object.freeze(this);
@@ -109,5 +111,5 @@ class GameRecord {
   }
 }
 
-Object.assign(Conjugo, { GameRecord });
+Object.assign(Conjugo, { nonNegativeInt, GameRecord });
 })(globalThis.Conjugo ??= {});

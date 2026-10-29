@@ -4,7 +4,7 @@ import { realBank, sequence, seededRandom } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  LevelLadder, LEVEL_DATA, Tense, AnswerStatsBook, PlacementTest, PlayerProfile, GameRecord, homeOverview, HomeState, DomainError,
+  LevelLadder, LEVEL_DATA, Tense, AnswerStatsBook, PlacementTest, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
 } = Conjugo;
 
 const bank = realBank();
@@ -23,6 +23,10 @@ test('22 niveaux : présent, passé composé, futur proche, imparfait, futur sim
   assert.throws(() => ladder.level(23), DomainError);
   assert.deepEqual(ladder.level(6).span, { from: 'je finis', to: 'elles finissent' });
   assert.deepEqual(ladder.level(13).span, { from: 'j’ai fait', to: 'elles ont pris' });
+  assert.equal(ladder.level(4).verbList, 'aller, faire et prendre');
+  assert.equal(ladder.level(3).verbList, 'être et avoir');
+  assert.equal(ladder.level(6).verbList, 'finir');
+  assert.deepEqual(levelPace([], ladder.level(6), 6), { gamesLeft: 0, nextGamePercent: 0 }, 'niveau acquis : rien à gagner');
 });
 
 test('données de niveau invalides refusées au chargement', () => {

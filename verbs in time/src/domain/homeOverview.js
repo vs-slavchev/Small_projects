@@ -24,7 +24,7 @@ const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
  * Rythme du joueur dans un niveau, d'après ses dernières parties dans ce niveau.
  * @param {import('./gameRecord.js').GameRecord[]} games parties archivées, dans l'ordre
  * @param {import('./levels.js').Level} level @param {number} mastered formes du niveau déjà acquises
- * @returns {{ gamesLeft: number, nextGamePercent: number }} parties restantes, gain estimé d'une partie (au moins 1 %)
+ * @returns {{ gamesLeft: number, nextGamePercent: number }} parties restantes, gain estimé d'une partie (au moins 1 %, 0 si tout est acquis)
  */
 function levelPace(games, level, mastered) {
   const total = level.combos.length;
@@ -33,7 +33,7 @@ function levelPace(games, level, mastered) {
   const remaining = total - mastered;
   return Object.freeze({
     gamesLeft: remaining > 0 ? Math.ceil(remaining / pace) : 0,
-    nextGamePercent: Math.max(1, Math.min(percentOf(pace, total), 100 - percentOf(mastered, total))),
+    nextGamePercent: remaining > 0 ? Math.max(1, Math.min(percentOf(pace, total), 100 - percentOf(mastered, total))) : 0,
   });
 }
 

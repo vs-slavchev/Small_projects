@@ -54,6 +54,9 @@ test('niveau : point de départ, niveaux validés par le test, niveau terminé e
   profile.startAt(22, day(20));
   profile.completeLevel(day(21), 22);
   assert.equal(profile.level, 22, 'après le dernier niveau, on y reste pour réviser');
+  profile.completeLevel(day(22), 22);
+  assert.equal(profile.levelHistory.filter(h => h.level === 22).length, 1, 'un niveau n’est terminé qu’une fois');
+  assert.ok(profile.hasCompleted(22));
   assert.throws(() => PlayerProfile.empty().completeLevel(day(18), 22), /Aucun niveau/);
 });
 

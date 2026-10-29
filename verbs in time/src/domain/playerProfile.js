@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar } = Conjugo;
+const { DomainError, GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar, nonNegativeInt } = Conjugo;
 
 /** Version des clés de statistiques : 1 = verbe + temps, 2 = verbe + temps + case de personne. */
 const PRACTICE_VERSION = 2;
@@ -67,6 +67,11 @@ class PlayerProfile {
     this.#level = level;
   }
 
+  /** Le niveau `level` est-il déjà terminé (par le test ou en jouant) ? @param {number} level */
+  hasCompleted(level) {
+    return this.#levelHistory.some(h => h.level === level);
+  }
+
   /**
    * Accorde le profil à un parcours de `lastLevel` niveaux (raccourci depuis l'enregistrement) :
    * les niveaux qui n'existent plus sortent de l'historique, et le niveau en cours ne dépasse pas le dernier.
@@ -85,6 +90,7 @@ class PlayerProfile {
    */
   completeLevel(now, lastLevel) {
     if (this.#level === null) throw new DomainError('Aucun niveau en cours.');
+    if (this.hasCompleted(this.#level)) return;
     this.#levelHistory.push(Object.freeze({ level: this.#level, completedAt: new Date(now), via: LevelVia.PLAY }));
     this.#level = Math.min(this.#level + 1, lastLevel);
   }
@@ -126,7 +132,6 @@ class PlayerProfile {
         return [];
       }
     });
-    const count = value => (Number.isInteger(value) && value >= 0 ? value : 0);
     const games = valid(Array.isArray(snapshot.games) ? snapshot.games : [], GameRecord.fromSnapshot);
     const practice = snapshot.practiceVersion === PRACTICE_VERSION
       ? new AnswerStatsBook(valid(Object.entries(snapshot.practice ?? {}),
@@ -140,7 +145,7 @@ class PlayerProfile {
     return new PlayerProfile({
       games,
       practice,
-      recoveries: count(snapshot.recoveries),
+      recoveries: nonNegativeInt(snapshot.recoveries, 0),
       level: Number.isInteger(snapshot.level) && snapshot.level >= 1 ? snapshot.level : null,
       levelHistory,
     });
