@@ -118,7 +118,6 @@ class PlayerProfile {
   /**
    * Reconstruit un profil. Un enregistrement invalide (partie, statistique, niveau terminé)
    * est ignoré et signalé à `onInvalid` : il ne fait pas perdre le reste de l'historique.
-   * Les statistiques d'un ancien profil (par verbe et par temps) sont recalculées à partir des parties archivées.
    */
   static fromSnapshot(snapshot, { onInvalid = () => {} } = {}) {
     const valid = (items, build) => items.flatMap(item => {
@@ -145,8 +144,6 @@ class PlayerProfile {
       levelHistory,
     });
   }
-
-  /** Statistiques recalculées en rejouant les réponses archivées, dans l'ordre. @param {GameRecord[]} games */
 }
 
 Object.assign(Conjugo, { LevelVia, PlayerProfile });
