@@ -17,6 +17,10 @@ const PACE_GAMES = 5;
 /** Gain estimé d'une partie, en formes, faute d'historique dans le niveau. */
 const DEFAULT_PACE = 2;
 
+/** Partie dont le gain se mesure dans `level` : comptes présents et compatibles avec la taille du niveau. */
+const isMeasured = (game, level) =>
+  game.masteredGain !== null && game.masteredBefore <= level.combos.length && game.masteredAfter <= level.combos.length;
+
 /** Formes gagnées par un ensemble de parties. */
 const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
 
@@ -28,7 +32,7 @@ const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
  */
 function levelPace(games, level, mastered) {
   const total = level.combos.length;
-  const recent = games.filter(g => g.level === level.number && g.masteredGain !== null).slice(-PACE_GAMES);
+  const recent = games.filter(g => g.level === level.number && isMeasured(g, level)).slice(-PACE_GAMES);
   const pace = recent.length ? Math.max(1, sumGain(recent) / recent.length) : DEFAULT_PACE;
   const remaining = total - mastered;
   return Object.freeze({
@@ -48,7 +52,7 @@ function homeOverview(profile, ladder, now) {
   const level = ladder.level(profile.level);
   const { mastered, total } = level.progress(profile.practice);
   const lastGame = profile.games.at(-1) ?? null;
-  const daysOff = lastGame ? daysBetween(lastGame.endedAt, now) : 1;
+  const daysOff = lastGame ? Math.max(0, daysBetween(lastGame.endedAt, now)) : 1; // horloge reculée : comme aujourd'hui
   const state = daysOff === 0 ? HomeState.PLAYED_TODAY
     : daysOff === 1 ? HomeState.NOT_YET_TODAY
       : daysOff <= AWAY_AFTER_DAYS ? HomeState.BACK : HomeState.AWAY;
@@ -56,7 +60,7 @@ function homeOverview(profile, ladder, now) {
   // Parties mesurées dans un niveau du parcours actuel, regroupées par jour en un seul passage.
   const byDay = new Map();
   for (const g of profile.games) {
-    if (g.masteredGain === null || !ladder.has(g.level)) continue;
+    if (!ladder.has(g.level) || !isMeasured(g, ladder.level(g.level))) continue;
     const key = dayKey(g.endedAt);
     if (!byDay.has(key)) byDay.set(key, []);
     byDay.get(key).push(g);

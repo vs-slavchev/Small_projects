@@ -4,7 +4,7 @@ import { realBank } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  PlayerProfile, GameRecord, ActivityCalendar, rateGame, Verdict, LevelVia, PRACTICE_VERSION,
+  PlayerProfile, GameRecord, ActivityCalendar, rateGame, Verdict, LevelVia,
   AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps, ACHIEVEMENTS, Tense,
 } = Conjugo;
 
@@ -60,18 +60,16 @@ test('niveau : point de départ, niveaux validés par le test, niveau terminé e
   assert.throws(() => PlayerProfile.empty().completeLevel(day(18), 22), /Aucun niveau/);
 });
 
-test('ancien profil : statistiques recalculées par case de personne à partir des parties', () => {
-  const old = {
-    games: [game({ correct: 0 }).toSnapshot(), game({ correct: 5 }).toSnapshot()],
-    practice: { 'parler|present': { seen: 2, correct: 1, lastCorrect: true } },
-    recoveries: 5,
-  };
-  const profile = PlayerProfile.fromSnapshot(old);
-  assert.equal(profile.practice.get('parler|present').seen, 0, 'les anciennes clés sont abandonnées');
-  assert.deepEqual(profile.practice.get('parler|present|0'), profile.practice.get('habiter|present|0'));
-  assert.equal(profile.practice.get('parler|present|0').seen, 2);
-  assert.equal(profile.level, null, 'un ancien joueur choisit son point de départ');
-  assert.equal(profile.toSnapshot().practiceVersion, PRACTICE_VERSION);
+test('profil sans niveau ni statistiques : les parties archivées ne rejouent rien', () => {
+  const profile = PlayerProfile.fromSnapshot({ games: [game({ correct: 5 }).toSnapshot()] });
+  assert.equal(profile.practice.get('parler|present|0').seen, 0);
+  assert.equal(profile.level, null, 'le joueur choisit son point de départ');
+});
+
+test('partie archivée : niveau 0 refusé', () => {
+  const record = new GameRecord({ ...game({ correct: 3 }), level: 0, masteredBefore: 0, masteredAfter: 1 });
+  assert.equal(record.level, null);
+  assert.equal(record.masteredGain, null, 'sans niveau, pas de gain mesuré');
 });
 
 test('le profil se reconstruit à l’identique depuis son instantané', () => {

@@ -3,7 +3,7 @@
 
 const {
   GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, PlacementTest, LevelLadder,
-  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, levelPace, DomainError,
+  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, levelPace, LevelVia, DomainError,
 } = Conjugo;
 
 /**
@@ -110,19 +110,13 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
     finishGame(session) {
       const now = today();
       const level = currentLevel();
-      // Formes du niveau après la partie : leur statistique, enrichie des réponses de la partie
-      // (une forme n'est posée qu'une fois par partie).
-      const projected = new Map(level.combos.map(c => [c.key, profile.practice.get(c.key)]));
-      const newlyMastered = [];
-      for (const { question, correct } of session.answers) {
-        const stat = projected.get(question.key);
-        if (!stat) continue;
-        const next = stat.record(correct);
-        projected.set(question.key, next);
-        if (!stat.isMastered && next.isMastered) newlyMastered.push(question);
-      }
+      // Statistiques après la partie, calculées avant de l'archiver : le bilan en a besoin.
+      const projected = profile.practice.with(session.answers.map(a => [a.question.key, a.correct]));
+      const inLevel = new Set(level.combos.map(c => c.key));
+      const newlyMastered = session.answers.map(a => a.question)
+        .filter(q => inLevel.has(q.key) && !profile.practice.get(q.key).isMastered && projected.get(q.key).isMastered);
       const before = level.progress(profile.practice);
-      const after = { mastered: [...projected.values()].filter(st => st.isMastered).length, total: before.total };
+      const after = level.progress(projected);
       const record = session.finish(clock.now(), { level: level.number, masteredBefore: before.mastered, masteredAfter: after.mastered });
       const missed = session.answers.filter(a => !a.correct).map(({ question, given }) => ({ question, given }));
       const earlierGames = profile.games;
@@ -145,6 +139,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
         after,
         newlyMastered,
         levelCompleted,
+        levelsPlayed: profile.levelHistory.filter(h => h.via === LevelVia.PLAY).length,
         nextLevel: profile.level,
         gamesLeft: pace.gamesLeft,
         nextGamePercent: pace.nextGamePercent,

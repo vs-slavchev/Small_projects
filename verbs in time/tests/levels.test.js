@@ -114,6 +114,7 @@ test('accueil : l’état dépend du dernier jour joué', () => {
   assert.equal(at([[16, 0, 1]], day(18)), HomeState.BACK, '1 jour sans jouer');
   assert.equal(at([[11, 0, 1]], day(18)), HomeState.BACK, '6 jours sans jouer');
   assert.equal(at([[10, 0, 1]], day(18)), HomeState.AWAY, 'une semaine');
+  assert.equal(at([[19, 0, 1]], day(18)), HomeState.PLAYED_TODAY, 'horloge reculée : pas de « Content de vous revoir »');
 });
 
 test('accueil : gain du jour, rythme et parties restantes', () => {
@@ -147,14 +148,18 @@ test('placement : réponse absente comptée fausse ; après la fin, une erreur c
   assert.throws(() => placement.skip(), /terminé/);
 });
 
-test('accueil : une partie d’un niveau qui n’existe plus est ignorée', () => {
+test('accueil : une partie d’un niveau qui n’existe plus, ou aux comptes impossibles, est ignorée', () => {
   const profile = profileWith({ games: [[18, 0, 2]] });
   profile.recordGame(new GameRecord({
     endedAt: day(18), durationMs: 1, maxCombo: 0, level: 40, masteredBefore: 0, masteredAfter: 3,
     answers: [{ verb: 'finir', tense: 'present', person: 'je', given: 'x', correct: true, timeMs: 1 }],
   }));
+  profile.recordGame(new GameRecord({
+    endedAt: day(18), durationMs: 1, maxCombo: 0, level: 6, masteredBefore: 0, masteredAfter: 999,
+    answers: [{ verb: 'finir', tense: 'present', person: 'je', given: 'x', correct: true, timeMs: 1 }],
+  }));
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.equal(home.todayPercent, 33);
+  assert.equal(home.todayPercent, 33, 'comptes plus grands que le niveau : partie ignorée');
   assert.equal(ladder.has(40), false);
   assert.ok(ladder.has(22));
 });

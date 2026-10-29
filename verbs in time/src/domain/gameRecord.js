@@ -40,7 +40,7 @@ class GameRecord {
       });
     }));
     this.correctCount = this.answers.filter(a => a.correct).length;
-    this.level = nonNegativeInt(level, null);
+    this.level = Number.isInteger(level) && level >= 1 ? level : null;
     const before = nonNegativeInt(masteredBefore, null);
     const after = nonNegativeInt(masteredAfter, null);
     // Les deux comptes vont ensemble : un seul ne permet pas de mesurer un gain.

@@ -133,6 +133,7 @@ test('niveau terminé : écran de fête, puis le niveau suivant', () => {
   assert.ok(summary.levelCompleted);
   assert.equal(summary.percentAfter, 100);
   assert.equal(summary.nextLevel, 2);
+  assert.equal(summary.levelsPlayed, 1, '« Et d’un ! »');
   assert.equal(env.profiles.load().level, 2);
   env.machine.send(AppEvent.START);
   assert.equal(env.machine.state, AppState.QUESTION);
@@ -223,7 +224,10 @@ test('le dernier niveau ne se termine qu’une fois ; ensuite, on révise', () =
     assert.equal(env.machine.state, AppState.RESULTS, 'pas de seconde fête');
   }
   assert.equal(env.profiles.load().levelHistory.length, 2);
-  assert.equal(env.machine.context.summary.nextGamePercent, 0, 'rien à gagner : pas de « +1 % »');
+  const { summary } = env.machine.context;
+  const stored = summary.level.progress(env.profiles.load().practice);
+  assert.equal(summary.percentAfter, Math.round((stored.mastered / stored.total) * 100), 'le bilan correspond aux statistiques enregistrées');
+  assert.equal(summary.nextGamePercent, 0, 'rien à gagner : pas de « +1 % »');
 });
 
 test('Progrès : le parcours montre le niveau en cours et les niveaux terminés', () => {

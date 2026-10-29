@@ -45,9 +45,13 @@ test('formes à revoir : déjà ratées, les plus faibles d’abord', () => {
   play('moitié-rattrapée', false, true);
   play('un-tiers', false, true, false);
   play('jamais-réussie', false);
-  assert.deepEqual(book.weakest(['jamais-ratée', 'moitié', 'moitié-rattrapée', 'un-tiers', 'jamais-réussie', 'inconnue'], 10),
-    ['jamais-réussie', 'un-tiers', 'moitié', 'moitié-rattrapée'], 'à taux égal, la dernière réponse fausse d’abord');
+  play('rattrapée', false, true, true, true);
+  assert.deepEqual(book.weakest(['jamais-ratée', 'moitié', 'moitié-rattrapée', 'un-tiers', 'jamais-réussie', 'rattrapée', 'inconnue'], 10),
+    ['jamais-réussie', 'un-tiers', 'moitié', 'moitié-rattrapée'], 'à taux égal, la dernière réponse fausse d’abord ; une forme de nouveau acquise sort');
   assert.deepEqual(book.weakest(['moitié', 'jamais-réussie', 'un-tiers'], 2), ['jamais-réussie', 'un-tiers']);
   assert.equal(book.get('moitié').hasMistake, true);
+  const copy = book.with([['moitié', true], ['moitié', true]]);
+  assert.equal(copy.get('moitié').isMastered, true);
+  assert.equal(book.get('moitié').seen, 2, 'la copie laisse le carnet intact');
   assert.equal(book.get('jamais-ratée').hasMistake, false);
 });

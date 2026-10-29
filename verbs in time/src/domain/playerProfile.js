@@ -3,8 +3,6 @@
 
 const { DomainError, GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar, nonNegativeInt } = Conjugo;
 
-/** Version des clés de statistiques : 1 = verbe + temps, 2 = verbe + temps + case de personne. */
-const PRACTICE_VERSION = 2;
 const LevelVia = Object.freeze({ TEST: 'test', PLAY: 'play' });
 
 /**
@@ -112,7 +110,6 @@ class PlayerProfile {
       games: this.#games.map(g => g.toSnapshot()),
       practice: Object.fromEntries([...this.#practice.entries()].map(([key, s]) => [key, { seen: s.seen, correct: s.correct, lastCorrect: s.lastCorrect }])),
       recoveries: this.#recoveries,
-      practiceVersion: PRACTICE_VERSION,
       level: this.#level,
       levelHistory: this.#levelHistory.map(h => ({ ...h, completedAt: h.completedAt.toISOString() })),
     };
@@ -133,10 +130,8 @@ class PlayerProfile {
       }
     });
     const games = valid(Array.isArray(snapshot.games) ? snapshot.games : [], GameRecord.fromSnapshot);
-    const practice = snapshot.practiceVersion === PRACTICE_VERSION
-      ? new AnswerStatsBook(valid(Object.entries(snapshot.practice ?? {}),
-        ([key, s]) => [key, new AnswerStat(s.seen, s.correct, s.lastCorrect ?? null)]))
-      : PlayerProfile.#practiceFrom(games);
+    const practice = new AnswerStatsBook(valid(Object.entries(snapshot.practice ?? {}),
+      ([key, s]) => [key, new AnswerStat(s.seen, s.correct, s.lastCorrect ?? null)]));
     const levelHistory = valid(Array.isArray(snapshot.levelHistory) ? snapshot.levelHistory : [], h => {
       const completedAt = new Date(h?.completedAt);
       if (!Number.isInteger(h?.level) || h.level < 1 || Number.isNaN(completedAt.getTime())) throw new DomainError('Niveau terminé invalide.');
@@ -152,14 +147,7 @@ class PlayerProfile {
   }
 
   /** Statistiques recalculées en rejouant les réponses archivées, dans l'ordre. @param {GameRecord[]} games */
-  static #practiceFrom(games) {
-    const practice = new AnswerStatsBook();
-    for (const g of [...games].sort((a, b) => a.endedAt - b.endedAt)) {
-      for (const a of g.answers) practice.record(GameRecord.practiceKeyOf(a), a.correct);
-    }
-    return practice;
-  }
 }
 
-Object.assign(Conjugo, { PRACTICE_VERSION, LevelVia, PlayerProfile });
+Object.assign(Conjugo, { LevelVia, PlayerProfile });
 })(globalThis.Conjugo ??= {});

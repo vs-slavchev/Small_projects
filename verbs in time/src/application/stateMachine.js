@@ -66,6 +66,9 @@ function validate(definition) {
   for (const [name, state] of Object.entries(states)) {
     check(state.on, `état « ${name} »`);
     check(state.always && { always: state.always }, `état « ${name} »`);
+    if (normalize(state.always).some(t => t.target === undefined)) {
+      throw new Error(`Automate : état « ${name} », une transition always doit viser un état.`);
+    }
   }
 }
 

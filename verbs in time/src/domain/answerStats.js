@@ -78,8 +78,15 @@ class AnswerStatsBook {
     return this.#stats.entries();
   }
 
+  /** Copie du carnet avec des réponses en plus ; le carnet lui-même ne change pas. @param {Iterable<[string, boolean]>} answers */
+  with(answers) {
+    const copy = new this.constructor(this.#stats);
+    for (const [key, correct] of answers) copy.record(key, correct);
+    return copy;
+  }
+
   /**
-   * Parmi `candidates`, les clés déjà ratées au moins une fois, du plus faible taux de réussite au plus élevé ;
+   * Parmi `candidates`, les clés ratées au moins une fois et pas encore acquises, du plus faible taux de réussite au plus élevé ;
    * à taux égal, la dernière réponse fausse d'abord, puis la plus pratiquée.
    * @param {string[]} candidates @param {number} limit @returns {string[]}
    */
@@ -87,7 +94,7 @@ class AnswerStatsBook {
     const recentMiss = s => (s.lastCorrect === false ? 0 : 1);
     return candidates
       .map(key => [key, this.get(key)])
-      .filter(([, s]) => s.hasMistake)
+      .filter(([, s]) => s.hasMistake && !s.isMastered)
       .sort(([ka, a], [kb, b]) => a.accuracy - b.accuracy || recentMiss(a) - recentMiss(b) || b.seen - a.seen || ka.localeCompare(kb))
       .slice(0, limit)
       .map(([key]) => key);

@@ -42,7 +42,7 @@ test('les paniers : les erreurs sont retirées des formes ordinaires, et limité
   const previous = ladder.before(9).flatMap(l => l.combos);
   const stats = statsWith([
     ...level.combos.slice(0, 3).map(c => [c.key, 2, 1]),
-    ...previous.slice(0, 15).map(c => [c.key, 3, 1]),
+    ...previous.slice(0, 15).map(c => [c.key, 2, 1]),
   ]);
   const b = new QuestionPicker({ ladder, level: 9, stats }).buckets();
   assert.equal(b.currentMistakes.length, 3);

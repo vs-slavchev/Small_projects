@@ -231,11 +231,12 @@ const levelUp = {
     const { level, unlocked } = context.summary;
     const { from, to } = level.span;
     const title = `${esc(level.verbList)} ${level.verbs.length > 1 ? 'sont' : 'est'} à vous&nbsp;!`;
-    const count = NUMBER_WORDS[level.number] ?? level.number;
+    const { levelsPlayed } = context.summary;
+    const count = levelsPlayed === 1 ? 'd’un' : `de ${NUMBER_WORDS[levelsPlayed] ?? levelsPlayed}`;
     const next = context.summary.nextLevel;
     return celebration({
       number: level.number, full: true, title,
-      text: `De <i>${esc(from)}</i> à <i>${esc(to)}</i>.<br>Et de ${count}&nbsp;!`,
+      text: `De <i>${esc(from)}</i> à <i>${esc(to)}</i>.<br>Et ${count}&nbsp;!`,
       button: next > level.number ? `Jouer le niveau ${next}` : 'Rejouer',
       extra: unlockedChips(unlocked),
       home: true,
@@ -288,7 +289,9 @@ function homeHeadline(home) {
       const streak = home.streak
         ? `et votre série passe à ${home.streak + 1} ${plural(home.streak + 1, 'jour')}.`
         : 'et votre série commence.';
-      return `<h1>Une partie aujourd'hui, c'est environ ${amber(`+${home.nextGamePercent}&nbsp;%`)}</h1><p>en 2 minutes, ${streak}</p>`;
+      return home.isLevelComplete
+        ? `<h1>Tout est acquis.</h1><p>Une partie de révision garde les formes en mémoire, ${streak}</p>`
+        : `<h1>Une partie aujourd'hui, c'est environ ${amber(`+${home.nextGamePercent}&nbsp;%`)}</h1><p>en 2 minutes, ${streak}</p>`;
     }
     case HomeState.BACK:
       return `<span class="eyebrow">Content de vous revoir&nbsp;!</span><h1>Rien n'est perdu.</h1>
@@ -368,7 +371,7 @@ function levelCard(home) {
 /** Semaine en barres : gain de chaque jour ; aujourd'hui en ambre (joué) ou en pointillé (à jouer). */
 function weekChart(home) {
   const bars = home.week.map((d, i) => {
-    const pending = d.isToday && home.state !== HomeState.PLAYED_TODAY;
+    const pending = d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGamePercent > 0;
     let cls = 'wk-bar';
     let label = '';
     let height = 4;

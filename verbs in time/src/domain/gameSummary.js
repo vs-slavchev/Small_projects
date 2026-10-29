@@ -34,11 +34,11 @@ class GameSummary {
    *           missed: { question: import('./conjugation.js').Question, given: string }[], streak: number,
    *           level: import('./levels.js').Level, before: { mastered: number, total: number },
    *           after: { mastered: number, total: number }, newlyMastered: import('./conjugation.js').Question[],
-   *           levelCompleted: boolean, nextLevel: number, gamesLeft: number, nextGamePercent: number }} props
+   *           levelCompleted: boolean, levelsPlayed: number, nextLevel: number, gamesLeft: number, nextGamePercent: number }} props
    *   `before` / `after` : formes acquises du niveau avant et après la partie ;
-   *   `nextLevel` : niveau du joueur après la partie ; `nextGamePercent` : gain estimé d'une prochaine partie
+   *   `levelsPlayed` : niveaux terminés en jouant (hors placement) ; `nextLevel` : niveau du joueur après la partie ; `nextGamePercent` : gain estimé d'une prochaine partie
    */
-  constructor({ record, verdict, unlocked, missed, streak, level, before, after, newlyMastered, levelCompleted, nextLevel, gamesLeft, nextGamePercent }) {
+  constructor({ record, verdict, unlocked, missed, streak, level, before, after, newlyMastered, levelCompleted, levelsPlayed, nextLevel, gamesLeft, nextGamePercent }) {
     this.record = record;
     this.verdict = verdict;
     this.unlocked = Object.freeze([...unlocked]);
@@ -52,6 +52,7 @@ class GameSummary {
     /** Formes devenues acquises pendant la partie, dans l'ordre où elles ont été posées. */
     this.newlyMastered = Object.freeze([...newlyMastered]);
     this.levelCompleted = levelCompleted;
+    this.levelsPlayed = levelsPlayed;
     this.nextLevel = nextLevel;
     this.gamesLeft = gamesLeft;
     this.nextGamePercent = nextGamePercent;
