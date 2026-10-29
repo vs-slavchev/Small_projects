@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { addDays, GameRecord } = Conjugo;
+const { addDays, GameRecord, percentOf } = Conjugo;
 
 /** Appréciation d'une partie, du meilleur au moins bon. */
 const Verdict = Object.freeze({
@@ -26,8 +26,6 @@ function rateGame(record, earlierGames) {
   return Verdict.KEEP_GOING;
 }
 
-const percentOf = ({ mastered, total }) => Math.round((mastered / total) * 100);
-
 /** Bilan présenté au joueur à la fin d'une partie. */
 class GameSummary {
   /**
@@ -35,13 +33,12 @@ class GameSummary {
    *           unlocked: import('./achievements.js').AchievementProgress[],
    *           missed: { question: import('./conjugation.js').Question, given: string }[], streak: number,
    *           level: import('./levels.js').Level, before: { mastered: number, total: number },
-   *           after: { mastered: number, total: number }, newlyMastered?: import('./conjugation.js').Question[],
-   *           levelCompleted?: boolean, nextLevel?: number, gamesLeft?: number, nextGamePercent?: number }} props
+   *           after: { mastered: number, total: number }, newlyMastered: import('./conjugation.js').Question[],
+   *           levelCompleted: boolean, nextLevel: number, gamesLeft: number, nextGamePercent: number }} props
    *   `before` / `after` : formes acquises du niveau avant et après la partie ;
    *   `nextLevel` : niveau du joueur après la partie ; `nextGamePercent` : gain estimé d'une prochaine partie
    */
-  constructor({ record, verdict, unlocked, missed, streak, level, before, after, newlyMastered = [], levelCompleted = false,
-    nextLevel = level.number, gamesLeft = 0, nextGamePercent = 1 }) {
+  constructor({ record, verdict, unlocked, missed, streak, level, before, after, newlyMastered, levelCompleted, nextLevel, gamesLeft, nextGamePercent }) {
     this.record = record;
     this.verdict = verdict;
     this.unlocked = Object.freeze([...unlocked]);
@@ -50,8 +47,8 @@ class GameSummary {
     this.streak = streak;
     /** Niveau dans lequel la partie a été jouée. */
     this.level = level;
-    this.percentBefore = percentOf(before);
-    this.percentAfter = percentOf(after);
+    this.percentBefore = percentOf(before.mastered, before.total);
+    this.percentAfter = percentOf(after.mastered, after.total);
     /** Formes devenues acquises pendant la partie, dans l'ordre où elles ont été posées. */
     this.newlyMastered = Object.freeze([...newlyMastered]);
     this.levelCompleted = levelCompleted;

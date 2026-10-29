@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, Person } = Conjugo;
+const { DomainError, Person, comboKey } = Conjugo;
 
 /**
  * Partie terminée, telle qu'elle est archivée : date et heure de fin, durée et réponses.
@@ -84,14 +84,9 @@ class GameRecord {
     return new GameRecord({ ...snapshot, endedAt: new Date(snapshot.endedAt) });
   }
 
-  /** Clé de suivi des statistiques : un verbe, à un temps, dans une case de personne (0 à 5). */
-  static comboKey(verb, tense, slot) {
-    return `${verb}|${tense}|${slot}`;
-  }
-
-  /** Clé de suivi d'une réponse archivée : il, elle et on comptent ensemble, ils et elles aussi. */
+  /** Clé de suivi d'une réponse archivée (voir `comboKey`) : il, elle et on comptent ensemble, ils et elles aussi. */
   static practiceKeyOf(answer) {
-    return GameRecord.comboKey(answer.verb, answer.tense, Person.of(answer.person)?.index ?? answer.person);
+    return comboKey(answer.verb, answer.tense, Person.of(answer.person)?.index ?? answer.person);
   }
 
   /** Meilleur pourcentage de réussite parmi `games` (-Infinity si aucune). @param {GameRecord[]} games */

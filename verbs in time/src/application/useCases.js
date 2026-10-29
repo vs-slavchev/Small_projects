@@ -2,11 +2,9 @@
 'use strict';
 
 const {
-  GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, PlacementTest, LevelLadder, AnswerStatsBook, GameRecord,
-  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, DomainError,
+  GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, PlacementTest, LevelLadder,
+  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, levelPace, DomainError,
 } = Conjugo;
-
-const keyOf = q => GameRecord.comboKey(q.verb.infinitive, q.tense.id, q.person.index);
 
 /**
  * Cas d'utilisation du jeu. Ils orchestrent les objets du domaine et les ports
@@ -27,8 +25,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
     throw new DomainError(`Partie de ${gameLength} tours impossible : ${QuestionPicker.MIN_CAPACITY} questions différentes sont garanties au plus.`);
   }
   const profile = profiles.load();
-  // Un profil enregistré au-delà du dernier niveau (parcours raccourci) reprend au dernier.
-  if (profile.level !== null && profile.level > ladder.count) profile.startAt(ladder.count, new Date(clock.now()));
+  profile.fitTo(ladder.count);
   let prefs = preferences.load();
   const savePrefs = changes => {
     prefs = { ...prefs, ...changes };
@@ -40,12 +37,6 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
   let achievementsCache = null;
   const achievements = () => (achievementsCache ??= evaluateAchievements(AchievementFacts.collect(profile, bank)));
   const currentLevel = () => ladder.level(profile.level);
-  /** Statistiques telles qu'elles seraient après la partie, sans toucher au profil. */
-  const statsAfter = session => {
-    const stats = new AnswerStatsBook(profile.practice.entries());
-    for (const a of session.answers) stats.record(keyOf(a.question), a.correct);
-    return stats;
-  };
 
   return Object.freeze({
     /** Vrai tant que le joueur n'a pas choisi son point de départ (premier lancement, ou ancien profil). */
@@ -71,7 +62,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 
     /** « Je ne sais pas » : compte comme une réponse fausse. @param {PlacementTest} placement */
     skipPlacement(placement) {
-      placement.answer('');
+      placement.skip();
     },
 
     /** Le joueur commence au niveau trouvé ; les précédents sont validés. @returns {import('../domain/levels.js').Level} */
@@ -108,12 +99,6 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
       session.next(clock.now());
     },
 
-    /** La partie terminée ferait-elle passer le niveau en cours au complet ? @param {GameSession} session */
-    completesLevel(session) {
-      const level = currentLevel();
-      return !level.isComplete(profile.practice) && level.isComplete(statsAfter(session));
-    },
-
     /**
      * Archive la partie, met à jour le profil et retourne le bilan
      * (verdict, succès débloqués, progression dans le niveau, niveau terminé ou non).
@@ -122,26 +107,29 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
     finishGame(session) {
       const now = today();
       const level = currentLevel();
+      // Formes du niveau après la partie : leur statistique, enrichie des réponses de la partie
+      // (une forme n'est posée qu'une fois par partie).
+      const projected = new Map(level.combos.map(c => [c.key, profile.practice.get(c.key)]));
+      const newlyMastered = [];
+      for (const { question, correct } of session.answers) {
+        const stat = projected.get(question.key);
+        if (!stat) continue;
+        const next = stat.record(correct);
+        projected.set(question.key, next);
+        if (!stat.isMastered && next.isMastered) newlyMastered.push(question);
+      }
       const before = level.progress(profile.practice);
-      const after = level.progress(statsAfter(session));
-      const wasMastered = new Set(level.combos.filter(c => profile.practice.get(c.key).isMastered).map(c => c.key));
+      const after = { mastered: [...projected.values()].filter(st => st.isMastered).length, total: before.total };
       const record = session.finish(clock.now(), { level: level.number, masteredBefore: before.mastered, masteredAfter: after.mastered });
       const missed = session.answers.filter(a => !a.correct).map(({ question, given }) => ({ question, given }));
       const earlierGames = profile.games;
       const achievementsBefore = achievements();
       profile.recordGame(record);
-      const seen = new Set();
-      const newlyMastered = session.answers.map(a => a.question).filter(q => {
-        const key = keyOf(q);
-        if (seen.has(key) || wasMastered.has(key) || !profile.practice.get(key).isMastered) return false;
-        seen.add(key);
-        return true;
-      });
       const levelCompleted = before.mastered < before.total && after.mastered === after.total;
       if (levelCompleted) profile.completeLevel(now, ladder.count);
       achievementsCache = null;
       profiles.save(profile);
-      const overview = homeOverview(profile, ladder, now);
+      const pace = levelPace(profile.games, level, after.mastered);
       return new GameSummary({
         record,
         verdict: rateGame(record, earlierGames),
@@ -151,11 +139,11 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
         level,
         before,
         after,
-        newlyMastered: newlyMastered.filter(q => level.combos.some(c => c.key === keyOf(q))),
+        newlyMastered,
         levelCompleted,
         nextLevel: profile.level,
-        gamesLeft: levelCompleted ? 0 : overview.gamesLeft,
-        nextGamePercent: overview.nextGamePercent,
+        gamesLeft: pace.gamesLeft,
+        nextGamePercent: pace.nextGamePercent,
       });
     },
 

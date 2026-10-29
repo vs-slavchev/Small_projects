@@ -122,3 +122,25 @@ test('envoyer avant le démarrage est une erreur', () => {
   const { machine } = traffic();
   assert.throws(() => machine.send('GO'), /démarre/);
 });
+
+test('always : la destination se choisit après les actions, et seul l’état final est signalé', () => {
+  const seen = [];
+  const machine = createMachine({
+    initial: 'idle',
+    context: { score: 0 },
+    states: {
+      idle: { on: { PLAY: { target: 'check', actions: [(ctx, e) => { ctx.score = e.score; }] } } },
+      check: { always: [{ target: 'win', guard: ctx => ctx.score > 5 }, { target: 'retry' }] },
+      win: { always: { target: 'party', guard: ctx => ctx.score > 9 } },
+      party: {},
+      retry: { on: { PLAY: 'idle' } },
+    },
+  });
+  machine.subscribe(s => seen.push(s.state));
+  machine.start();
+  assert.equal(machine.send('PLAY', { score: 7 }), 'win');
+  assert.deepEqual(seen, ['idle', 'win']);
+  const other = createMachine({ initial: 'a', context: {}, states: { a: { always: 'b' }, b: {} } });
+  assert.equal(other.start(), 'b', 'aussi au démarrage');
+  assert.throws(() => createMachine({ initial: 'a', context: {}, states: { a: { always: 'z' } } }), /inconnu/);
+});

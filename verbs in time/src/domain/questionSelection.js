@@ -17,7 +17,16 @@ const PREVIOUS_MISTAKE_POOL = 10;
 /** Panier de repli quand celui tiré est vide : le niveau en cours d'abord, puis les précédents. */
 const FALLBACK_ORDER = Object.freeze(['current', 'currentMistakes', 'previousReview', 'previousMistakes']);
 
-const keyOf = q => `${q.verb.infinitive}|${q.tense.id}|${q.person.index}`;
+/** Élément de `list` au hasard. @template T @param {T[]} list @param {() => number} random @returns {T} */
+const randomItem = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
+
+/**
+ * Question sur une forme à acquérir : un sujet de sa case (il, elle ou on…) et une expression de temps, au hasard.
+ * @param {{ verb: import('./conjugation.js').Verb, tense: import('./conjugation.js').Tense, slot: number }} combo
+ * @param {() => number} random @returns {Question}
+ */
+const questionFor = ({ verb, tense, slot }, random) =>
+  new Question({ verb, tense, person: randomItem(Person.SLOTS[slot], random), marker: randomItem(tense.markers, random) });
 
 /**
  * Tirage d'une question dans le niveau du joueur : une forme (verbe, temps, case de personne) prise
@@ -32,6 +41,8 @@ class QuestionPicker {
   #stats;
   #level;
   #previous;
+  /** Les statistiques ne changent pas pendant une partie : les paniers sont calculés une fois. */
+  #buckets = null;
 
   /**
    * @param {{ ladder: import('./levels.js').LevelLadder, level: number, random?: () => number, stats?: AnswerStatsBook }} deps
@@ -46,28 +57,34 @@ class QuestionPicker {
 
   /** Les quatre paniers, avant d'écarter les formes déjà posées. */
   buckets() {
+    if (this.#buckets) return this.#buckets;
     const current = this.#level.combos;
     const previous = this.#previous;
     const currentMistakes = this.#pool(current, CURRENT_MISTAKE_POOL);
     const previousMistakes = this.#pool(previous, PREVIOUS_MISTAKE_POOL);
-    const outside = pool => c => !pool.includes(c);
-    return {
+    const outside = pool => {
+      const keys = new Set(pool.map(c => c.key));
+      return c => !keys.has(c.key);
+    };
+    this.#buckets = Object.freeze({
       current: current.filter(outside(currentMistakes)),
       currentMistakes,
       previousMistakes,
       previousReview: previous.filter(outside(previousMistakes)),
-    };
+    });
+    return this.#buckets;
   }
 
   /** @param {{ asked?: Question[] }} [request] questions déjà posées dans la partie @returns {Question} */
   pick({ asked = [] } = {}) {
-    const used = new Set(asked.map(keyOf));
-    const buckets = Object.fromEntries(Object.entries(this.buckets()).map(([name, list]) => [name, list.filter(c => !used.has(c.key))]));
-    const drawn = this.#roll();
-    const name = [drawn, ...FALLBACK_ORDER].find(n => buckets[n].length);
-    if (!name) throw new DomainError('Plus aucune question disponible pour cette partie.');
-    const { verb, tense, slot } = this.#choose(buckets[name]);
-    return new Question({ verb, tense, person: this.#choose(Person.SLOTS[slot]), marker: this.#choose(tense.markers) });
+    const used = new Set(asked.map(q => q.key));
+    const all = this.buckets();
+    const fresh = name => all[name].filter(c => !used.has(c.key));
+    for (const name of [this.#roll(), ...FALLBACK_ORDER]) {
+      const list = fresh(name);
+      if (list.length) return questionFor(randomItem(list, this.#random), this.#random);
+    }
+    throw new DomainError('Plus aucune question disponible pour cette partie.');
   }
 
   /** Formes déjà ratées parmi `combos`, les plus faibles d'abord (voir `AnswerStatsBook.weakest`). */
@@ -76,19 +93,12 @@ class QuestionPicker {
     return this.#stats.weakest([...byKey.keys()], limit).map(key => byKey.get(key));
   }
 
+  /** Panier tiré selon `QUESTION_MIX`. */
   #roll() {
     let r = this.#random();
-    for (const [name, share] of Object.entries(QUESTION_MIX)) {
-      if (r < share) return name;
-      r -= share;
-    }
-    return FALLBACK_ORDER[0];
-  }
-
-  #choose(list) {
-    return list[Math.min(list.length - 1, Math.floor(this.#random() * list.length))];
+    return Object.keys(QUESTION_MIX).find(name => (r -= QUESTION_MIX[name]) < 0) ?? FALLBACK_ORDER[0];
   }
 }
 
-Object.assign(Conjugo, { QUESTION_MIX, CURRENT_MISTAKE_POOL, PREVIOUS_MISTAKE_POOL, QuestionPicker });
+Object.assign(Conjugo, { QUESTION_MIX, CURRENT_MISTAKE_POOL, PREVIOUS_MISTAKE_POOL, randomItem, questionFor, QuestionPicker });
 })(globalThis.Conjugo ??= {});

@@ -15,6 +15,7 @@
  *         on: { EVENT: handler },
  *         after: { delay, event },       // événement émis une fois après `delay` ms (nombre ou fn(context))
  *         every: { interval, event },    // événement émis périodiquement tant qu'on reste dans l'état
+ *         always: handler,               // transition immédiate, vérifiée juste après l'entrée dans l'état
  *       },
  *     },
  *   }
@@ -28,6 +29,10 @@
  *
  * Les événements envoyés pendant une transition sont mis en file et traités ensuite
  * (sémantique « run-to-completion »).
+ *
+ * `always` permet de choisir la destination d'après le résultat des actions : un état qui en a
+ * est quitté aussitôt entré si l'une de ses gardes est vraie (les états intermédiaires s'enchaînent
+ * sans être signalés aux abonnés, qui ne voient que l'état final).
  */
 
 const INIT_EVENT = Object.freeze({ type: '@@init' });
@@ -58,7 +63,10 @@ function validate(definition) {
     }
   };
   check(definition.on, 'transition globale');
-  for (const [name, state] of Object.entries(states)) check(state.on, `état « ${name} »`);
+  for (const [name, state] of Object.entries(states)) {
+    check(state.on, `état « ${name} »`);
+    check(state.always && { always: state.always }, `état « ${name} »`);
+  }
 }
 
 /**
@@ -109,6 +117,18 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
     for (const listener of [...listeners]) listener(snapshot);
   }
 
+  /** Suit les transitions `always` de l'état courant tant qu'une garde est vraie. */
+  function settle(event) {
+    for (;;) {
+      const transition = normalize(definition.states[state].always).find(t => !t.guard || t.guard(context, event));
+      if (!transition) return;
+      exit(state, event);
+      run(transition.actions, event);
+      state = transition.target;
+      enter(state, event);
+    }
+  }
+
   function step(event) {
     const transition = select(event);
     if (!transition) return;
@@ -119,6 +139,7 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
     if (external) {
       state = transition.target;
       enter(state, event);
+      settle(event);
     }
     notify(Object.freeze({ state, previous, event, context, changed: external }));
   }
@@ -160,6 +181,7 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
       if (state !== null) return state;
       state = definition.initial;
       enter(state, INIT_EVENT);
+      settle(INIT_EVENT);
       notify(Object.freeze({ state, previous: null, event: INIT_EVENT, context, changed: true }));
       return state;
     },

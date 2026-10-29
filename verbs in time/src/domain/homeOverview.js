@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { dayKey, addDays, startOfWeek } = Conjugo;
+const { dayKey, addDays, daysBetween, percentOf } = Conjugo;
 
 /** Ce que l'accueil met en avant, selon le dernier jour joué. */
 const HomeState = Object.freeze({
@@ -17,12 +17,29 @@ const PACE_GAMES = 5;
 /** Gain estimé d'une partie, en formes, faute d'historique dans le niveau. */
 const DEFAULT_PACE = 2;
 
-const daysBetween = (from, to) => Math.round((new Date(dayKey(to)) - new Date(dayKey(from))) / 86_400_000);
-const percent = (part, total) => Math.round((part / total) * 100);
+/** Formes gagnées par un ensemble de parties. */
+const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
+
+/**
+ * Rythme du joueur dans un niveau, d'après ses dernières parties dans ce niveau.
+ * @param {import('./gameRecord.js').GameRecord[]} games parties archivées, dans l'ordre
+ * @param {import('./levels.js').Level} level @param {number} mastered formes du niveau déjà acquises
+ * @returns {{ gamesLeft: number, nextGamePercent: number }} parties restantes, gain estimé d'une partie (au moins 1 %)
+ */
+function levelPace(games, level, mastered) {
+  const total = level.combos.length;
+  const recent = games.filter(g => g.level === level.number && g.masteredGain !== null).slice(-PACE_GAMES);
+  const pace = recent.length ? Math.max(1, sumGain(recent) / recent.length) : DEFAULT_PACE;
+  const remaining = total - mastered;
+  return Object.freeze({
+    gamesLeft: remaining > 0 ? Math.ceil(remaining / pace) : 0,
+    nextGamePercent: Math.max(1, Math.min(percentOf(pace, total), 100 - percentOf(mastered, total))),
+  });
+}
 
 /**
  * Tout ce que l'accueil et le parcours affichent, calculé à partir du profil.
- * Les gains sont mesurés en formes acquises et convertis en pourcentage du niveau de chaque partie.
+ * Les gains sont comptés en formes acquises, niveau par niveau, puis convertis en pourcentage du niveau.
  * @param {import('./playerProfile.js').PlayerProfile} profile joueur placé (niveau non nul)
  * @param {import('./levels.js').LevelLadder} ladder
  * @param {Date} now
@@ -30,62 +47,51 @@ const percent = (part, total) => Math.round((part / total) * 100);
 function homeOverview(profile, ladder, now) {
   const level = ladder.level(profile.level);
   const { mastered, total } = level.progress(profile.practice);
-  const games = profile.games;
-  const lastGame = games.at(-1) ?? null;
+  const lastGame = profile.games.at(-1) ?? null;
   const daysOff = lastGame ? daysBetween(lastGame.endedAt, now) : 1;
   const state = daysOff === 0 ? HomeState.PLAYED_TODAY
     : daysOff === 1 ? HomeState.NOT_YET_TODAY
       : daysOff <= AWAY_AFTER_DAYS ? HomeState.BACK : HomeState.AWAY;
 
-  const leveled = games.filter(g => g.masteredGain !== null);
-  const onDay = (date, filter = () => true) => leveled.filter(g => dayKey(g.endedAt) === dayKey(date) && filter(g));
-  const gainPercentOf = list => Math.max(0, list.reduce((sum, g) => sum + percent(g.masteredGain, ladder.level(g.level).combos.length), 0));
-  const formsGainedOn = date => Math.max(0, onDay(date).reduce((sum, g) => sum + g.masteredGain, 0));
+  // Parties mesurées (avec un niveau), regroupées par jour en un seul passage.
+  const byDay = new Map();
+  for (const g of profile.games) {
+    if (g.masteredGain === null) continue;
+    const key = dayKey(g.endedAt);
+    byDay.set(key, [...(byDay.get(key) ?? []), g]);
+  }
+  const onDay = date => byDay.get(dayKey(date)) ?? [];
+  /** Gain d'une journée en pourcentage : formes gagnées dans chaque niveau, rapportées à la taille du niveau. */
+  const gainPercentOf = games => {
+    const byLevel = new Map();
+    for (const g of games) byLevel.set(g.level, (byLevel.get(g.level) ?? 0) + g.masteredGain);
+    return Math.max(0, [...byLevel].reduce((sum, [n, gain]) => sum + percentOf(gain, ladder.level(n).combos.length), 0));
+  };
 
-  const recent = leveled.filter(g => g.level === level.number).slice(-PACE_GAMES);
-  const pace = recent.length ? Math.max(1, recent.reduce((sum, g) => sum + g.masteredGain, 0) / recent.length) : DEFAULT_PACE;
-  const remaining = total - mastered;
-
-  const completed = profile.levelHistory;
-  const completedNumbers = new Set(completed.map(h => h.level));
+  const completedNumbers = new Set(profile.levelHistory.map(h => h.level));
   const formsMastered = ladder.levels.filter(l => completedNumbers.has(l.number) && l.number !== level.number)
     .reduce((sum, l) => sum + l.combos.length, 0) + mastered;
-
-  const monday = startOfWeek(now);
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const date = addDays(monday, i);
-    const key = dayKey(date);
-    return Object.freeze({
-      date,
-      isToday: key === dayKey(now),
-      isFuture: key > dayKey(now),
-      played: profile.calendar.playedOn(date),
-      gainPercent: gainPercentOf(onDay(date)),
-    });
-  });
+  const today = onDay(now);
 
   return Object.freeze({
     state,
-    daysOff,
+    /** Le joueur revient après au moins un jour sans jouer : la série est rompue, on montre le record. */
+    isReturning: state === HomeState.BACK || state === HomeState.AWAY,
     streak: profile.calendar.currentStreak(now),
     bestStreak: profile.calendar.longestStreak(),
     level,
-    percent: percent(mastered, total),
-    mastered,
-    total,
-    isLevelComplete: remaining === 0,
-    todayPercent: gainPercentOf(onDay(now, g => g.level === level.number)),
+    percent: percentOf(mastered, total),
+    isLevelComplete: mastered === total,
+    todayPercent: gainPercentOf(today.filter(g => g.level === level.number)),
     formsMastered,
-    formsToday: formsGainedOn(now),
-    formsYesterday: formsGainedOn(addDays(now, -1)),
-    /** Gain estimé d'une prochaine partie, en pourcentage du niveau (au moins 1). */
-    nextGamePercent: Math.max(1, Math.min(percent(pace, total), 100 - percent(mastered, total))),
-    gamesLeft: remaining ? Math.ceil(remaining / pace) : 0,
-    week: Object.freeze(week),
+    formsToday: Math.max(0, sumGain(today)),
+    formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),
+    ...levelPace(profile.games, level, mastered),
+    week: Object.freeze(profile.calendar.week(now).map(d => Object.freeze({ ...d, gainPercent: gainPercentOf(onDay(d.date)) }))),
     /** Niveaux terminés, du plus récent au plus ancien. */
-    journey: Object.freeze([...completed].reverse().map(h => Object.freeze({ ...h, level: ladder.level(h.level) }))),
+    journey: Object.freeze([...profile.levelHistory].reverse().map(h => Object.freeze({ ...h, level: ladder.level(h.level) }))),
   });
 }
 
-Object.assign(Conjugo, { HomeState, AWAY_AFTER_DAYS, homeOverview });
+Object.assign(Conjugo, { HomeState, AWAY_AFTER_DAYS, levelPace, homeOverview });
 })(globalThis.Conjugo ??= {});

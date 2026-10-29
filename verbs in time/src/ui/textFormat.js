@@ -1,11 +1,8 @@
-// Mise en forme générique : dates, durées, pluriels, écart lettre à lettre et succès.
+// Mise en forme générique : durées, pluriels, écart lettre à lettre et succès.
 
 (function (Conjugo) {
 'use strict';
 
-const { dayKey, addDays } = Conjugo;
-
-const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
 const SECONDS_FORMAT = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
@@ -23,13 +20,12 @@ function formatClock(ms) {
 /** 9 000 ms → « 9 s », 12 340 ms → « 12,3 s » */
 const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
 
-const shortDate = date => `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-
-function relativeDay(date, today) {
-  const key = dayKey(date);
-  if (key === dayKey(today)) return "Aujourd'hui";
-  if (key === dayKey(addDays(today, -1))) return 'Hier';
-  return shortDate(date);
+/** Durée en toutes lettres : « 45 secondes », « 2 minutes ». */
+function durationText(ms) {
+  const s = Math.max(1, Math.round(ms / 1000));
+  if (s < 60) return `${s} ${plural(s, 'seconde')}`;
+  const m = Math.round(s / 60);
+  return `${m} ${plural(m, 'minute')}`;
 }
 
 /**
@@ -88,5 +84,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, diffChars, similarity, fitFontSize, achievementStatus, unlockedLabel });
+Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, durationText, diffChars, similarity, fitFontSize, achievementStatus, unlockedLabel });
 })(globalThis.Conjugo ??= {});

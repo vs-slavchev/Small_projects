@@ -9,8 +9,8 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState, Person,
-  escapeHtml: esc, plural, formatClock, formatSeconds, fitFontSize, diffChars, similarity,
+  AppState, AppEvent, Destination, HomeState, DEFAULT_GAME_LENGTH,
+  escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
@@ -78,7 +78,7 @@ const onboarding = {
       <div class="top-safe"></div>
       <div class="onb-body">
         <div class="logo">verbes <span>&amp;</span> temps</div>
-        <div class="onb-center">
+        <div class="center-col">
           <div class="demo" role="img" aria-label="Aperçu du jeu : on tape la forme conjuguée d’un verbe">
             <div class="demo-card" aria-hidden="true">
               <span class="chip tense pill">présent</span>
@@ -98,7 +98,7 @@ const onboarding = {
         </div>
         <div class="onb-actions">
           <button class="cta press" data-event="${AppEvent.CHOOSE_BEGINNER}">Je débute</button>
-          <button class="cta-outline press" data-event="${AppEvent.START_PLACEMENT}"><span>Je connais déjà un peu</span><small>Test de niveau · ≈ 3 min</small></button>
+          <button class="cta outline press" data-event="${AppEvent.START_PLACEMENT}"><span>Je connais déjà un peu</span><small>Test de niveau · ≈ 3 min</small></button>
         </div>
       </div>
     </div>`;
@@ -130,6 +130,12 @@ function questionCard({ verb, tense, person, marker }, extraClass = '') {
   </div>`;
 }
 
+/** Champ de réponse, réglé pour un clavier de téléphone (ni correction ni majuscule automatiques). */
+function answerInput(id, { placeholder = '', value = '', disabled = false } = {}) {
+  return `<input id="${id}" class="answer-input" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+    enterkeyhint="done" placeholder="${esc(placeholder)}" value="${esc(value)}"${disabled ? ' disabled' : ''}>`;
+}
+
 const placement = {
   screen: 'placement',
   render({ context }) {
@@ -147,11 +153,10 @@ const placement = {
         <div class="sub-row"><span class="count">Test de placement · question ${test.position}</span></div>
       </div>
       <div class="card-wrap">${questionCard(q)}</div>
-      <form class="answer-form" autocomplete="off">
+      <form class="answer-form" autocomplete="off" data-event="${AppEvent.PLACEMENT_ANSWER}">
         <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(q.person.subject)} »</label>
         <div class="input-row">
-          <input id="placement-answer" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-            enterkeyhint="done" placeholder="${esc(q.person.subject)} …">
+          ${answerInput('placement-answer', { placeholder: `${q.person.subject} …` })}
           <button class="submit press" type="submit">Valider</button>
         </div>
         <button class="link-btn" type="button" data-event="${AppEvent.PLACEMENT_SKIP}">Je ne sais pas</button>
@@ -215,11 +220,8 @@ const levelUp = {
   theme: '--night',
   render({ context }) {
     const { level } = context.summary;
-    const verbs = level.verbs;
-    const [first] = Person.SLOTS[0];
-    const last = Person.SLOTS[5].at(-1);
-    const from = verbs[0].conjugate(level.tense, first).display;
-    const to = verbs.at(-1).conjugate(level.tense, last).display;
+    const { verbs } = level;
+    const { from, to } = level.span;
     const title = `${esc(verbs.map(v => v.label).join(' et '))} ${verbs.length > 1 ? 'sont' : 'est'} à vous&nbsp;!`;
     const count = NUMBER_WORDS[level.number] ?? level.number;
     const next = context.summary.nextLevel;
@@ -253,7 +255,7 @@ function soundButton(on) {
 
 /** En-tête commun : logo, son, et la série (ou le record, quand la série est rompue). */
 function homeHeader(home, soundEnabled) {
-  const away = home.state === HomeState.BACK || home.state === HomeState.AWAY;
+  const away = home.isReturning;
   const value = away ? home.bestStreak : home.streak;
   const pill = value
     ? `<span class="pill${away ? ' muted' : ''}">${ICON.flame}${away ? 'Record ' : ''}${value} ${plural(value, 'jour')}</span>`
@@ -289,7 +291,6 @@ function homeHeadline(home) {
 /** Carte sombre : les formes déjà acquises (masquée tant qu'il n'y en a aucune). */
 function achievedCard(home) {
   if (!home.formsMastered) return '';
-  const still = home.state === HomeState.BACK || home.state === HomeState.AWAY;
   const done = home.journey.length;
   const sub = {
     [HomeState.PLAYED_TODAY]: home.formsToday ? `+${home.formsToday} aujourd'hui` : '',
@@ -298,7 +299,7 @@ function achievedCard(home) {
     [HomeState.AWAY]: done ? `${done} ${plural(done, 'niveau terminé', 'niveaux terminés')}` : '',
   }[home.state];
   return `<div class="achieved">
-    <span class="eyebrow">Vous savez ${still ? 'toujours' : 'déjà'} conjuguer</span>
+    <span class="eyebrow">Vous savez ${home.isReturning ? 'toujours' : 'déjà'} conjuguer</span>
     <div class="achieved-row">
       <span class="achieved-num">${home.formsMastered}</span>
       <span class="achieved-unit"><b>${plural(home.formsMastered, 'forme')}</b>${sub ? `<em>${sub}</em>` : ''}</span>
@@ -311,12 +312,21 @@ function achievedCard(home) {
  * ou celui qu'apporterait une prochaine partie (pointillé).
  * @param {{ percent: number, today?: number, next?: number }} parts @param {{ dark?: boolean }} [options]
  */
-function levelBar({ percent, today = 0, next = 0 }, { dark = false } = {}) {
-  const gained = Math.min(today, percent);
+function levelBar({ percent, today = 0, next = 0 }, { dark = false, big = false, label } = {}) {
+  const gained = Math.max(0, Math.min(today, percent));
   const slice = gained ? `<div class="lb-today" style="width:${gained}%"></div>` : next ? `<div class="lb-next" style="width:${next}%"></div>` : '';
-  const label = gained ? `Niveau rempli à ${percent} %, dont ${gained} % aujourd'hui`
+  label ??= gained ? `Niveau rempli à ${percent} %, dont ${gained} % aujourd'hui`
     : next ? `Niveau rempli à ${percent} %, environ ${Math.min(100, percent + next)} % après une partie` : `Niveau rempli à ${percent} %`;
-  return `<div class="level-bar${dark ? ' dark' : ''}" role="img" aria-label="${label}"><div class="lb-done" style="width:${percent - gained}%"></div>${slice}</div>`;
+  const cls = ['level-bar', dark && 'dark', big && 'big'].filter(Boolean).join(' ');
+  return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${percent - gained}%"></div>${slice}</div>`;
+}
+
+/** En-tête d'une carte de niveau : petite ligne, verbes du niveau (et une précision), pourcentage. */
+function levelHead(eyebrow, level, percent, extra = '') {
+  return `<div class="lc-head">
+    <div class="lc-name"><span class="eyebrow">${eyebrow}</span><b>${esc(level.title)}</b>${extra}</div>
+    <span class="lc-pct">${percent}<small>%</small></span>
+  </div>`;
 }
 
 /** Parts de la barre du niveau sur l'accueil : le gain du jour s'il y en a un, sinon la prochaine partie. */
@@ -339,10 +349,7 @@ function levelCard(home) {
     [HomeState.AWAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
   }[home.state];
   return `<div class="level-card">
-    <div class="lc-head">
-      <div class="lc-name"><span class="eyebrow">Niveau ${level.number} · ${esc(capitalize(level.tense.label))}</span><b>${esc(level.title)}</b></div>
-      <span class="lc-pct">${home.percent}<small>%</small></span>
-    </div>
+    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.percent)}
     ${levelBar(homeBarParts(home))}
     <div class="lc-foot">${footer}</div>
   </div>`;
@@ -380,7 +387,7 @@ function weekChart(home) {
 
 /** Après une longue absence : les derniers niveaux terminés, puis le niveau en cours. */
 function journeyDots(home) {
-  const done = [...home.journey].reverse().slice(-5);
+  const done = home.journey.slice(0, 5).reverse();
   const dots = [
     ...done.map(h => `<span class="jd done" title="Niveau ${h.level.number}">${ICON.check}</span><span class="jd-link"></span>`),
     `<span class="jd current">${home.level.number}</span>`,
@@ -391,17 +398,18 @@ function journeyDots(home) {
   </div>`;
 }
 
+const GAME_LENGTH_TEXT = `${DEFAULT_GAME_LENGTH} questions · ≈ 2 min`;
 const PLAY_CTA = Object.freeze({
   [HomeState.PLAYED_TODAY]: ['Nouvelle partie', 'Battez votre record du jour'],
-  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', '5 questions · ≈ 2 min'],
-  [HomeState.BACK]: ['Reprendre', '5 questions · ≈ 2 min'],
-  [HomeState.AWAY]: ['Reprendre', '5 questions · ≈ 2 min'],
+  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', GAME_LENGTH_TEXT],
+  [HomeState.BACK]: ['Reprendre', GAME_LENGTH_TEXT],
+  [HomeState.AWAY]: ['Reprendre', GAME_LENGTH_TEXT],
 });
 
-/** Bouton principal : libellé, précision, et ce qu'une partie rapporte. */
+/** Bouton de partie : libellé, précision éventuelle, et ce qu'une partie rapporte. */
 function playButton(label, sub, percent) {
   return `<button class="play-btn press" data-event="${AppEvent.START}">
-    <span class="pb-text"><b>${label}</b><small>${sub}</small></span>
+    <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
     <span class="pb-tag">≈ +${percent}&nbsp;%</span>
   </button>`;
 }
@@ -461,11 +469,10 @@ const question = {
         </div>
       </div>
       <div class="card-wrap">${questionCard(session.currentQuestion, result)}</div>
-      <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off">
+      <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off" data-event="${AppEvent.ANSWER}">
         <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
         <div class="input-row">
-          <input id="answer" name="answer" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-            enterkeyhint="done" placeholder="${esc(person.subject)} …" value="${revealing ? esc(answer.given) : ''}"${revealing ? ' disabled' : ''}>
+          ${answerInput('answer', { placeholder: `${person.subject} …`, value: revealing ? answer.given : '', disabled: revealing })}
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
       </form>
@@ -498,7 +505,7 @@ function answerDiff(given, expected) {
 function retypeBlock({ retyped, retypeTried }) {
   const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
   // Une fois la forme recopiée, le champ et son bouton ne servent plus : seul le message reste.
-  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
+  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
     ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
     <div class="input-row">
       <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
@@ -587,14 +594,6 @@ const feedback = {
 
 /* ---------- Bilan ---------- */
 
-/** « en 2 minutes », « en 45 secondes » */
-function durationText(ms) {
-  const s = Math.max(1, Math.round(ms / 1000));
-  if (s < 60) return `en ${s} ${plural(s, 'seconde')}`;
-  const m = Math.round(s / 60);
-  return `en ${m} ${plural(m, 'minute')}`;
-}
-
 const results = {
   screen: 'results',
   render({ context }) {
@@ -604,8 +603,7 @@ const results = {
     const hero = gain > 0
       ? `<span class="re-hero">+${gain}<small>%</small></span>`
       : `<span class="re-hero">${s.percentAfter}<small>%</small></span>`;
-    const sub = gain > 0 ? `${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}` : `du niveau. ${VERDICT_TEXT[s.verdict]}`;
-    const before = Math.min(s.percentBefore, s.percentAfter);
+    const sub = gain > 0 ? `en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}` : `du niveau. ${VERDICT_TEXT[s.verdict]}`;
     const dots = record.answers.map(a => `<i class="${a.correct ? 'ok' : 'ko'}"></i>`).join('');
     const mastered = s.newlyMastered;
     const masteredRow = mastered.length
@@ -622,16 +620,14 @@ const results = {
     return `<div class="screen end">
       <div class="top-safe"></div>
       <div class="end-body">
-        <div class="re-center">
+        <div class="center-col">
           <div class="re-head">
             <span class="re-level">Niveau ${level.number} · ${esc(level.title)}</span>
             ${hero}
             <span class="re-sub">${sub}</span>
           </div>
           <div class="re-progress">
-            <div class="level-bar big" role="img" aria-label="Niveau passé de ${s.percentBefore} % à ${s.percentAfter} %">
-              <div class="lb-done" style="width:${before}%"></div>${gain > 0 ? `<div class="lb-today" style="width:${gain}%"></div>` : ''}
-            </div>
+            ${levelBar({ percent: s.percentAfter, today: gain }, { big: true, label: `Niveau passé de ${s.percentBefore} % à ${s.percentAfter} %` })}
             <div class="re-legend"><span>${s.percentBefore} % → <b>${s.percentAfter} %</b></span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
           </div>
           <div class="re-card">
@@ -643,9 +639,7 @@ const results = {
           ${unlocked}
         </div>
         <div class="end-actions">
-          <button class="play-btn press" data-event="${AppEvent.START}">
-            <span class="pb-text"><b>Encore une</b></span><span class="pb-tag">≈ +${s.nextGamePercent}&nbsp;%</span>
-          </button>
+          ${playButton('Encore une', '', s.nextGamePercent)}
           <button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>
         </div>
       </div>
@@ -665,20 +659,16 @@ const journey = {
         <span class="jr-text"><b>${esc(entry.level.label)}</b><span>${esc(entry.level.title)}</span></span>
         <span class="jr-num">Niveau ${entry.level.number}</span>
       </div>`).join('');
-    const played = h.state === HomeState.PLAYED_TODAY && h.todayPercent > 0;
+    const bar = { ...homeBarParts(h), next: 0 };
     const left = h.isLevelComplete ? 'Niveau terminé.' : `Encore ≈ ${partiesText(h.gamesLeft)} et une nouvelle étape s'ouvre.`;
     return `<div class="screen">
       <div class="top-safe"></div>
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
         <div class="jr-current">
-          <div class="lc-head">
-            <div class="lc-name"><span class="eyebrow">En cours · Niveau ${level.number}</span><b>${esc(level.title)}</b>
-              <span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span></div>
-            <span class="lc-pct">${h.percent}<small>%</small></span>
-          </div>
-          ${levelBar({ percent: h.percent, today: played ? h.todayPercent : 0 }, { dark: true })}
-          <p>${played ? `<b>+${h.todayPercent}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
+          ${levelHead(`En cours · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+          ${levelBar(bar, { dark: true })}
+          <p>${bar.today ? `<b>+${bar.today}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
         </div>
         <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.journey.length} ${plural(h.journey.length, 'niveau')}</span></div>
         ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}

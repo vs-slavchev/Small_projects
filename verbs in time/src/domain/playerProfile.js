@@ -68,6 +68,16 @@ class PlayerProfile {
   }
 
   /**
+   * Accorde le profil à un parcours de `lastLevel` niveaux (raccourci depuis l'enregistrement) :
+   * les niveaux qui n'existent plus sont oubliés, et le niveau en cours ne dépasse pas le dernier.
+   * @param {number} lastLevel
+   */
+  fitTo(lastLevel) {
+    this.#levelHistory = this.#levelHistory.filter(h => h.level <= lastLevel);
+    if (this.#level !== null) this.#level = Math.min(this.#level, lastLevel);
+  }
+
+  /**
    * Le niveau en cours est terminé : il rejoint l'historique et le suivant commence,
    * sauf après le dernier, où le joueur reste pour réviser.
    * @param {Date} now @param {number} lastLevel
@@ -116,7 +126,7 @@ class PlayerProfile {
       }
     });
     const count = value => (Number.isInteger(value) && value >= 0 ? value : 0);
-    const games = valid(Array.isArray(snapshot.games) ? snapshot.games : [], GameRecord.fromSnapshot);
+    const games = valid(Array.isArray(snapshot.games) ? snapshot.games : [], GameRecord.fromSnapshot).sort((a, b) => a.endedAt - b.endedAt);
     const practice = snapshot.practiceVersion === PRACTICE_VERSION
       ? new AnswerStatsBook(valid(Object.entries(snapshot.practice ?? {}),
         ([key, s]) => [key, new AnswerStat(s.seen, s.correct, s.lastCorrect ?? null)]))
@@ -135,10 +145,10 @@ class PlayerProfile {
     });
   }
 
-  /** Statistiques recalculées en rejouant les réponses archivées, dans l'ordre. @param {GameRecord[]} games */
+  /** Statistiques recalculées en rejouant les réponses archivées. @param {GameRecord[]} games dans l'ordre chronologique */
   static #practiceFrom(games) {
     const practice = new AnswerStatsBook();
-    for (const g of [...games].sort((a, b) => a.endedAt - b.endedAt)) {
+    for (const g of games) {
       for (const a of g.answers) practice.record(GameRecord.practiceKeyOf(a), a.correct);
     }
     return practice;

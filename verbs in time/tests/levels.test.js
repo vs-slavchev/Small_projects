@@ -21,6 +21,8 @@ test('22 niveaux : présent, passé composé, futur proche, imparfait, futur sim
   assert.equal(ladder.level(1).combos.length, 12, 'deux verbes × six cases');
   assert.deepEqual(ladder.before(3).map(l => l.number), [1, 2]);
   assert.throws(() => ladder.level(23), DomainError);
+  assert.deepEqual(ladder.level(6).span, { from: 'je finis', to: 'elles finissent' });
+  assert.deepEqual(ladder.level(13).span, { from: 'j’ai fait', to: 'elles ont pris' });
 });
 
 test('données de niveau invalides refusées au chargement', () => {
@@ -33,15 +35,14 @@ test('données de niveau invalides refusées au chargement', () => {
 test('progression d’un niveau : formes acquises sur formes du niveau', () => {
   const level = ladder.level(6);
   const stats = new AnswerStatsBook();
-  assert.deepEqual(level.progress(stats), { mastered: 0, total: 6, ratio: 0 });
+  assert.deepEqual(level.progress(stats), { mastered: 0, total: 6 });
   level.combos.slice(0, 3).forEach(c => stats.record(c.key, true));
   stats.record(level.combos[3].key, false);
   assert.equal(level.progress(stats).mastered, 3);
-  assert.equal(level.isComplete(stats), false);
   level.combos.forEach(c => stats.record(c.key, true));
   assert.equal(level.progress(stats).mastered, 5, '50 % : la forme ratée n’est pas encore acquise');
   stats.record(level.combos[3].key, true);
-  assert.ok(level.isComplete(stats));
+  assert.equal(level.progress(stats).mastered, level.progress(stats).total, 'niveau terminé');
 });
 
 /** Test de placement où le joueur connaît tout jusqu'au niveau `known` inclus. */
@@ -53,7 +54,8 @@ function runPlacement(known, random = seededRandom(3)) {
     const level = ladder.levels.findIndex(l => l.tense === q.tense && l.verbs.includes(q.verb)) + 1;
     // Une forme appartient parfois à plusieurs niveaux : on se fie à la position du niveau testé.
     const right = level <= known;
-    placement.answer(right ? q.expected.forms[0] : '');
+    if (right) placement.answer(q.expected.forms[0]);
+    else placement.skip();
     questions++;
   }
   return { result: placement.result, questions, maxLength: placement.maxLength };
@@ -70,8 +72,7 @@ test('placement : la recherche trouve le premier niveau non connu, en 10 questio
 test('placement : une erreur ou « je ne sais pas » fait chercher plus bas, sans rien enregistrer', () => {
   const placement = new PlacementTest({ ladder, random: sequence(0) });
   assert.equal(placement.currentQuestion.tense, ladder.level(11).tense, 'premier niveau testé : le milieu du parcours');
-  assert.ok(placement.endsAfter(false) === false);
-  placement.answer('');
+  placement.answer('xyz');
   assert.equal(placement.position, 2);
   assert.throws(() => placement.result, /pas terminé/);
 });
@@ -116,12 +117,12 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   const profile = profileWith({ games: [[17, 0, 2], [18, 2, 3], [18, 3, 4]], mastered: 4 });
   const home = homeOverview(profile, ladder, day(18, 20));
   assert.equal(home.percent, 67);
-  assert.equal(home.todayPercent, 34, '+17 % par forme, deux formes');
+  assert.equal(home.todayPercent, 33, 'deux formes sur six, arrondi une seule fois');
   assert.equal(home.formsToday, 2);
   assert.equal(home.formsMastered, ladder.before(6).reduce((n, l) => n + l.combos.length, 0) + 4, 'niveaux validés + formes du niveau');
   assert.equal(home.gamesLeft, 2, '2 formes restantes, 4/3 de forme par partie');
   assert.equal(home.nextGamePercent, 22);
-  assert.equal(home.week.find(d => d.isToday).gainPercent, 34);
+  assert.equal(home.week.find(d => d.isToday).gainPercent, 33);
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
 });
 

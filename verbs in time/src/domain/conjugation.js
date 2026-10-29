@@ -292,6 +292,9 @@ class Conjugation {
   }
 }
 
+/** Clé de suivi d'une forme : un verbe (infinitif), à un temps (identifiant), dans une case de personne (0 à 5). */
+const comboKey = (verb, tense, slot) => `${verb}|${tense}|${slot}`;
+
 /** Question d'un tour : un verbe, un temps, une personne, et une expression de temps qui situe la phrase. */
 class Question {
   /** @param {{ verb: Verb, tense: Tense, person: Person, marker?: string | null }} props */
@@ -303,6 +306,11 @@ class Question {
     this.marker = marker;
     this.expected = verb.conjugate(tense, person);
     Object.freeze(this);
+  }
+
+  /** Clé de la forme posée (voir `comboKey`) : il, elle et on partagent la leur. */
+  get key() {
+    return comboKey(this.verb.infinitive, this.tense.id, this.person.index);
   }
 }
 
@@ -351,5 +359,5 @@ class VerbBank {
   }
 }
 
-Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank, normalizeAnswer, stripAccents });
+Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank, comboKey, normalizeAnswer, stripAccents });
 })(globalThis.Conjugo ??= {});

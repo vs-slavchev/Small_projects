@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, Person, Question } = Conjugo;
+const { DomainError, randomItem, questionFor } = Conjugo;
 
 /** Formes posées par niveau testé : toutes justes, le niveau est connu. */
 const PROBES_PER_LEVEL = 2;
@@ -53,19 +53,18 @@ class PlacementTest {
     return this.#question.expected.check(given).correct;
   }
 
-  /** Le test s'arrêterait-il après une réponse juste (ou fausse) ? @param {boolean} correct */
-  endsAfter(correct) {
-    if (this.isComplete) return true;
-    const mid = this.#mid();
-    if (correct && this.#probes.length) return false;
-    const [low, high] = correct ? [mid + 1, this.#high] : [this.#low, mid - 1];
-    return low > high;
+  /** @param {string} given forme saisie */
+  answer(given) {
+    this.#step(given.trim() !== '' && this.isCorrect(given));
   }
 
-  /** @param {string} given forme saisie ; vide ou absente pour « Je ne sais pas » */
-  answer(given = '') {
+  /** « Je ne sais pas » : compte comme une réponse fausse. */
+  skip() {
+    this.#step(false);
+  }
+
+  #step(correct) {
     if (this.isComplete) throw new DomainError('Le test de placement est terminé.');
-    const correct = typeof given === 'string' && given.trim() !== '' && this.isCorrect(given);
     const mid = this.#mid();
     if (correct && this.#probes.length) {
       this.#ask(this.#probes.shift());
@@ -87,19 +86,14 @@ class PlacementTest {
     }
     const pool = [...this.#ladder.level(this.#mid()).combos];
     const picks = [];
-    while (picks.length < PROBES_PER_LEVEL && pool.length) picks.push(pool.splice(this.#index(pool.length), 1)[0]);
+    while (picks.length < PROBES_PER_LEVEL && pool.length) picks.push(pool.splice(pool.indexOf(randomItem(pool, this.#random)), 1)[0]);
     this.#ask(picks.shift());
     this.#probes = picks;
   }
 
-  #ask({ verb, tense, slot }) {
-    const persons = Person.SLOTS[slot];
-    this.#question = new Question({ verb, tense, person: persons[this.#index(persons.length)], marker: tense.markers[this.#index(tense.markers.length)] });
+  #ask(combo) {
+    this.#question = questionFor(combo, this.#random);
     this.#asked++;
-  }
-
-  #index(length) {
-    return Math.min(length - 1, Math.floor(this.#random() * length));
   }
 }
 

@@ -29,6 +29,9 @@ function fromKey(key) {
   return new Date(y, m - 1, d);
 }
 
+/** Nombre de jours du calendrier local entre deux dates (0 le même jour). */
+const daysBetween = (from, to) => Math.round((fromKey(dayKey(to)) - fromKey(dayKey(from))) / 86_400_000);
+
 /** Jours où le joueur a terminé au moins une partie. */
 class ActivityCalendar {
   #days;
@@ -86,5 +89,5 @@ class ActivityCalendar {
   }
 }
 
-Object.assign(Conjugo, { dayKey, addDays, startOfWeek, ActivityCalendar });
+Object.assign(Conjugo, { dayKey, addDays, startOfWeek, daysBetween, ActivityCalendar });
 })(globalThis.Conjugo ??= {});

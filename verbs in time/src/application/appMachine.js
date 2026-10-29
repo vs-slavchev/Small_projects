@@ -88,15 +88,15 @@ function createAppMachine(useCases, options = {}) {
     ctx.session = null;
   };
   const validText = (_, e) => typeof e.text === 'string' && e.text.trim() !== '';
-  /** La réponse (ou « Je ne sais pas ») clôt-elle le test ? */
-  const endsPlacement = (ctx, text) => ctx.placement.endsAfter(text !== null && ctx.placement.isCorrect(text));
+  /** L'explication peut être quittée : affichée assez longtemps, et la bonne forme recopiée après une erreur. */
+  const canLeave = ctx => ctx.feedbackReady && ctx.retyped;
   const endPlacement = ctx => {
     ctx.startLevel = useCases.finishPlacement(ctx.placement);
     ctx.placement = null;
   };
 
   // --- Transitions partagées ---
-  const start = { target: QUESTION, actions: [ctx => beginGame(ctx)] };
+  const start = { target: QUESTION, actions: [beginGame] };
   const quit = { target: HOME, actions: [leaveGame] };
   const selectBadge = {
     guard: (ctx, e) => Number.isInteger(e.index) && e.index >= 0 && e.index < ctx.achievements.list.length && e.index !== ctx.selectedBadge,
@@ -121,19 +121,13 @@ function createAppMachine(useCases, options = {}) {
           [AppEvent.START_PLACEMENT]: { target: PLACEMENT, actions: [ctx => { ctx.placement = useCases.startPlacement(); }] },
         },
       },
-      // Chaque réponse redessine la question suivante (transition externe vers le même état).
+      // Chaque réponse redessine la question suivante (transition externe vers le même état),
+      // ou mène au résultat quand le test est terminé.
       [PLACEMENT]: {
+        always: { target: PLACEMENT_RESULT, guard: ctx => ctx.placement.isComplete, actions: [endPlacement] },
         on: {
-          [AppEvent.PLACEMENT_ANSWER]: [
-            { target: PLACEMENT_RESULT, guard: (ctx, e) => validText(ctx, e) && endsPlacement(ctx, e.text),
-              actions: [(ctx, e) => { useCases.answerPlacement(ctx.placement, e.text); }, endPlacement] },
-            { target: PLACEMENT, guard: validText, actions: [(ctx, e) => { useCases.answerPlacement(ctx.placement, e.text); }] },
-          ],
-          [AppEvent.PLACEMENT_SKIP]: [
-            { target: PLACEMENT_RESULT, guard: ctx => endsPlacement(ctx, null),
-              actions: [ctx => { useCases.skipPlacement(ctx.placement); }, endPlacement] },
-            { target: PLACEMENT, actions: [ctx => { useCases.skipPlacement(ctx.placement); }] },
-          ],
+          [AppEvent.PLACEMENT_ANSWER]: { target: PLACEMENT, guard: validText, actions: [(ctx, e) => { useCases.answerPlacement(ctx.placement, e.text); }] },
+          [AppEvent.PLACEMENT_SKIP]: { target: PLACEMENT, actions: [ctx => { useCases.skipPlacement(ctx.placement); }] },
           // Abandon du test : rien n'est enregistré, le joueur revient au choix de départ.
           [AppEvent.QUIT]: { target: ONBOARDING, actions: [ctx => { ctx.placement = null; }] },
         },
@@ -169,7 +163,7 @@ function createAppMachine(useCases, options = {}) {
         on: {
           [AppEvent.FEEDBACK_READY]: { actions: [ctx => { ctx.feedbackReady = true; }] },
           [AppEvent.RETYPE]: {
-            guard: (ctx, e) => !ctx.retyped && typeof e.text === 'string' && e.text.trim() !== '',
+            guard: (ctx, e) => !ctx.retyped && validText(ctx, e),
             actions: [(ctx, e) => {
               ctx.retypeTried = true;
               // Sans touches d'accent à l'écran, un clavier sans accents ne doit pas bloquer la suite.
@@ -178,14 +172,15 @@ function createAppMachine(useCases, options = {}) {
             }],
           },
           [AppEvent.CONTINUE]: [
-            { target: LEVEL_UP, guard: ctx => ctx.feedbackReady && ctx.retyped && ctx.session.isComplete && useCases.completesLevel(ctx.session), actions: [finishGame] },
-            { target: RESULTS, guard: ctx => ctx.feedbackReady && ctx.retyped && ctx.session.isComplete, actions: [finishGame] },
-            { target: QUESTION, guard: ctx => ctx.feedbackReady && ctx.retyped, actions: [ctx => { useCases.nextQuestion(ctx.session); }] },
+            { target: RESULTS, guard: ctx => canLeave(ctx) && ctx.session.isComplete, actions: [finishGame] },
+            { target: QUESTION, guard: canLeave, actions: [ctx => { useCases.nextQuestion(ctx.session); }] },
           ],
           [AppEvent.QUIT]: quit,
         },
       },
+      // Une partie qui termine le niveau mène à la fête plutôt qu'au bilan.
       [RESULTS]: {
+        always: { target: LEVEL_UP, guard: ctx => ctx.summary.levelCompleted },
         on: { [AppEvent.START]: start, [AppEvent.NAVIGATE]: navigate },
       },
       [LEVEL_UP]: {

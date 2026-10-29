@@ -1,10 +1,13 @@
 (function (Conjugo) {
 'use strict';
 
-const { DomainError, Person, Tense, GameRecord, LEVEL_DATA } = Conjugo;
+const { DomainError, Person, Tense, comboKey, LEVEL_DATA } = Conjugo;
 
 /** Une forme à acquérir : un verbe, à un temps, dans une case de personne. */
-const combo = (verb, tense, slot) => Object.freeze({ verb, tense, slot, key: GameRecord.comboKey(verb.infinitive, tense.id, slot) });
+const combo = (verb, tense, slot) => Object.freeze({ verb, tense, slot, key: comboKey(verb.infinitive, tense.id, slot) });
+
+/** Part entière en pourcentage : 2 sur 6 → 33. */
+const percentOf = (part, total) => Math.round((part / total) * 100);
 
 /**
  * Niveau du parcours : un temps, quelques verbes, et les six cases de personne de chacun.
@@ -29,15 +32,23 @@ class Level {
     return this.verbs.map(v => v.label).join(', ');
   }
 
-  /** @param {import('./answerStats.js').AnswerStatsBook} practice @returns {{ mastered: number, total: number, ratio: number }} */
-  progress(practice) {
-    const mastered = this.combos.filter(c => practice.get(c.key).isMastered).length;
-    return Object.freeze({ mastered, total: this.combos.length, ratio: mastered / this.combos.length });
+  /** Première et dernière formes du niveau, à afficher : « je finis » … « elles finissent ». */
+  get span() {
+    const [first] = Person.SLOTS[0];
+    const last = Person.SLOTS.at(-1).at(-1);
+    return Object.freeze({
+      from: this.verbs[0].conjugate(this.tense, first).display,
+      to: this.verbs.at(-1).conjugate(this.tense, last).display,
+    });
   }
 
-  /** @param {import('./answerStats.js').AnswerStatsBook} practice */
-  isComplete(practice) {
-    return this.combos.every(c => practice.get(c.key).isMastered);
+  /**
+   * Formes acquises du niveau ; il est terminé quand toutes le sont.
+   * @param {import('./answerStats.js').AnswerStatsBook} practice @returns {{ mastered: number, total: number }}
+   */
+  progress(practice) {
+    const mastered = this.combos.filter(c => practice.get(c.key).isMastered).length;
+    return Object.freeze({ mastered, total: this.combos.length });
   }
 }
 
@@ -81,5 +92,5 @@ class LevelLadder {
   }
 }
 
-Object.assign(Conjugo, { Level, LevelLadder });
+Object.assign(Conjugo, { percentOf, Level, LevelLadder });
 })(globalThis.Conjugo ??= {});
