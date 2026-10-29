@@ -37,7 +37,6 @@ class AchievementFacts {
     let playedAtNight = false;
     let playedEarly = false;
     let irregularCorrect = 0;
-    let pronominalCorrect = 0;
     let beingVerbsCorrect = 0;
     const typesFound = new Set();
     const verbsFound = new Set();
@@ -71,7 +70,6 @@ class AchievementFacts {
         verbsFound.add(verb.infinitive);
         typesFound.add(verb.type.id);
         if (IRREGULAR_TYPES.has(verb.type.id)) irregularCorrect++;
-        if (verb.pronominal) pronominalCorrect++;
         if (a.tense === Tense.PASSE_COMPOSE.id && verb.auxiliary === 'être') beingVerbsCorrect++;
       }
 
@@ -101,7 +99,7 @@ class AchievementFacts {
       verbsFound: verbsFound.size,
       verbCount: bank.verbs.length,
       weakestTenseCorrect: Math.min(...Tense.ALL.map(t => correctByTense.get(t.id) ?? 0)),
-      irregularCorrect, pronominalCorrect, beingVerbsCorrect,
+      irregularCorrect, beingVerbsCorrect,
     });
   }
 }
@@ -132,8 +130,6 @@ const ACHIEVEMENTS = Object.freeze([
     measure: f => f.weakestTenseCorrect, thresholds: [3, 15, 50], goal: n => `${n} bonnes réponses à chaque temps` },
   { id: 'tamer', emoji: '🦁', name: 'Dompteur', description: 'Bonnes réponses sur les verbes irréguliers (3e groupe, être, avoir).',
     measure: f => f.irregularCorrect, thresholds: [10, 40, 150], goal: n => `${n} verbes irréguliers réussis` },
-  { id: 'mirror', emoji: '🪞', name: 'Miroir', description: 'Bonnes réponses sur un verbe pronominal.',
-    measure: f => f.pronominalCorrect, thresholds: [3, 10, 30], goal: n => `${n} verbes pronominaux réussis` },
   { id: 'agreement', emoji: '🤝', name: 'Accord parfait', description: 'Passés composés réussis avec l’auxiliaire être.',
     measure: f => f.beingVerbsCorrect, thresholds: [3, 10, 30], goal: n => `${n} passés composés avec être réussis` },
   { id: 'comeback', emoji: '🧭', name: 'Retour', description: 'Réussir un verbe à un temps où il avait été raté.',

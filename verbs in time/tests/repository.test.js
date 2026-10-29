@@ -42,17 +42,21 @@ test('un enregistrement invalide est ignoré, le reste de l’historique est con
   const stored = JSON.parse(storage.getItem(PROFILE_KEY));
   stored.profile.games.push({ endedAt: '2026-10-18T09:00:00.000Z', answers: [] });   // partie vide
   stored.profile.games.push({ endedAt: '2026-10-18T10:00:00.000Z', answers: [{}] }); // réponse incomplète
-  stored.profile.practice['voir|present'] = { seen: 1, correct: 5 };                  // plus de réussites que de passages
-  stored.profile.practice['faire|present'] = { seen: 1, correct: 0, lastCorrect: 'false' }; // dernière réponse illisible
+  stored.profile.practice['voir|present|0'] = { seen: 1, correct: 5 };                  // plus de réussites que de passages
+  stored.profile.practice['faire|present|0'] = { seen: 1, correct: 0, lastCorrect: 'false' }; // dernière réponse illisible
+  stored.profile.levelHistory = [{ level: 1, completedAt: 'hier', via: 'test' }];          // date illisible
+  stored.profile.level = 'deux';                                                            // niveau illisible
   storage.setItem(PROFILE_KEY, JSON.stringify(stored));
 
   const errors = [];
   const loaded = new LocalStorageProfileRepository({ storage, onError: e => errors.push(e) }).load();
   assert.equal(loaded.gameCount, 1);
-  assert.equal(loaded.practice.get('finir|futurSimple').seen, 1);
-  assert.equal(loaded.practice.get('voir|present').seen, 0);
-  assert.equal(loaded.practice.get('faire|present').seen, 0);
-  assert.equal(errors.length, 4);
+  assert.equal(loaded.practice.get('finir|futurSimple|3').seen, 1);
+  assert.equal(loaded.practice.get('voir|present|0').seen, 0);
+  assert.equal(loaded.practice.get('faire|present|0').seen, 0);
+  assert.equal(loaded.levelHistory.length, 0);
+  assert.equal(loaded.level, null, 'le joueur choisira de nouveau son point de départ');
+  assert.equal(errors.length, 5);
 });
 
 test('les préférences sont conservées à part', () => {
@@ -67,12 +71,10 @@ test('des préférences illisibles reviennent aux réglages par défaut', () => 
   const storage = memoryStorage();
   for (const raw of ['"on"', '{"soundEnabled":"no"}', '[1]']) {
     storage.setItem(Conjugo.PREFERENCES_KEY, raw);
-    assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: true, tenses: null, types: null }, raw);
+    assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: true }, raw);
   }
-  for (const tenses of ['present', [1], { a: 1 }]) {
-    storage.setItem(Conjugo.PREFERENCES_KEY, JSON.stringify({ soundEnabled: false, tenses }));
-    assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: false, tenses: null, types: null }, JSON.stringify(tenses));
-  }
+  storage.setItem(Conjugo.PREFERENCES_KEY, JSON.stringify({ soundEnabled: false, tenses: ['present'], types: null }));
+  assert.deepEqual(new LocalStoragePreferences({ storage }).load(), { soundEnabled: false }, 'les anciens réglages de temps et de verbes sont oubliés');
 });
 
 test('un stockage plein n’empêche pas de jouer', () => {

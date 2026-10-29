@@ -5,22 +5,26 @@ const { createMachine } = Conjugo;
 
 /** États de l'application. */
 const AppState = Object.freeze({
+  ONBOARDING: 'onboarding',     // premier lancement : je débute, ou test de placement
+  PLACEMENT: 'placement',       // une question du test de placement attend sa réponse
+  PLACEMENT_RESULT: 'placementResult', // niveau de départ trouvé
   HOME: 'home',                 // accueil, en attente
-  COUNTDOWN: 'countdown',       // accueil après une partie : la suivante démarre dans 5 s
   QUESTION: 'question',         // une question attend la réponse du joueur
   REVEALING: 'revealing',       // réponse donnée, retour visuel bref avant l'explication
   FEEDBACK: 'feedback',         // forme attendue, règle du temps et particularité du verbe
   RESULTS: 'results',           // bilan de fin de partie
-  PROGRESS: 'progress',         // chronologie et grille de maîtrise
+  LEVEL_UP: 'levelUp',          // la partie a terminé le niveau
+  JOURNEY: 'journey',           // niveau en cours et niveaux terminés
   ACHIEVEMENTS: 'achievements', // badges
-  SETTINGS: 'settings',         // temps et types de verbes à travailler
 });
 
 const AppEvent = Object.freeze({
   START: 'START',
   NAVIGATE: 'NAVIGATE',         // { to: Destination }
-  TICK: 'TICK',
-  CANCEL: 'CANCEL',
+  CHOOSE_BEGINNER: 'CHOOSE_BEGINNER',
+  START_PLACEMENT: 'START_PLACEMENT',
+  PLACEMENT_ANSWER: 'PLACEMENT_ANSWER', // { text: string }
+  PLACEMENT_SKIP: 'PLACEMENT_SKIP',     // « Je ne sais pas »
   ANSWER: 'ANSWER',             // { text: string }
   REVEALED: 'REVEALED',
   CONTINUE: 'CONTINUE',
@@ -31,14 +35,11 @@ const AppEvent = Object.freeze({
   PREVIEW_BADGE: 'PREVIEW_BADGE', // { index: number } — survol à la souris, même effet que SELECT_BADGE
   CLOSE_BADGE: 'CLOSE_BADGE',
   TOGGLE_SOUND: 'TOGGLE_SOUND',
-  TOGGLE_TENSE: 'TOGGLE_TENSE', // { id: string }
-  TOGGLE_TYPE: 'TOGGLE_TYPE',   // { id: string }
 });
 
-/** Destinations de la barre d'onglets, et des réglages (depuis l'accueil). */
-const Destination = Object.freeze({ HOME: 'home', PROGRESS: 'progress', ACHIEVEMENTS: 'achievements', SETTINGS: 'settings' });
+/** Destinations de la barre d'onglets. */
+const Destination = Object.freeze({ HOME: 'home', JOURNEY: 'journey', ACHIEVEMENTS: 'achievements' });
 
-const COUNTDOWN_SECONDS = 5;
 const REVEAL_DELAY_MS = Object.freeze({ correct: 420, wrong: 520 });
 /** L'explication ne peut pas être quittée avant ce délai : la touche Entrée qui a validé la réponse ne doit pas la sauter. */
 const FEEDBACK_MIN_MS = 600;
@@ -51,91 +52,104 @@ const FEEDBACK_MIN_MS = 600;
  * @param {{ scheduler?: object }} [options]
  */
 function createAppMachine(useCases, options = {}) {
-  const { HOME, COUNTDOWN, QUESTION, REVEALING, FEEDBACK, RESULTS, PROGRESS, ACHIEVEMENTS, SETTINGS } = AppState;
+  const { ONBOARDING, PLACEMENT, PLACEMENT_RESULT, HOME, QUESTION, REVEALING, FEEDBACK, RESULTS, LEVEL_UP, JOURNEY, ACHIEVEMENTS } = AppState;
 
   const context = {
     /** @type {import('../domain/gameSession.js').GameSession | null} */
     session: null,
     /** @type {import('../domain/gameSummary.js').GameSummary | null} */
     summary: null,
+    /** @type {import('../domain/placementTest.js').PlacementTest | null} */
+    placement: null,
+    /** Niveau de départ trouvé par le test. */
+    startLevel: null,
+    /** Accueil et écran Progrès (voir `homeOverview`). */
     home: null,
-    progress: null,
-    /** Grille de maîtrise, chargée avec la chronologie. */
-    mastery: null,
     achievements: null,
-    settings: null,
     selectedBadge: null,
-    countdown: 0,
     /** Faux pendant les premiers instants de l'explication (FEEDBACK_MIN_MS). */
     feedbackReady: false,
     /** Après une erreur, faux tant que la bonne forme n'a pas été recopiée ; `retypeTried` : une copie a été proposée. */
     retyped: true,
     retypeTried: false,
-    /** Vrai entre la fin d'une partie et le retour à l'accueil : déclenche le compte à rebours. */
-    returningFromGame: false,
     soundEnabled: useCases.isSoundEnabled(),
   };
 
   // --- Actions ---
-  const loadHome = ctx => { ctx.home = useCases.getHomeOverview(); ctx.settings = useCases.getSettings(); };
+  const loadHome = ctx => { ctx.home = useCases.getHomeOverview(); };
   const beginGame = ctx => {
     ctx.session = useCases.startGame();
     ctx.summary = null;
-    ctx.returningFromGame = false;
   };
   // Abandon : la partie est simplement oubliée. Rien n'est enregistré.
   const leaveGame = ctx => { ctx.session = null; };
   const finishGame = ctx => {
     ctx.summary = useCases.finishGame(ctx.session);
     ctx.session = null;
-    ctx.returningFromGame = true;
+  };
+  const validText = (_, e) => typeof e.text === 'string' && e.text.trim() !== '';
+  /** La réponse (ou « Je ne sais pas ») clôt-elle le test ? */
+  const endsPlacement = (ctx, text) => ctx.placement.endsAfter(text !== null && ctx.placement.isCorrect(text));
+  const endPlacement = ctx => {
+    ctx.startLevel = useCases.finishPlacement(ctx.placement);
+    ctx.placement = null;
   };
 
   // --- Transitions partagées ---
   const start = { target: QUESTION, actions: [ctx => beginGame(ctx)] };
-  const refreshSettings = ctx => { ctx.settings = useCases.getSettings(); };
   const quit = { target: HOME, actions: [leaveGame] };
   const selectBadge = {
     guard: (ctx, e) => Number.isInteger(e.index) && e.index >= 0 && e.index < ctx.achievements.list.length && e.index !== ctx.selectedBadge,
     actions: [(ctx, e) => { ctx.selectedBadge = e.index; }],
   };
   const navigate = [
-    { target: COUNTDOWN, guard: (ctx, e) => e.to === Destination.HOME && ctx.returningFromGame },
     { target: HOME, guard: (_, e) => e.to === Destination.HOME },
-    { target: PROGRESS, guard: (_, e) => e.to === Destination.PROGRESS },
+    { target: JOURNEY, guard: (_, e) => e.to === Destination.JOURNEY },
     { target: ACHIEVEMENTS, guard: (_, e) => e.to === Destination.ACHIEVEMENTS },
-    { target: SETTINGS, guard: (_, e) => e.to === Destination.SETTINGS },
   ];
 
   return createMachine({
-    initial: HOME,
+    initial: useCases.needsOnboarding() ? ONBOARDING : HOME,
     context,
     on: {
       [AppEvent.TOGGLE_SOUND]: { actions: [ctx => { ctx.soundEnabled = useCases.toggleSound(); }] },
     },
     states: {
+      [ONBOARDING]: {
+        on: {
+          [AppEvent.CHOOSE_BEGINNER]: { target: HOME, actions: [() => { useCases.chooseBeginner(); }] },
+          [AppEvent.START_PLACEMENT]: { target: PLACEMENT, actions: [ctx => { ctx.placement = useCases.startPlacement(); }] },
+        },
+      },
+      // Chaque réponse redessine la question suivante (transition externe vers le même état).
+      [PLACEMENT]: {
+        on: {
+          [AppEvent.PLACEMENT_ANSWER]: [
+            { target: PLACEMENT_RESULT, guard: (ctx, e) => validText(ctx, e) && endsPlacement(ctx, e.text),
+              actions: [(ctx, e) => { useCases.answerPlacement(ctx.placement, e.text); }, endPlacement] },
+            { target: PLACEMENT, guard: validText, actions: [(ctx, e) => { useCases.answerPlacement(ctx.placement, e.text); }] },
+          ],
+          [AppEvent.PLACEMENT_SKIP]: [
+            { target: PLACEMENT_RESULT, guard: ctx => endsPlacement(ctx, null),
+              actions: [ctx => { useCases.skipPlacement(ctx.placement); }, endPlacement] },
+            { target: PLACEMENT, actions: [ctx => { useCases.skipPlacement(ctx.placement); }] },
+          ],
+          // Abandon du test : rien n'est enregistré, le joueur revient au choix de départ.
+          [AppEvent.QUIT]: { target: ONBOARDING, actions: [ctx => { ctx.placement = null; }] },
+        },
+      },
+      [PLACEMENT_RESULT]: {
+        on: { [AppEvent.START]: start },
+      },
       [HOME]: {
         entry: [loadHome],
         on: { [AppEvent.START]: start, [AppEvent.NAVIGATE]: navigate },
-      },
-      [COUNTDOWN]: {
-        entry: [loadHome, ctx => { ctx.returningFromGame = false; ctx.countdown = COUNTDOWN_SECONDS; }],
-        every: { interval: 1000, event: AppEvent.TICK },
-        on: {
-          [AppEvent.TICK]: [
-            { guard: ctx => ctx.countdown > 1, actions: [ctx => { ctx.countdown--; }] },
-            start,
-          ],
-          [AppEvent.CANCEL]: HOME,
-          [AppEvent.START]: start,
-          [AppEvent.NAVIGATE]: navigate,
-        },
       },
       [QUESTION]: {
         on: {
           [AppEvent.ANSWER]: {
             target: REVEALING,
-            guard: (_, e) => typeof e.text === 'string' && e.text.trim() !== '',
+            guard: validText,
             actions: [(ctx, e) => { useCases.submitAnswer(ctx.session, e.text); }],
           },
           [AppEvent.QUIT]: quit,
@@ -164,6 +178,7 @@ function createAppMachine(useCases, options = {}) {
             }],
           },
           [AppEvent.CONTINUE]: [
+            { target: LEVEL_UP, guard: ctx => ctx.feedbackReady && ctx.retyped && ctx.session.isComplete && useCases.completesLevel(ctx.session), actions: [finishGame] },
             { target: RESULTS, guard: ctx => ctx.feedbackReady && ctx.retyped && ctx.session.isComplete, actions: [finishGame] },
             { target: QUESTION, guard: ctx => ctx.feedbackReady && ctx.retyped, actions: [ctx => { useCases.nextQuestion(ctx.session); }] },
           ],
@@ -173,8 +188,11 @@ function createAppMachine(useCases, options = {}) {
       [RESULTS]: {
         on: { [AppEvent.START]: start, [AppEvent.NAVIGATE]: navigate },
       },
-      [PROGRESS]: {
-        entry: [ctx => { ctx.progress = useCases.getProgress(); ctx.mastery = useCases.getMastery(); }],
+      [LEVEL_UP]: {
+        on: { [AppEvent.START]: start, [AppEvent.NAVIGATE]: navigate },
+      },
+      [JOURNEY]: {
+        entry: [loadHome],
         on: { [AppEvent.START]: start, [AppEvent.NAVIGATE]: navigate },
       },
       [ACHIEVEMENTS]: {
@@ -187,18 +205,9 @@ function createAppMachine(useCases, options = {}) {
           [AppEvent.NAVIGATE]: navigate,
         },
       },
-      [SETTINGS]: {
-        entry: [refreshSettings],
-        on: {
-          [AppEvent.TOGGLE_TENSE]: { guard: (_, e) => typeof e.id === 'string', actions: [(ctx, e) => { useCases.toggleTense(e.id); }, refreshSettings] },
-          [AppEvent.TOGGLE_TYPE]: { guard: (_, e) => typeof e.id === 'string', actions: [(ctx, e) => { useCases.toggleType(e.id); }, refreshSettings] },
-          [AppEvent.START]: start,
-          [AppEvent.NAVIGATE]: navigate,
-        },
-      },
     },
   }, options);
 }
 
-Object.assign(Conjugo, { AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createAppMachine });
+Object.assign(Conjugo, { AppState, AppEvent, Destination, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createAppMachine });
 })(globalThis.Conjugo ??= {});

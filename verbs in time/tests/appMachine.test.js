@@ -4,19 +4,26 @@ import { realBank, seededRandom, fakeClock, fakeScheduler, memoryStorage } from 
 import { Conjugo } from './game.js';
 
 const {
-  createAppMachine, AppState, AppEvent, Destination, COUNTDOWN_SECONDS, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createUseCases,
-  LocalStorageProfileRepository, LocalStoragePreferences, DEFAULT_GAME_LENGTH, ACHIEVEMENTS, stripAccents,
+  createAppMachine, AppState, AppEvent, Destination, REVEAL_DELAY_MS, FEEDBACK_MIN_MS, createUseCases,
+  LocalStorageProfileRepository, LocalStoragePreferences, DEFAULT_GAME_LENGTH, ACHIEVEMENTS, stripAccents, LevelLadder, HomeState,
 } = Conjugo;
 
-function setup({ storage = memoryStorage(), seed = 3 } = {}) {
+/**
+ * Jeu prêt à jouer. Par défaut, le joueur a choisi « Je débute » (niveau 1) ;
+ * `onboard: false` le laisse sur l'écran de premier lancement.
+ */
+function setup({ storage = memoryStorage(), seed = 3, onboard = true, ladder } = {}) {
   const clock = fakeClock();
   const scheduler = fakeScheduler();
   const profiles = new LocalStorageProfileRepository({ storage });
+  const bank = realBank();
   const useCases = createUseCases({
-    bank: realBank(), profiles, preferences: new LocalStoragePreferences({ storage }), clock, random: seededRandom(seed),
+    bank, profiles, preferences: new LocalStoragePreferences({ storage }), clock, random: seededRandom(seed),
+    ...(ladder ? { ladder: LevelLadder.fromData(bank, ladder) } : {}),
   });
   const machine = createAppMachine(useCases, { scheduler });
   machine.start();
+  if (onboard && machine.state === AppState.ONBOARDING) machine.send(AppEvent.CHOOSE_BEGINNER);
   return { machine, clock, scheduler, storage, profiles };
 }
 
@@ -40,21 +47,96 @@ function playGame(env, pattern = Array(DEFAULT_GAME_LENGTH).fill(true)) {
   pattern.forEach((correct, i) => {
     answerQuestion(env, correct);
     env.machine.send(AppEvent.CONTINUE);
-    assert.equal(env.machine.state, i === pattern.length - 1 ? AppState.RESULTS : AppState.QUESTION);
+    if (i < pattern.length - 1) assert.equal(env.machine.state, AppState.QUESTION);
   });
+  assert.ok([AppState.RESULTS, AppState.LEVEL_UP].includes(env.machine.state));
 }
+
+/** Deux petits niveaux d'un seul verbe : six formes chacun. */
+const TINY_LADDER = [
+  { tense: 'present', verbs: ['finir'], label: 'Verbes en -ir' },
+  { tense: 'present', verbs: ['venir'], label: 'Venir' },
+];
+
+test('premier lancement : « Je débute » place au niveau 1, une seule fois', () => {
+  const storage = memoryStorage();
+  const env = setup({ storage, onboard: false });
+  assert.equal(env.machine.state, AppState.ONBOARDING);
+  env.machine.send(AppEvent.START);
+  assert.equal(env.machine.state, AppState.ONBOARDING, 'pas de partie avant le choix du point de départ');
+  env.machine.send(AppEvent.CHOOSE_BEGINNER);
+  assert.equal(env.machine.state, AppState.HOME);
+  assert.equal(env.machine.context.home.level.number, 1);
+  assert.equal(env.machine.context.home.state, HomeState.NOT_YET_TODAY);
+  assert.equal(setup({ storage, onboard: false }).machine.state, AppState.HOME, 'le choix est enregistré');
+});
+
+test('test de placement : chaque réponse passe à la question suivante, puis le niveau de départ s’affiche', () => {
+  const env = setup({ onboard: false });
+  env.machine.send(AppEvent.START_PLACEMENT);
+  assert.equal(env.machine.state, AppState.PLACEMENT);
+  const { placement } = env.machine.context;
+  env.machine.send(AppEvent.PLACEMENT_ANSWER, { text: '  ' });
+  assert.equal(placement.position, 1, 'réponse vide ignorée');
+  let guard = 0;
+  while (env.machine.state === AppState.PLACEMENT && guard++ < 20) {
+    env.machine.send(AppEvent.PLACEMENT_ANSWER, { text: env.machine.context.placement.currentQuestion.expected.forms[0] });
+  }
+  assert.equal(env.machine.state, AppState.PLACEMENT_RESULT);
+  assert.equal(env.machine.context.startLevel.number, 22, 'tout juste : dernier niveau');
+  assert.equal(env.profiles.load().level, 22);
+  assert.equal(env.profiles.load().levelHistory.length, 21);
+  assert.equal(env.profiles.load().practice.get('parler|present|0').seen, 0, 'le test ne compte pas dans les statistiques');
+  env.machine.send(AppEvent.START);
+  assert.equal(env.machine.state, AppState.QUESTION);
+});
+
+test('test de placement : « Je ne sais pas » partout mène au niveau 1 ; quitter n’enregistre rien', () => {
+  const env = setup({ onboard: false });
+  env.machine.send(AppEvent.START_PLACEMENT);
+  env.machine.send(AppEvent.QUIT);
+  assert.equal(env.machine.state, AppState.ONBOARDING);
+  assert.equal(env.profiles.load().level, null);
+  env.machine.send(AppEvent.START_PLACEMENT);
+  let guard = 0;
+  while (env.machine.state === AppState.PLACEMENT && guard++ < 20) env.machine.send(AppEvent.PLACEMENT_SKIP);
+  assert.equal(env.machine.state, AppState.PLACEMENT_RESULT);
+  assert.equal(env.machine.context.startLevel.number, 1);
+});
 
 test('déroulé complet d’une partie jusqu’au bilan', () => {
   const env = setup();
   assert.equal(env.machine.state, AppState.HOME);
   playGame(env, [true, true, false, true, false]);
   const { summary } = env.machine.context;
+  assert.equal(env.machine.state, AppState.RESULTS);
   assert.equal(summary.record.accuracy, 60);
   assert.equal(summary.record.durationMs, 10_000, '5 × 2 s de réflexion');
   assert.equal(summary.missed.length, 2);
   assert.equal(summary.missed[0].given, 'xyz');
   assert.equal(summary.streak, 1);
-  assert.equal(env.profiles.load().gameCount, 1, 'partie archivée');
+  assert.equal(summary.level.number, 1);
+  assert.equal(summary.newlyMastered.length, 3, 'chaque forme juste du niveau est acquise');
+  assert.equal(summary.percentAfter, 25, '3 formes sur 12');
+  assert.equal(summary.gainPercent, 25);
+  const saved = env.profiles.load();
+  assert.equal(saved.gameCount, 1, 'partie archivée');
+  assert.deepEqual([saved.games[0].level, saved.games[0].masteredBefore, saved.games[0].masteredAfter], [1, 0, 3]);
+});
+
+test('niveau terminé : écran de fête, puis le niveau suivant', () => {
+  const env = setup({ ladder: TINY_LADDER });
+  let games = 0;
+  do { playGame(env); games++; } while (env.machine.state === AppState.RESULTS && games < 10);
+  assert.equal(env.machine.state, AppState.LEVEL_UP);
+  const { summary } = env.machine.context;
+  assert.ok(summary.levelCompleted);
+  assert.equal(summary.percentAfter, 100);
+  assert.equal(summary.nextLevel, 2);
+  assert.equal(env.profiles.load().level, 2);
+  env.machine.send(AppEvent.START);
+  assert.equal(env.machine.state, AppState.QUESTION);
+  assert.equal(env.machine.context.session.currentQuestion.verb.infinitive, 'venir', 'la partie suivante est dans le nouveau niveau');
 });
 
 test('un double appui sur une réponse est ignoré', () => {
@@ -105,62 +187,28 @@ test('après une erreur, il faut recopier la bonne forme pour continuer', () => 
   assert.equal(env.machine.state, AppState.QUESTION);
 });
 
-test('réglages : les temps choisis sont les seuls demandés, et il en reste toujours un', () => {
+test('après le bilan : « Encore une » relance une partie, « Accueil » montre le gain du jour', () => {
   const env = setup();
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.SETTINGS });
-  assert.equal(env.machine.state, AppState.SETTINGS);
-  for (const { tense } of env.machine.context.settings.tenses) {
-    if (tense.id !== 'passeCompose') env.machine.send(AppEvent.TOGGLE_TENSE, { id: tense.id });
-  }
-  env.machine.send(AppEvent.TOGGLE_TENSE, { id: 'passeCompose' });
-  assert.deepEqual(env.machine.context.settings.tenses.filter(t => t.on).map(t => t.tense.id), ['passeCompose'], 'le dernier temps reste coché');
-  env.machine.send(AppEvent.TOGGLE_TYPE, { id: 'pronominal' });
-  assert.equal(env.machine.context.settings.types.find(t => t.type.id === 'pronominal').on, false);
+  playGame(env);
   env.machine.send(AppEvent.START);
-  const asked = [];
-  for (let i = 0; i < DEFAULT_GAME_LENGTH; i++) {
-    asked.push(env.machine.context.session.currentQuestion);
-    answerQuestion(env, true);
-    env.machine.send(AppEvent.CONTINUE);
-  }
-  assert.ok(asked.every(q => q.tense.id === 'passeCompose' && !q.verb.pronominal));
-  assert.deepEqual(env.storage.getItem('conjugo.preferences.v1') && JSON.parse(env.storage.getItem('conjugo.preferences.v1')).tenses, ['passeCompose'], 'réglage enregistré');
+  assert.equal(env.machine.state, AppState.QUESTION, 'pas de compte à rebours');
+  env.machine.send(AppEvent.QUIT);
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.HOME });
+  const { home } = env.machine.context;
+  assert.equal(home.state, HomeState.PLAYED_TODAY);
+  assert.equal(home.todayPercent, home.percent);
+  assert.ok(home.todayPercent > 0);
 });
 
-test('la progression montre la grille de maîtrise', () => {
-  const env = setup();
-  playGame(env, [true, false, true, true, true]);
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.PROGRESS });
-  const cells = env.machine.context.mastery.flatMap(g => g.verbs.flatMap(v => v.levels));
-  assert.equal(cells.length, 20 * 5);
-  assert.equal(cells.filter(l => l !== 'unseen').length, 5);
-  assert.equal(cells.filter(l => l === 'weak').length, 1);
-});
-
-test('retour à l’accueil après une partie : compte à rebours de 5 s puis nouvelle partie', () => {
-  const env = setup();
-  playGame(env);
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.HOME });
-  assert.equal(env.machine.state, AppState.COUNTDOWN);
-  assert.equal(env.machine.context.countdown, COUNTDOWN_SECONDS);
-  env.scheduler.advance(4000);
-  assert.equal(env.machine.context.countdown, 1);
-  env.scheduler.advance(1000);
-  assert.equal(env.machine.state, AppState.QUESTION);
-  assert.equal(env.scheduler.pending, 0, 'le minuteur du compte à rebours est arrêté');
-});
-
-test('« Pas maintenant » annule le compte à rebours, qui ne revient pas', () => {
-  const env = setup();
-  playGame(env);
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.PROGRESS });
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.HOME });
-  assert.equal(env.machine.state, AppState.COUNTDOWN, 'détour par Progrès : toujours un retour de partie');
-  env.machine.send(AppEvent.CANCEL);
-  assert.equal(env.machine.state, AppState.HOME);
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.ACHIEVEMENTS });
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.HOME });
-  assert.equal(env.machine.state, AppState.HOME);
+test('Progrès : le parcours montre le niveau en cours et les niveaux terminés', () => {
+  const env = setup({ ladder: TINY_LADDER });
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.JOURNEY });
+  assert.equal(env.machine.state, AppState.JOURNEY);
+  assert.equal(env.machine.context.home.journey.length, 0);
+  do { playGame(env); } while (env.machine.state === AppState.RESULTS);
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.JOURNEY });
+  assert.deepEqual(env.machine.context.home.journey.map(h => h.level.number), [1]);
+  assert.equal(env.machine.context.home.level.number, 2);
 });
 
 test('quitter une partie ne laisse aucune trace', () => {
@@ -178,21 +226,6 @@ test('une réponse vide est ignorée', () => {
   env.machine.send(AppEvent.START);
   env.machine.send(AppEvent.ANSWER, { text: '  ' });
   assert.equal(env.machine.state, AppState.QUESTION);
-});
-
-test('la progression se déverrouille à la 3ᵉ partie', () => {
-  const env = setup();
-  playGame(env);
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.PROGRESS });
-  assert.equal(env.machine.context.progress.isUnlocked, false);
-  env.machine.send(AppEvent.START);
-  for (let g = 0; g < 2; g++) {
-    for (let i = 0; i < DEFAULT_GAME_LENGTH; i++) { answerQuestion(env, i % 2 === 0); env.machine.send(AppEvent.CONTINUE); }
-    if (g === 0) env.machine.send(AppEvent.START);
-  }
-  env.machine.send(AppEvent.NAVIGATE, { to: Destination.PROGRESS });
-  assert.equal(env.machine.context.progress.isUnlocked, true);
-  assert.equal(env.machine.context.progress.gameCount, 3);
 });
 
 test('les succès reflètent la partie qui vient de se terminer', () => {
@@ -224,7 +257,7 @@ test('une partie plus longue que le nombre de questions garanties est refusée d
   const bank = realBank();
   assert.throws(() => createUseCases({
     bank, profiles: new LocalStorageProfileRepository({ storage }), preferences: new LocalStoragePreferences({ storage }),
-    clock: fakeClock(), gameLength: 9,
+    clock: fakeClock(), gameLength: 7,
   }), /impossible/);
 });
 

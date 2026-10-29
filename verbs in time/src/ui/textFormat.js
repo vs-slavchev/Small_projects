@@ -1,9 +1,9 @@
-// Mise en forme générique : dates, durées, pluriels, écart lettre à lettre, tendances et succès.
+// Mise en forme générique : dates, durées, pluriels, écart lettre à lettre et succès.
 
 (function (Conjugo) {
 'use strict';
 
-const { TrendWindow, dayKey, addDays } = Conjugo;
+const { dayKey, addDays } = Conjugo;
 
 const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
 const SECONDS_FORMAT = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
@@ -63,13 +63,6 @@ const similarity = (given, expected) => diffChars(given, expected).filter(p => p
 /** Taille de police pour qu'un texte tienne sur une ligne de l'écran. */
 const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
 
-function trendText({ delta, window }) {
-  const span = window === TrendWindow.TWO_WEEKS ? 'en 2 semaines' : 'depuis tes débuts';
-  if (delta > 0) return `+${delta} pts ${span}`;
-  if (delta < 0) return `−${-delta} pts ${span}`;
-  return `Stable ${span}`;
-}
-
 /** @param {import('../domain/achievements.js').AchievementProgress} p */
 function achievementStatus(p) {
   const withUnit = n => (p.unit ? `${n} ${p.unit}` : `${n}`);
@@ -95,5 +88,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, diffChars, similarity, fitFontSize, trendText, achievementStatus, unlockedLabel });
+Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, shortDate, relativeDay, diffChars, similarity, fitFontSize, achievementStatus, unlockedLabel });
 })(globalThis.Conjugo ??= {});

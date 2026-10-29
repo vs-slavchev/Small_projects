@@ -1,8 +1,25 @@
 import { Conjugo } from './game.js';
 
-const { VerbBank, MemoryStorage } = Conjugo;
+const { VerbBank, MemoryStorage, VERB_DATA, VERB_TYPES } = Conjugo;
 
 export const realBank = () => VerbBank.fromData();
+
+/**
+ * Verbes absents des niveaux mais utiles pour éprouver le moteur de conjugaison :
+ * doublement de consonne, y → i, verbes en -dre et -oir, auxiliaire être, verbe pronominal.
+ */
+const ENGINE_TYPES = [{ id: 'pronominal', label: 'Pronominal', rule: 'Pronom réfléchi à tous les temps.' }];
+const ENGINE_VERBS = [
+  { infinitive: 'appeler', type: 'firstSpelling', present: ['appelle', 'appelles', 'appelle', 'appelons', 'appelez', 'appellent'], futureStem: 'appeller' },
+  { infinitive: 'nettoyer', type: 'firstSpelling', present: ['nettoie', 'nettoies', 'nettoie', 'nettoyons', 'nettoyez', 'nettoient'], futureStem: 'nettoier' },
+  { infinitive: 'partir', type: 'third', auxiliary: 'être', present: ['pars', 'pars', 'part', 'partons', 'partez', 'partent'], participle: 'parti' },
+  { infinitive: 'attendre', type: 'third', present: ['attends', 'attends', 'attend', 'attendons', 'attendez', 'attendent'], participle: 'attendu' },
+  { infinitive: 'voir', type: 'third', present: ['vois', 'vois', 'voit', 'voyons', 'voyez', 'voient'], participle: 'vu', futureStem: 'verr' },
+  { infinitive: 'lever', type: 'pronominal', pronominal: true, present: ['lève', 'lèves', 'lève', 'levons', 'levez', 'lèvent'], futureStem: 'lèver' },
+];
+
+/** Banque du jeu, complétée des verbes de test du moteur. */
+export const engineBank = () => VerbBank.fromData([...VERB_DATA, ...ENGINE_VERBS], [...VERB_TYPES, ...ENGINE_TYPES]);
 
 /** Générateur pseudo-aléatoire reproductible (mulberry32). */
 export function seededRandom(seed = 42) {
