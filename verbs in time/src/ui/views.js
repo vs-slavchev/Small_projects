@@ -282,10 +282,19 @@ function homeHeader(home, soundEnabled) {
 function homeHeadline(home) {
   const amber = text => `<span class="hl">${text}</span>`;
   switch (home.state) {
-    case HomeState.PLAYED_TODAY:
+    case HomeState.PLAYED_TODAY: {
+      const done = home.completedToday;
+      if (done.length) {
+        const what = done.length === 1 ? `le niveau ${done[0]}` : `${done.length} niveaux`;
+        // Le gain du niveau en cours s'ajoute, sauf si c'est le niveau terminé (le dernier, gardé pour réviser).
+        const more = home.todayPercent > 0 && !done.includes(home.level.number)
+          ? `<p>Et déjà +${home.todayPercent}&nbsp;% dans le niveau ${home.level.number}.</p>` : '';
+        return `<span class="eyebrow">Aujourd'hui, vous avez terminé</span><h1>${amber(what)}</h1>${more}`;
+      }
       return home.todayPercent > 0
         ? `<span class="eyebrow">Aujourd'hui, vous avez avancé de</span><h1>${amber(`+${home.todayPercent}&nbsp;%`)}</h1>`
         : `<span class="eyebrow">Vous avez joué aujourd'hui.</span><h1>Chaque partie compte.</h1>`;
+    }
     case HomeState.NOT_YET_TODAY: {
       const streak = home.streak
         ? `et votre série passe à ${home.streak + 1} ${plural(home.streak + 1, 'jour')}.`
@@ -345,8 +354,8 @@ function levelHead(eyebrow, level, percent, extra = '') {
 
 /** Parts de la barre du niveau sur l'accueil : le gain du jour s'il y en a un, sinon la prochaine partie. */
 function homeBarParts(home) {
-  const played = home.state === HomeState.PLAYED_TODAY && home.todayLevelPercent > 0;
-  return { percent: home.percent, today: played ? home.todayLevelPercent : 0, next: played || home.isLevelComplete ? 0 : home.nextGamePercent };
+  const played = home.state === HomeState.PLAYED_TODAY && home.todayPercent > 0;
+  return { percent: home.percent, today: played ? home.todayPercent : 0, next: played || home.isLevelComplete ? 0 : home.nextGamePercent };
 }
 
 function levelCard(home) {
@@ -355,8 +364,8 @@ function levelCard(home) {
   const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
   const next = `≈ +${home.nextGamePercent}&nbsp;%`;
   const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
-    [HomeState.PLAYED_TODAY]: home.todayLevelPercent > 0
-      ? `${badge(`+${home.todayLevelPercent}&nbsp;% aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
+    [HomeState.PLAYED_TODAY]: home.todayPercent > 0
+      ? `${badge(`+${home.todayPercent}&nbsp;% aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
       : `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
     [HomeState.NOT_YET_TODAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">≈ ${parties} et il est à vous</span>`,
     [HomeState.BACK]: badge(`Une partie suffit pour repartir&nbsp;: ${next}`, true),
@@ -382,6 +391,10 @@ function weekChart(home) {
       height = Math.max(8, Math.min(64, home.nextGamePercent * 2.4));
     } else if (d.isFuture) {
       cls += ' future';
+    } else if (d.levelsCompleted) {
+      label = d.levelsCompleted > 1 ? `✓&nbsp;${d.levelsCompleted}` : '✓';
+      height = 64;
+      cls += d.isToday ? ' today' : ' gain';
     } else {
       label = d.gainPercent ? `+${d.gainPercent}` : '0';
       height = Math.max(4, Math.min(64, d.gainPercent * 2.4));
@@ -394,7 +407,7 @@ function weekChart(home) {
     : '';
   return `<div class="week-chart">
     <span class="section-label">Cette semaine</span>
-    <div class="wk-bars" role="img" aria-label="Gain de chaque jour de la semaine, en pourcentage du niveau">${bars}</div>
+    <div class="wk-bars" role="img" aria-label="Gain de chaque jour de la semaine, en pourcentage du niveau ; coche : niveau terminé ce jour-là">${bars}</div>
     ${note}
   </div>`;
 }
@@ -414,7 +427,7 @@ function journeyDots(home) {
 
 /** Bouton de l'accueil selon son état : libellé, et précision (`null` : la longueur de la partie). */
 const PLAY_CTA = Object.freeze({
-  [HomeState.PLAYED_TODAY]: ['Nouvelle partie', 'Battez votre record du jour'],
+  [HomeState.PLAYED_TODAY]: ['Encore une', null],
   [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', null],
   [HomeState.BACK]: ['Reprendre', null],
   [HomeState.AWAY]: ['Reprendre', null],

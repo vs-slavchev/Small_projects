@@ -193,7 +193,7 @@ test('accueil : après le dernier niveau, il est terminé sans réapparaître da
   assert.equal(before.levelsCompleted, 21);
 });
 
-test('accueil : un niveau terminé aujourd’hui compte dans le gain du jour', () => {
+test('accueil : un niveau terminé aujourd’hui se compte à part, sans additionner les pourcentages de niveaux différents', () => {
   const profile = profileWith();
   const done = ladder.level(5);
   profile.recordGame(new GameRecord({
@@ -201,8 +201,12 @@ test('accueil : un niveau terminé aujourd’hui compte dans le gain du jour', (
     answers: [{ verb: done.verbs[0].infinitive, tense: done.tense.id, person: 'je', given: 'x', correct: true, timeMs: 1 }],
   }));
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.equal(home.todayPercent, Math.round((3 / done.combos.length) * 100), 'titre de l’accueil : le gain du niveau terminé');
-  assert.equal(home.todayLevelPercent, 0, 'barre du niveau en cours : rien encore');
+  assert.deepEqual(home.completedToday, [], 'terminé par le test de placement : pas une victoire du jour');
+  assert.equal(home.todayPercent, 0, 'barre du niveau en cours : rien encore');
+  profile.completeLevel(day(18, 15), 22);
+  const after = homeOverview(profile, ladder, day(18, 20));
+  assert.deepEqual(after.completedToday, [6], 'niveau terminé en jouant aujourd’hui');
+  assert.equal(after.week.find(d => d.isToday).levelsCompleted, 1, 'une coche plutôt qu’une somme de pourcentages');
 });
 
 test('accueil : sans partie dans le niveau, une partie est estimée à deux formes', () => {
