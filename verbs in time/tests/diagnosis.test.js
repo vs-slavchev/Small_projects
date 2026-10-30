@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { realBank } from './helpers.js';
+import { realBank, engineBank } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const { Question, Tense, Person, ErrorKind, diagnose } = Conjugo;
 
-const bank = realBank();
+const bank = engineBank();
 const ask = (verb, tense, person) => new Question({ verb: bank.verb(verb), tense, person });
 const kindOf = (q, given) => diagnose(q, given)?.kind ?? null;
 /** Forme découpée, lisible : « [s]fin|[e]issons ». */

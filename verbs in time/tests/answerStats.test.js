@@ -27,10 +27,31 @@ test('un carnet produit les statistiques de sa sous-classe', () => {
   assert.equal(book.get('x').seen, 1);
 });
 
-test('acquis : au moins trois réponses, la dernière juste, 80 % de réussite', () => {
-  const right = n => Array.from({ length: n }).reduce(s => s.record(true), AnswerStat.EMPTY);
-  assert.equal(right(1).isMastered, false);
-  assert.equal(right(2).isMastered, false);
-  assert.equal(right(3).isMastered, true);
-  assert.equal(right(3).record(false).isMastered, false);
+test('acquis : la dernière réponse juste et au moins 60 % de réussite', () => {
+  const after = (...answers) => answers.reduce((s, correct) => s.record(correct), AnswerStat.EMPTY);
+  assert.equal(AnswerStat.EMPTY.isMastered, false);
+  assert.equal(after(true).isMastered, true, 'une seule bonne réponse suffit');
+  assert.equal(after(true, false).isMastered, false, 'dernière réponse fausse');
+  assert.equal(after(false, true).isMastered, false, '50 % seulement');
+  assert.equal(after(true, false, true).isMastered, true, '67 % et dernière juste');
+  assert.equal(after(false, false, true, true, true).isMastered, true, 'pile 60 %');
+});
+
+test('formes à revoir : déjà ratées, les plus faibles d’abord', () => {
+  const book = new AnswerStatsBook();
+  const play = (key, ...answers) => answers.forEach(c => book.record(key, c));
+  play('jamais-ratée', true, true);
+  play('moitié', true, false);
+  play('moitié-rattrapée', false, true);
+  play('un-tiers', false, true, false);
+  play('jamais-réussie', false);
+  play('rattrapée', false, true, true, true);
+  assert.deepEqual(book.weakest(['jamais-ratée', 'moitié', 'moitié-rattrapée', 'un-tiers', 'jamais-réussie', 'rattrapée', 'inconnue'], 10),
+    ['jamais-réussie', 'un-tiers', 'moitié', 'moitié-rattrapée'], 'à taux égal, la dernière réponse fausse d’abord ; une forme de nouveau acquise sort');
+  assert.deepEqual(book.weakest(['moitié', 'jamais-réussie', 'un-tiers'], 2), ['jamais-réussie', 'un-tiers']);
+  assert.equal(book.get('moitié').hasMistake, true);
+  const copy = book.with([['moitié', true], ['moitié', true]]);
+  assert.equal(copy.get('moitié').isMastered, true);
+  assert.equal(book.get('moitié').seen, 2, 'la copie laisse le carnet intact');
+  assert.equal(book.get('jamais-ratée').hasMistake, false);
 });

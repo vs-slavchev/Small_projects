@@ -4,7 +4,7 @@ import { realBank } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  PlayerProfile, GameRecord, ActivityCalendar, ProgressReport, InsightKind, TrendWindow, rateGame, Verdict,
+  PlayerProfile, GameRecord, ActivityCalendar, rateGame, Verdict, LevelVia,
   AchievementFacts, evaluateAchievements, newlyUnlocked, totalSteps, earnedSteps, ACHIEVEMENTS, Tense,
 } = Conjugo;
 
@@ -28,18 +28,67 @@ test('archiver une partie met à jour statistiques et compteurs', () => {
   profile.recordGame(game({ correct: 0 }));
   profile.recordGame(game({ correct: 5 }));
   assert.equal(profile.gameCount, 2);
-  const stat = profile.practice.get('parler|present');
+  const stat = profile.practice.get('parler|present|0');
   assert.equal(stat.seen, 2);
   assert.equal(stat.accuracy, 0.5);
   assert.equal(profile.recoveries, 5, 'chaque conjugaison ratée puis réussie compte');
 });
 
+test('statistiques par case de personne : il, elle et on comptent ensemble', () => {
+  const profile = PlayerProfile.empty();
+  profile.recordGame(game({ questions: ['il', 'elle', 'on', 'ils', 'elles'].map(p => ask('parler', 'present', p)) }));
+  assert.equal(profile.practice.get('parler|present|2').seen, 3);
+  assert.equal(profile.practice.get('parler|present|5').seen, 2);
+  assert.equal(GameRecord.practiceKeyOf(ask('finir', 'futurSimple', 'nous')), 'finir|futurSimple|3');
+});
+
+test('niveau : point de départ, niveaux validés par le test, niveau terminé en jouant', () => {
+  const profile = PlayerProfile.empty();
+  assert.equal(profile.level, null, 'aucun point de départ avant le premier choix');
+  profile.startAt(4, day(18));
+  assert.equal(profile.level, 4);
+  assert.deepEqual(profile.levelHistory.map(h => [h.level, h.via]), [[1, LevelVia.TEST], [2, LevelVia.TEST], [3, LevelVia.TEST]]);
+  profile.completeLevel(day(19), 22);
+  assert.equal(profile.level, 5);
+  assert.deepEqual(profile.levelHistory.at(-1), { level: 4, completedAt: day(19), via: LevelVia.PLAY });
+  profile.startAt(22, day(20));
+  profile.completeLevel(day(21), 22);
+  assert.equal(profile.level, 22, 'après le dernier niveau, on y reste pour réviser');
+  profile.completeLevel(day(22), 22);
+  assert.equal(profile.levelHistory.filter(h => h.level === 22).length, 1, 'un niveau n’est terminé qu’une fois');
+  assert.ok(profile.hasCompleted(22));
+  assert.throws(() => PlayerProfile.empty().completeLevel(day(18), 22), /Aucun niveau/);
+});
+
+test('profil sans niveau ni statistiques : les parties archivées ne rejouent rien', () => {
+  const profile = PlayerProfile.fromSnapshot({ games: [game({ correct: 5 }).toSnapshot()] });
+  assert.equal(profile.practice.get('parler|present|0').seen, 0);
+  assert.equal(profile.level, null, 'le joueur choisit son point de départ');
+});
+
+test('partie archivée : niveau 0 refusé', () => {
+  const record = new GameRecord({ ...game({ correct: 3 }), level: 0, masteredBefore: 0, masteredAfter: 1 });
+  assert.equal(record.level, null);
+  assert.equal(record.masteredGain, null, 'sans niveau, pas de gain mesuré');
+});
+
 test('le profil se reconstruit à l’identique depuis son instantané', () => {
   const profile = PlayerProfile.empty();
-  profile.recordGame(game({ correct: 3 }));
+  profile.startAt(3, day(17));
+  profile.recordGame(new GameRecord({ ...game({ correct: 3 }), level: 3, masteredBefore: 2, masteredAfter: 4 }));
+  profile.completeLevel(day(18), 22);
   const copy = PlayerProfile.fromSnapshot(JSON.parse(JSON.stringify(profile.toSnapshot())));
   assert.deepEqual(copy.toSnapshot(), profile.toSnapshot());
   assert.equal(copy.games[0].accuracy, 60);
+  assert.equal(copy.games[0].masteredGain, 2);
+  assert.equal(copy.level, 4);
+  assert.equal(copy.levelHistory.length, 3);
+});
+
+test('partie archivée : le niveau et ses formes acquises vont ensemble', () => {
+  const g = new GameRecord({ ...game(), level: 2, masteredBefore: 3 });
+  assert.deepEqual([g.level, g.masteredBefore, g.masteredAfter, g.masteredGain], [2, null, null, null], 'un compte seul ne mesure rien');
+  assert.equal(game().toSnapshot().level, undefined, 'une partie sans niveau garde l’ancien format');
 });
 
 test('série quotidienne : en cours jusqu’à hier, la plus longue est conservée', () => {
@@ -52,57 +101,6 @@ test('série quotidienne : en cours jusqu’à hier, la plus longue est conserv�
   assert.equal(week[0].date.getDay(), 1, 'la semaine commence lundi');
   assert.ok(week[6].isToday);
   assert.deepEqual(week.map(d => d.played), [true, false, false, false, true, true, false]);
-});
-
-test('la chronologie est verrouillée avant 3 parties', () => {
-  const report = new ProgressReport([game({ correct: 3 })], day(18), bank);
-  assert.equal(report.isUnlocked, false);
-  assert.equal(report.gamesUntilUnlock, 2);
-  assert.deepEqual(report.firstAccuracies, [60]);
-});
-
-test('rapport de progression : moyenne, tendance et message', () => {
-  const games = [game({ endedAt: day(1), correct: 2 }), game({ endedAt: day(15), correct: 4 }), game({ endedAt: day(18), correct: 5 })];
-  const report = new ProgressReport(games, day(18), bank);
-  assert.ok(report.isUnlocked);
-  assert.equal(report.averageAccuracy, 73);
-  assert.deepEqual(report.trend, { delta: 50, window: TrendWindow.TWO_WEEKS });
-  assert.deepEqual(report.insight, { kind: InsightKind.RECORD, accuracy: 100, previous: 80 });
-  assert.equal(report.recent[0].accuracy, 100);
-  assert.equal(report.questionsSeen, 15);
-});
-
-test('commentaire de la chronologie : le constat le plus parlant l’emporte', () => {
-  // Verbes différents à chaque partie, pour qu'aucun piège ne ressorte.
-  const fresh = i => Array.from({ length: 5 }, (_, k) => ask(bank.verbs[(5 * i + k) % bank.verbs.length].infinitive, Tense.ALL[i % 5].id));
-  const insight = (scores, questionsOf = fresh) =>
-    new ProgressReport(scores.map((correct, i) => game({ endedAt: day(1 + i), correct, questions: questionsOf(i) })), day(18), bank).insight;
-
-  assert.deepEqual(insight([2, 2, 2, 4, 4, 4]), { kind: InsightKind.RISING, count: 3, accuracy: 80, delta: 40 });
-  assert.deepEqual(insight([5, 5, 5, 3]), { kind: InsightKind.DIP, accuracy: 60, average: 90 });
-
-  // La 5e question (avoir… au présent) est ratée à chaque partie : c'est un piège.
-  const trap = insight([4, 4, 4, 4], () => firstFive);
-  assert.equal(trap.kind, InsightKind.TRAP);
-  assert.equal(trap.verb, firstFive[4].verb);
-  assert.equal(trap.tense, 'present');
-  assert.equal(trap.misses, 4);
-
-  const faster = Array.from({ length: 6 }, (_, i) => game({ endedAt: day(1 + i), correct: 4, questions: fresh(i), timeMs: i < 3 ? 3000 : 2000 }));
-  assert.deepEqual(new ProgressReport(faster, day(18), bank).insight, { kind: InsightKind.FASTER, beforeMs: 3000, nowMs: 2000 });
-
-  assert.deepEqual(insight([4, 4, 4]), { kind: InsightKind.STEADY, count: 3, threshold: 70, all: true });
-  assert.equal(insight([4, 4, 4], () => firstFive).kind, InsightKind.TRAP, 'un piège passe avant la régularité');
-  assert.deepEqual(insight([3, 2, 3]), { kind: InsightKind.ABOVE_AVERAGE, accuracy: 60 });
-  assert.deepEqual(insight([3, 3, 3]), { kind: InsightKind.KEEP_PRACTICING });
-});
-
-test('piège : un verbe pronominal est nommé avec son « se »', () => {
-  const lever = [...firstFive.slice(0, 4), ask('lever', 'imperfect')];
-  const games = [1, 2, 3].map(d => game({ endedAt: day(d), correct: 4, questions: lever }));
-  const insight = new ProgressReport(games, day(18), bank).insight;
-  assert.equal(insight.kind, InsightKind.TRAP);
-  assert.equal(insight.verb, 'se lever');
 });
 
 test('verdict de fin de partie', () => {
@@ -118,7 +116,7 @@ test('succès : paliers franchis détectés après une partie', () => {
   const profile = PlayerProfile.empty();
   const before = evaluateAchievements(AchievementFacts.collect(profile, bank));
   assert.equal(earnedSteps(before), 0);
-  assert.equal(totalSteps(before), 46 + Conjugo.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
+  assert.equal(totalSteps(before), 43 + Conjugo.HOLIDAYS.length, 'paliers visibles + un succès caché par jour de fête');
   profile.recordGame(game({ correct: 5, durationMs: 50_000 }));
   const after = evaluateAchievements(AchievementFacts.collect(profile, bank));
   const unlocked = newlyUnlocked(before, after).map(p => `${p.id}:${p.reached}`);
@@ -182,19 +180,21 @@ test('Voyageur du temps : compté sur le temps le moins réussi', () => {
   assert.equal(progressAfter('timeTraveler', series(3, { questions: allTenses, correct: 4 })).value, 0);
 });
 
-test('Polyvalent : 80 % à chaque temps, sur 10 parties d’affilée', () => {
+test('Polyvalent : 80 % cumulés à chaque temps, dès 10 réponses par temps', () => {
   const allTenses = Tense.ALL.map(t => ask('finir', t.id));
-  assert.equal(progressAfter('balanced', series(9, { questions: allTenses })).value, 0, 'moins de 10 parties');
+  assert.equal(progressAfter('balanced', series(9, { questions: allTenses })).value, 0, 'moins de 10 réponses par temps');
   assert.equal(progressAfter('balanced', series(10, { questions: allTenses })).reached, 1);
-  assert.equal(progressAfter('balanced', series(10, { questions: allTenses, correct: 4 })).reached, 0);
+  assert.equal(progressAfter('balanced', series(10, { questions: allTenses, correct: 4 })).reached, 0, 'un temps toujours raté');
+  const split = [...series(5, { questions: allTenses }), ...series(10, { questions: Array(5).fill(ask('finir')) }, 6), ...series(5, { questions: allTenses }, 16)];
+  assert.equal(progressAfter('balanced', split).reached, 1,
+    'des parties d’un seul temps au milieu ne font rien perdre');
 });
 
-test('Miroir, Accord parfait et Dompteur : selon le type de verbe et l’auxiliaire', () => {
-  const q = [ask('lever', 'passeCompose', 'elle'), ask('aller', 'passeCompose'), ask('être'), ask('parler', 'passeCompose'), ask('faire')];
+test('Accord parfait et Dompteur : selon le type de verbe et l’auxiliaire', () => {
+  const q = [ask('venir', 'passeCompose', 'elle'), ask('aller', 'passeCompose'), ask('être'), ask('parler', 'passeCompose'), ask('faire')];
   const games = series(3, { questions: q });
-  assert.equal(progressAfter('mirror', games).value, 3);
-  assert.equal(progressAfter('agreement', games).value, 6, 'se lever et aller, avec être');
-  assert.equal(progressAfter('tamer', games).value, 9, 'aller, être, faire');
+  assert.equal(progressAfter('agreement', games).value, 6, 'venir et aller, avec être');
+  assert.equal(progressAfter('tamer', games).value, 12, 'venir, aller, être, faire');
 });
 
 test('Pâques et les fêtes mobiles', () => {

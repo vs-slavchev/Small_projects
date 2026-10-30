@@ -1,8 +1,25 @@
 import { Conjugo } from './game.js';
 
-const { VerbBank, MemoryStorage } = Conjugo;
+const { VerbBank, MemoryStorage, VERB_DATA, VERB_TYPES } = Conjugo;
 
 export const realBank = () => VerbBank.fromData();
+
+/**
+ * Verbes absents des niveaux mais utiles pour éprouver le moteur de conjugaison :
+ * doublement de consonne, y → i, verbes en -dre et -oir, auxiliaire être, verbe pronominal.
+ */
+const ENGINE_TYPES = [{ id: 'pronominal', label: 'Pronominal', rule: 'Pronom réfléchi à tous les temps.' }];
+const ENGINE_VERBS = [
+  { infinitive: 'appeler', type: 'firstSpelling', present: ['appelle', 'appelles', 'appelle', 'appelons', 'appelez', 'appellent'], futureStem: 'appeller' },
+  { infinitive: 'nettoyer', type: 'firstSpelling', present: ['nettoie', 'nettoies', 'nettoie', 'nettoyons', 'nettoyez', 'nettoient'], futureStem: 'nettoier' },
+  { infinitive: 'partir', type: 'third', auxiliary: 'être', present: ['pars', 'pars', 'part', 'partons', 'partez', 'partent'], participle: 'parti' },
+  { infinitive: 'attendre', type: 'third', present: ['attends', 'attends', 'attend', 'attendons', 'attendez', 'attendent'], participle: 'attendu' },
+  { infinitive: 'voir', type: 'third', present: ['vois', 'vois', 'voit', 'voyons', 'voyez', 'voient'], participle: 'vu', futureStem: 'verr' },
+  { infinitive: 'lever', type: 'pronominal', pronominal: true, present: ['lève', 'lèves', 'lève', 'levons', 'levez', 'lèvent'], futureStem: 'lèver' },
+];
+
+/** Banque du jeu, complétée des verbes de test du moteur. */
+export const engineBank = () => VerbBank.fromData([...VERB_DATA, ...ENGINE_VERBS], [...VERB_TYPES, ...ENGINE_TYPES]);
 
 /** Générateur pseudo-aléatoire reproductible (mulberry32). */
 export function seededRandom(seed = 42) {
@@ -32,12 +49,10 @@ export function fakeScheduler() {
   let now = 0;
   let nextId = 1;
   const tasks = new Map();
-  const add = (fn, ms, repeat) => { const id = nextId++; tasks.set(id, { fn, at: now + ms, ms, repeat }); return id; };
+  const add = (fn, ms) => { const id = nextId++; tasks.set(id, { fn, at: now + ms }); return id; };
   return {
-    setTimeout: (fn, ms) => add(fn, ms, false),
-    setInterval: (fn, ms) => add(fn, ms, true),
+    setTimeout: add,
     clearTimeout: id => tasks.delete(id),
-    clearInterval: id => tasks.delete(id),
     get pending() { return tasks.size; },
     advance(ms) {
       const end = now + ms;
@@ -46,7 +61,7 @@ export function fakeScheduler() {
         if (!due) break;
         const [id, task] = due;
         now = task.at;
-        if (task.repeat) task.at += task.ms; else tasks.delete(id);
+        tasks.delete(id);
         task.fn();
       }
       now = end;

@@ -1,18 +1,44 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { realBank } from './helpers.js';
+import { realBank, engineBank } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const { Tense, Person, Question, VerbBank, VERB_DATA, VERB_TYPES, DomainError } = Conjugo;
 
-const bank = realBank();
+
+const bank = engineBank();
 const form = (infinitive, tense, person) => bank.verb(infinitive).conjugate(tense, person).display;
 const { PRESENT, IMPERFECT, PASSE_COMPOSE, FUTUR_PROCHE, FUTUR_SIMPLE } = Tense;
 const { JE, TU, IL, ELLE, NOUS, VOUS, ILS, ELLES } = Person;
 
 test('chaque type de verbe a au moins un exemple', () => {
-  for (const type of bank.types) assert.ok(bank.verbs.some(v => v.type === type), type.label);
-  assert.equal(bank.types.length, VERB_TYPES.length);
+  const game = realBank();
+  for (const type of game.types) assert.ok(game.verbs.some(v => v.type === type), type.label);
+  assert.equal(game.types.length, VERB_TYPES.length);
+});
+
+test('six cases de personne : il, elle et on partagent la leur, ils et elles aussi', () => {
+  assert.equal(Person.SLOTS.length, 6);
+  assert.deepEqual(Person.SLOTS.map(slot => slot.map(p => p.subject).join('/')), ['je', 'tu', 'il/elle/on', 'nous', 'vous', 'ils/elles']);
+  assert.equal(Person.of('on'), Person.ON);
+  assert.equal(Person.of('personne'), undefined);
+});
+
+test('« on » : la forme de il, et tout accord accepté avec être', () => {
+  assert.equal(form('parler', PRESENT, Person.ON), 'on parle');
+  assert.equal(form('finir', FUTUR_SIMPLE, Person.ON), 'on finira');
+  assert.equal(form('aller', PASSE_COMPOSE, Person.ON), 'on est allé(e)(s)');
+  const c = bank.verb('aller').conjugate(PASSE_COMPOSE, Person.ON);
+  for (const input of ['on est allé', 'on est allée', 'on est allés', 'on est allées']) assert.ok(c.check(input).correct, input);
+  assert.equal(form('lever', PRESENT, Person.ON), 'on se lève');
+});
+
+test('vouloir et devoir', () => {
+  assert.equal(form('vouloir', PRESENT, ILS), 'ils veulent');
+  assert.equal(form('vouloir', FUTUR_SIMPLE, JE), 'je voudrai');
+  assert.equal(form('devoir', PRESENT, NOUS), 'nous devons');
+  assert.equal(form('devoir', PASSE_COMPOSE, ELLE), 'elle a dû');
+  assert.equal(form('devoir', FUTUR_SIMPLE, TU), 'tu devras');
 });
 
 test('1er et 2e groupes réguliers : formes déduites de l’infinitif', () => {
@@ -107,7 +133,7 @@ test('données invalides refusées au chargement', () => {
   assert.throws(() => VerbBank.fromData([...VERB_DATA, VERB_DATA[0]]), /double/);
   assert.throws(() => VerbBank.fromData([{ infinitive: 'tenir', type: 'third' }]), DomainError);
   assert.throws(() => VerbBank.fromData([{ infinitive: 'x', type: 'inconnu' }]), /type inconnu/);
-  assert.throws(() => VerbBank.fromData(VERB_DATA.filter(v => v.type !== 'pronominal')), /Aucun verbe/);
+  assert.throws(() => VerbBank.fromData(VERB_DATA.filter(v => v.type !== 'auxiliary')), /Aucun verbe/);
 });
 
 test('une question calcule sa forme attendue', () => {

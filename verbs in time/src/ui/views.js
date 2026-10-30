@@ -9,9 +9,9 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, COUNTDOWN_SECONDS, Tense, dayKey, PROGRESS_UNLOCK_GAMES,
-  escapeHtml: esc, plural, formatClock, formatSeconds, shortDate, relativeDay, fitFontSize, diffChars, similarity,
-  VERDICT_TEXT, trendText, insightText, diagnosisText, achievementStatus, unlockedLabel,
+  AppState, AppEvent, Destination, HomeState, frenchList,
+  escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
+  VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
@@ -21,8 +21,8 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function tabbar(active) {
   const tab = (to, icon, label) =>
-    `<button class="tab${active === to ? ' on' : ''}" data-event="${AppEvent.NAVIGATE}" data-to="${to}"><span class="ico">${icon}</span>${label}</button>`;
-  return `<nav class="tabbar">${tab(Destination.HOME, '▶', 'Jouer')}${tab(Destination.PROGRESS, '📈', 'Progrès')}${tab(Destination.ACHIEVEMENTS, '🏅', 'Succès')}</nav>`;
+    `<button class="tab${active === to ? ' on' : ''}" data-event="${AppEvent.NAVIGATE}" data-to="${to}"${active === to ? ' aria-current="page"' : ''}><span class="ico">${icon}</span>${label}</button>`;
+  return `<nav class="tabbar">${tab(Destination.HOME, ICON.play, 'Jouer')}${tab(Destination.JOURNEY, ICON.chart, 'Progrès')}${tab(Destination.ACHIEVEMENTS, ICON.medal, 'Succès')}</nav>`;
 }
 
 function topBar(session, now, freshIndex) {
@@ -58,95 +58,413 @@ const questionLabel = question =>
 
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
 
-/* ---------- Accueil (avec ou sans compte à rebours) ---------- */
+/* ---------- Premier lancement ---------- */
 
-/** Rappel des réglages quand ils restreignent l'entraînement. */
-function focusLine({ tenses, types }) {
-  const on = list => list.filter(item => item.on);
-  if (on(tenses).length === tenses.length && on(types).length === types.length) return '';
-  const parts = [
-    on(tenses).length < tenses.length && on(tenses).map(t => t.tense.label).join(', '),
-    on(types).length < types.length && on(types).map(t => t.type.label).join(', '),
-  ].filter(Boolean);
-  return `<button class="focus-line" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.SETTINGS}">🎯 ${esc(parts.join(' · '))}</button>`;
+/** Aperçu animé du jeu : « parlons » s'écrit lettre à lettre puis s'efface, en boucle. */
+const DEMO_WORD = 'parlons';
+const DEMO_TICK_MS = 130;
+const demoFrames = (() => {
+  const frames = [['', 6]];
+  for (let i = 1; i <= DEMO_WORD.length; i++) frames.push([DEMO_WORD.slice(0, i), 1]);
+  frames.push([DEMO_WORD, 14]);
+  for (let i = DEMO_WORD.length - 1; i >= 0; i--) frames.push([DEMO_WORD.slice(0, i), 1]);
+  return frames;
+})();
+
+const onboarding = {
+  screen: 'onboarding',
+  render() {
+    return `<div class="screen onb">
+      <div class="top-safe"></div>
+      <div class="onb-body">
+        <div class="logo">verbes <span>&amp;</span> temps</div>
+        <div class="center-col">
+          <div class="demo" role="img" aria-label="Aperçu du jeu : on tape la forme conjuguée d’un verbe">
+            <div class="demo-card" aria-hidden="true">
+              <span class="chip tense pill">présent</span>
+              <span class="person">nous …</span>
+              <span class="demo-word">parler</span>
+              <span class="en">to speak</span>
+            </div>
+            <div class="demo-row" aria-hidden="true">
+              <div class="demo-input"><span class="demo-subject">nous&nbsp;</span><span id="demo-typed"></span><span class="caret"></span></div>
+              <span class="demo-submit">Valider</span>
+            </div>
+          </div>
+          <div class="onb-copy">
+            <h1>La conjugaison, un petit pas par jour</h1>
+            <p>Des parties de 2 minutes, toujours à votre niveau.</p>
+          </div>
+        </div>
+        <div class="onb-actions">
+          <button class="cta press" data-event="${AppEvent.CHOOSE_BEGINNER}">Je débute</button>
+          <button class="cta outline press" data-event="${AppEvent.START_PLACEMENT}"><span>Je connais déjà un peu</span><small>Test de niveau · ≈ 3 min</small></button>
+        </div>
+      </div>
+    </div>`;
+  },
+  mounted(root) {
+    const el = root.querySelector('#demo-typed');
+    if (!el) return undefined;
+    let frame = 0;
+    let hold = 0;
+    const id = setInterval(() => {
+      if (++hold < demoFrames[frame][1]) return;
+      frame = (frame + 1) % demoFrames.length;
+      hold = 0;
+      el.textContent = demoFrames[frame][0];
+    }, DEMO_TICK_MS);
+    return () => clearInterval(id);
+  },
+};
+
+/* ---------- Test de placement ---------- */
+
+/** Carte d'une question : temps, sujet (et expression de temps), verbe à conjuguer. */
+function questionCard({ verb, tense, person, marker }, extraClass = '') {
+  return `<div class="card${extraClass}">
+    <div class="chip tense pill">${esc(tense.label)}</div>
+    <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
+    <div class="word" style="--word-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
+    <div class="en">${esc(verb.translation)}</div>
+  </div>`;
 }
 
-const countdownFill = remaining => `${((COUNTDOWN_SECONDS - remaining + 1) / COUNTDOWN_SECONDS) * 100}%`;
+/** Champ de réponse, réglé pour un clavier de téléphone (ni correction ni majuscule automatiques). */
+function answerInput(id, { placeholder = '', value = '', disabled = false } = {}) {
+  return `<input id="${id}" class="answer-input" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+    enterkeyhint="done" placeholder="${esc(placeholder)}" value="${esc(value)}"${disabled ? ' disabled' : ''}>`;
+}
+
+const placement = {
+  screen: 'placement',
+  render({ context }) {
+    const test = context.placement;
+    const q = test.currentQuestion;
+    const length = test.plannedLength;
+    const segments = Array.from({ length }, (_, i) =>
+      `<div class="seg ${i < test.position - 1 ? 'done' : i === test.position - 1 ? 'cur' : ''}"></div>`).join('');
+    return `<div class="screen play">
+      <div class="top-safe"></div>
+      <div class="play-top">
+        <div class="bar-row">
+          <button class="close" data-event="${AppEvent.QUIT}" aria-label="Quitter le test">✕</button>
+          <div class="segs neutral" style="grid-template-columns:repeat(${length},1fr)" aria-hidden="true">${segments}</div>
+        </div>
+        <div class="sub-row"><span class="count">Test de placement · question ${test.position}</span></div>
+      </div>
+      <div class="card-wrap">${questionCard(q)}</div>
+      <form class="answer-form" autocomplete="off" data-event="${AppEvent.PLACEMENT_ANSWER}">
+        <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(q.person.subject)} »</label>
+        <div class="input-row">
+          ${answerInput('placement-answer', { placeholder: `${q.person.subject} …` })}
+          <button class="submit press" type="submit">Valider</button>
+        </div>
+        <button class="link-btn" type="button" data-event="${AppEvent.PLACEMENT_SKIP}">Je ne sais pas</button>
+      </form>
+    </div>`;
+  },
+  mounted(root) {
+    root.querySelector('#placement-answer')?.focus();
+  },
+};
+
+/* ---------- Résultat du placement et niveau terminé ---------- */
+
+const SPARKS_SVG = `<svg class="cele-sparks" viewBox="0 0 220 200" aria-hidden="true">
+  <path d="M30 40l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="var(--amber)"/>
+  <path d="M190 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="var(--amber-2)"/>
+  <path d="M196 150l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="var(--amber)"/>
+  <path d="M22 150l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z" fill="var(--amber-2)"/>
+  <circle cx="168" cy="92" r="3" fill="var(--amber)"/><circle cx="52" cy="104" r="3" fill="var(--amber)"/>
+</svg>`;
+
+/** Écran de fête sur fond nuit : anneau du niveau (plein, ou pointillé s'il commence), titre, phrase et un seul bouton. */
+function celebration({ number, full, title, text, button, extra = '', home = false }) {
+  return `<div class="screen cele">
+    <div class="top-safe"></div>
+    <div class="cele-body">
+      <div class="cele-center">
+        <div class="cele-ring">
+          ${SPARKS_SVG}
+          <svg class="ring" viewBox="0 0 220 200" aria-hidden="true">
+            <circle cx="110" cy="100" r="80" class="ring-track"/>
+            <circle cx="110" cy="100" r="80" class="${full ? 'ring-full' : 'ring-dashed'}"/>
+          </svg>
+          <div class="cele-num"><span>Niveau</span><b>${number}</b></div>
+        </div>
+        <div class="cele-copy"><h1>${title}</h1><p>${text}</p></div>
+        ${extra}
+      </div>
+      <div class="cele-actions">
+        <button class="cta amber press" data-event="${AppEvent.START}">${button}</button>
+        ${home ? `<button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+const placementResult = {
+  screen: 'placementResult',
+  theme: '--night',
+  render({ context }) {
+    const { number } = context.startLevel;
+    const known = number - 1;
+    const text = known === 0 ? 'On commence par les bases,<br>à votre rythme.'
+      : known === 1 ? 'Vous connaissez déjà bien le premier niveau.<br>Inutile de le refaire.'
+        : `Vous connaissez déjà bien les ${known} premiers niveaux.<br>Inutile de les refaire.`;
+    return celebration({ number, full: false, title: 'Votre point de départ est trouvé&nbsp;!', text, button: `Jouer le niveau ${number}` });
+  },
+};
+
+/** Succès débloqués pendant la partie, en pastilles. */
+const unlockedChips = list => (list.length
+  ? `<div class="re-unlocked">${list.map(p => `<span>${p.emoji} ${esc(unlockedLabel(p))}</span>`).join('')}</div>`
+  : '');
+
+const NUMBER_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
+  'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf', 'vingt', 'vingt et un', 'vingt-deux'];
+
+const levelUp = {
+  screen: 'levelUp',
+  theme: '--night',
+  render({ context }) {
+    const { level, unlocked } = context.summary;
+    const { from, to } = level.span;
+    const title = `${esc(level.verbList)} ${level.verbs.length > 1 ? 'sont' : 'est'} à vous&nbsp;!`;
+    const { levelsPlayed } = context.summary;
+    const count = levelsPlayed === 1 ? 'd’un' : `de ${NUMBER_WORDS[levelsPlayed] ?? levelsPlayed}`;
+    const next = context.summary.nextLevel;
+    return celebration({
+      number: level.number, full: true, title,
+      text: `De <i>${esc(from)}</i> à <i>${esc(to)}</i>.<br>Et ${count}&nbsp;!`,
+      button: next > level.number ? `Jouer le niveau ${next}` : 'Rejouer',
+      extra: unlockedChips(unlocked),
+      home: true,
+    });
+  },
+};
+
+/* ---------- Accueil ---------- */
+
+const ICON = Object.freeze({
+  flame: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 1.5 1 2.5 2 3 3 .5-2 0-5 0-7z"/></svg>',
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 4.5v15l12-7.5z"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
+  medal: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M9 13.5L8 21l4-2 4 2-1-7.5"/></svg>',
+  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
+  soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
+  soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
+});
+
+const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
+const partiesText = n => `${n} ${plural(n, 'partie')}`;
+
+function soundButton(on) {
+  return `<button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(on)}">${on ? ICON.soundOn : ICON.soundOff}</button>`;
+}
+
+/** En-tête commun : logo, son, et la série (ou le record, quand la série est rompue). */
+function homeHeader(home, soundEnabled) {
+  const away = home.isReturning;
+  const value = away ? home.bestStreak : home.streak;
+  const pill = value
+    ? `<span class="pill${away ? ' muted' : ''}">${ICON.flame}${away ? 'Record ' : ''}${value} ${plural(value, 'jour')}</span>`
+    : '';
+  return `<div class="home-head">
+    <div class="logo">verbes <span>&amp;</span> temps</div>
+    <div class="head-right">${soundButton(soundEnabled)}${pill}</div>
+  </div>`;
+}
+
+/** Phrase d'accroche propre à chaque état de l'accueil. */
+function homeHeadline(home) {
+  const amber = text => `<span class="hl">${text}</span>`;
+  switch (home.state) {
+    case HomeState.PLAYED_TODAY: {
+      const done = home.completedToday;
+      if (done.length) {
+        const what = `${done.length === 1 ? 'le niveau' : 'les niveaux'} ${frenchList(done.map(String))}`;
+        // Le gain du niveau en cours s'ajoute, sauf si c'est le niveau terminé (le dernier, gardé pour réviser).
+        const more = home.todayPercent > 0 && !done.includes(home.level.number)
+          ? `<p>Et déjà +${home.todayPercent}&nbsp;% dans le niveau ${home.level.number}.</p>` : '';
+        return `<span class="eyebrow">Aujourd'hui, vous avez terminé</span><h1>${amber(what)}</h1>${more}`;
+      }
+      return home.todayPercent > 0
+        ? `<span class="eyebrow">Aujourd'hui, vous avez avancé de</span><h1>${amber(`+${home.todayPercent}&nbsp;%`)}</h1>`
+        : `<span class="eyebrow">Vous avez joué aujourd'hui.</span><h1>Chaque partie compte.</h1>`;
+    }
+    case HomeState.NOT_YET_TODAY: {
+      const streak = home.streak
+        ? `et votre série passe à ${home.streak + 1} ${plural(home.streak + 1, 'jour')}.`
+        : 'et votre série commence.';
+      return home.isLevelComplete
+        ? `<h1>Tout est acquis.</h1><p>Une partie de révision garde les formes en mémoire, ${streak}</p>`
+        : `<h1>Une partie aujourd'hui, c'est environ ${amber(`+${home.nextGamePercent}&nbsp;%`)}</h1><p>en 2 minutes, ${streak}</p>`;
+    }
+    case HomeState.BACK:
+      return `<span class="eyebrow">Content de vous revoir&nbsp;!</span><h1>Rien n'est perdu.</h1>
+        <p>${home.percent ? `Vos ${home.percent}&nbsp;% vous attendaient bien au chaud.` : 'Votre niveau vous attendait bien au chaud.'}</p>`;
+    default:
+      return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
+  }
+}
+
+/** Carte sombre : les formes déjà acquises (masquée tant qu'il n'y en a aucune). */
+function achievedCard(home) {
+  if (!home.formsMastered) return '';
+  const done = home.levelsCompleted;
+  const sub = {
+    [HomeState.PLAYED_TODAY]: home.formsToday ? `+${home.formsToday} aujourd'hui` : '',
+    [HomeState.NOT_YET_TODAY]: home.formsYesterday ? `+${home.formsYesterday} hier` : '',
+    [HomeState.BACK]: plural(home.formsMastered, 'intacte', 'intactes'),
+    [HomeState.AWAY]: done ? `${done} ${plural(done, 'niveau terminé', 'niveaux terminés')}` : '',
+  }[home.state];
+  return `<div class="achieved">
+    <span class="eyebrow">Vous savez ${home.isReturning ? 'toujours' : 'déjà'} conjuguer</span>
+    <div class="achieved-row">
+      <span class="achieved-num">${home.formsMastered}</span>
+      <span class="achieved-unit"><b>${plural(home.formsMastered, 'forme')}</b>${sub ? `<em>${sub}</em>` : ''}</span>
+    </div>
+  </div>`;
+}
+
+/**
+ * Barre du niveau : acquis avant aujourd'hui, puis le gain du jour (plein, ambre)
+ * ou celui qu'apporterait une prochaine partie (pointillé).
+ * @param {{ percent: number, today?: number, next?: number }} parts @param {{ dark?: boolean }} [options]
+ */
+function levelBar({ percent, today = 0, next = 0 }, { dark = false, big = false, label } = {}) {
+  const gained = Math.max(0, Math.min(today, percent));
+  const slice = gained ? `<div class="lb-today" style="width:${gained}%"></div>` : next ? `<div class="lb-next" style="width:${next}%"></div>` : '';
+  label ??= gained ? `Niveau rempli à ${percent} %, dont ${gained} % aujourd'hui`
+    : next ? `Niveau rempli à ${percent} %, environ ${Math.min(100, percent + next)} % après une partie` : `Niveau rempli à ${percent} %`;
+  const cls = ['level-bar', dark && 'dark', big && 'big'].filter(Boolean).join(' ');
+  return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${percent - gained}%"></div>${slice}</div>`;
+}
+
+/** En-tête d'une carte de niveau : petite ligne, verbes du niveau (et une précision), pourcentage. */
+function levelHead(eyebrow, level, percent, extra = '') {
+  return `<div class="lc-head">
+    <div class="lc-name"><span class="eyebrow">${eyebrow}</span><b>${esc(level.title)}</b>${extra}</div>
+    <span class="lc-pct">${percent}<small>%</small></span>
+  </div>`;
+}
+
+/** Parts de la barre du niveau sur l'accueil : le gain du jour s'il y en a un, sinon la prochaine partie. */
+function homeBarParts(home) {
+  const played = home.state === HomeState.PLAYED_TODAY && home.todayPercent > 0;
+  return { percent: home.percent, today: played ? home.todayPercent : 0, next: played || home.isLevelComplete ? 0 : home.nextGamePercent };
+}
+
+function levelCard(home) {
+  const { level } = home;
+  const parties = partiesText(home.gamesLeft);
+  const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
+  const next = `≈ +${home.nextGamePercent}&nbsp;%`;
+  const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
+    [HomeState.PLAYED_TODAY]: home.todayPercent > 0
+      ? `${badge(`+${home.todayPercent}&nbsp;% aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
+      : `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
+    [HomeState.NOT_YET_TODAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">≈ ${parties} et il est à vous</span>`,
+    [HomeState.BACK]: badge(`Une partie suffit pour repartir&nbsp;: ${next}`, true),
+    [HomeState.AWAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
+  }[home.state];
+  return `<div class="level-card">
+    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.percent)}
+    ${levelBar(homeBarParts(home))}
+    <div class="lc-foot">${footer}</div>
+  </div>`;
+}
+
+/** Semaine en barres : gain de chaque jour ; aujourd'hui en ambre (joué) ou en pointillé (à jouer). */
+function weekChart(home) {
+  const bars = home.week.map((d, i) => {
+    const pending = d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGamePercent > 0;
+    let cls = 'wk-bar';
+    let label = '';
+    let height = 4;
+    if (pending) {
+      cls += ' next';
+      label = `+${home.nextGamePercent}&nbsp;?`;
+      height = Math.max(8, Math.min(64, home.nextGamePercent * 2.4));
+    } else if (d.isFuture) {
+      cls += ' future';
+    } else if (d.completed.length) {
+      // Coche par niveau terminé, puis le gain déjà fait dans le niveau suivant.
+      label = `${'✓'.repeat(d.completed.length)}${d.gainPercent ? `&nbsp;+${d.gainPercent}` : ''}`;
+      height = 64;
+      cls += d.isToday ? ' today' : ' gain';
+    } else {
+      label = d.gainPercent ? `+${d.gainPercent}` : '0';
+      height = Math.max(4, Math.min(64, d.gainPercent * 2.4));
+      cls += d.isToday ? ' today' : d.gainPercent ? ' gain' : ' zero';
+    }
+    return `<div class="wk-day${d.isToday ? ' is-today' : ''}"><span class="wk-label">${label}</span><div class="${cls}" style="height:${height}px"></div><span class="wk-name">${WEEKDAYS[i]}</span></div>`;
+  }).join('');
+  const note = home.state === HomeState.BACK && home.bestStreak
+    ? `<span class="wk-note">Une nouvelle série commence aujourd'hui. Votre record&nbsp;: ${home.bestStreak} ${plural(home.bestStreak, 'jour')}.</span>`
+    : '';
+  return `<div class="week-chart">
+    <span class="section-label">Cette semaine</span>
+    <div class="wk-bars" role="img" aria-label="Gain de chaque jour de la semaine, en pourcentage du niveau ; coche : niveau terminé ce jour-là">${bars}</div>
+    ${note}
+  </div>`;
+}
+
+/** Après une longue absence : les derniers niveaux terminés, puis le niveau en cours. */
+function journeyDots(home) {
+  const done = home.journey.slice(0, 5).reverse();
+  const dots = [
+    ...done.map(h => `<span class="jd done" title="Niveau ${h.level.number}">${ICON.check}</span><span class="jd-link"></span>`),
+    `<span class="jd current">${home.level.number}</span>`,
+  ].join('');
+  return `<div class="week-chart">
+    <span class="section-label">Votre parcours</span>
+    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours à ${home.percent} %`}">${dots}</div>
+  </div>`;
+}
+
+/** Bouton de l'accueil selon son état : libellé, et précision (`null` : la longueur de la partie). */
+const PLAY_CTA = Object.freeze({
+  [HomeState.PLAYED_TODAY]: ['Encore une', null],
+  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', null],
+  [HomeState.BACK]: ['Reprendre', null],
+  [HomeState.AWAY]: ['Reprendre', null],
+});
+
+/** Bouton de partie : libellé, précision éventuelle, et ce qu'une partie rapporte. */
+function playButton(label, sub, percent) {
+  return `<button class="play-btn press" data-event="${AppEvent.START}">
+    <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
+    ${percent > 0 ? `<span class="pb-tag">≈ +${percent}&nbsp;%</span>` : ''}
+  </button>`;
+}
 
 const home = {
   screen: 'home',
-  render({ state, context }) {
-    const { streak, playedToday, week } = context.home;
-    const days = week.map((d, i) => {
-      const cls = ['day', d.played && 'done', d.isToday && `today ${d.played ? '' : 'todo'}`, d.isFuture && 'future'].filter(Boolean).join(' ');
-      return `<div class="${cls}"><div class="dot" style="animation-delay:${i * 40}ms">${d.played ? '✓' : d.isToday ? '·' : ''}</div>${WEEKDAYS[i]}</div>`;
-    }).join('');
-    const message = playedToday
-      ? `<div class="streak-msg ok">Série prolongée aujourd'hui.</div>`
-      : streak
-        ? `<div class="streak-msg">Joue aujourd'hui pour passer à ${streak + 1}.</div>`
-        : `<div class="streak-msg">Joue une partie pour lancer ta série.</div>`;
-    const startButton = state === AppState.COUNTDOWN
-      ? `<div class="start-wrap">
-          <button class="big-btn cd press" data-event="${AppEvent.START}">
-            <div class="cd-fill"></div>
-            <span class="cd-main">Nouvelle partie</span>
-            <span class="cd-sub">Démarre dans <b id="cd">${context.countdown}</b> s</span>
-          </button>
-          <button class="link-btn" data-event="${AppEvent.CANCEL}">Pas maintenant</button>
-        </div>`
-      : `<button class="big-btn press" data-event="${AppEvent.START}">Nouvelle partie</button>`;
+  render({ context }) {
+    const h = context.home;
+    const [label, sub] = PLAY_CTA[h.state];
+    const length = `${context.gameLength} questions · ≈ 2 min`;
     return `<div class="screen home">
       <div class="top-safe"></div>
       <div class="home-body">
-        <div class="home-head">
-          <div class="logo">verbes <span>&amp;</span> temps</div>
-          <div class="head-right">
-            <button class="icon-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.SETTINGS}" aria-label="Réglages : temps et verbes à travailler">⚙️</button>
-            <button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(context.soundEnabled)}">${context.soundEnabled ? '🔊' : '🔇'}</button>
-            <div class="pill"><span>🔥</span>${streak} ${plural(streak, 'jour')}</div>
-          </div>
-        </div>
+        ${homeHeader(h, context.soundEnabled)}
+        <div class="headline">${homeHeadline(h)}</div>
+        ${achievedCard(h)}
+        ${levelCard(h)}
+        ${h.state === HomeState.AWAY ? journeyDots(h) : weekChart(h)}
         <div class="grow"></div>
-        <div class="streak-hero">
-          <div class="flame${streak ? '' : ' off'}">🔥</div>
-          <div class="streak-num">${streak}</div>
-          <div class="streak-lbl">${plural(streak, 'jour')} d'affilée</div>
-          ${message}
-        </div>
-        <div class="week">${days}</div>
-        ${focusLine(context.settings)}
-        <div class="grow"></div>
-        ${startButton}
-        <div style="height:4px"></div>
+        ${playButton(label, sub ?? length, h.nextGamePercent)}
       </div>
       ${tabbar(Destination.HOME)}
     </div>`;
   },
-  patch(root, { state, context }) {
+  patch(root, { context }) {
     const sound = root.querySelector('#sound');
-    if (sound) {
-      sound.textContent = context.soundEnabled ? '🔊' : '🔇';
-      sound.setAttribute('aria-label', soundLabel(context.soundEnabled));
-    }
-    if (state === AppState.COUNTDOWN) {
-      const n = root.querySelector('#cd');
-      const fill = root.querySelector('.cd-fill');
-      if (!n || !fill) return;
-      if (n.textContent !== String(context.countdown)) {
-        n.textContent = context.countdown;
-        n.classList.remove('tick');
-        void n.offsetWidth; // relance l'animation
-        n.classList.add('tick');
-      }
-      fill.style.width = countdownFill(context.countdown);
-    }
-  },
-  mounted(root, { state, context }) {
-    if (state !== AppState.COUNTDOWN) return;
-    const fill = root.querySelector('.cd-fill');
-    // Deux images plus tard, pour que la transition CSS parte de 0.
-    requestAnimationFrame(() => requestAnimationFrame(() => { if (fill) fill.style.width = countdownFill(context.countdown); }));
+    if (sound) sound.outerHTML = soundButton(context.soundEnabled);
   },
 };
 
@@ -165,7 +483,7 @@ const question = {
   render({ state, context }, env) {
     const { session } = context;
     const answer = session.lastAnswer;
-    const { verb, tense, person, marker } = session.currentQuestion;
+    const { verb, tense, person } = session.currentQuestion;
     const revealing = state === AppState.REVEALING;
     const combo = session.combo;
     const result = revealing ? (answer.correct ? ' good' : ' bad') : '';
@@ -179,19 +497,11 @@ const question = {
           <div class="combo${combo >= 2 ? ' bump' : ' hidden'}${combo >= 5 ? ' hot' : ''}"><span class="fl">🔥</span>Combo × ${combo}</div>
         </div>
       </div>
-      <div class="card-wrap">
-        <div class="card${result}">
-          <div class="chip tense pill">${esc(tense.label)}</div>
-          <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
-          <div class="word" style="--word-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
-          <div class="en">${esc(verb.translation)}</div>
-        </div>
-      </div>
-      <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off">
+      <div class="card-wrap">${questionCard(session.currentQuestion, result)}</div>
+      <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off" data-event="${AppEvent.ANSWER}">
         <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
         <div class="input-row">
-          <input id="answer" name="answer" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-            enterkeyhint="done" placeholder="${esc(person.subject)} …" value="${revealing ? esc(answer.given) : ''}"${revealing ? ' disabled' : ''}>
+          ${answerInput('answer', { placeholder: `${person.subject} …`, value: revealing ? answer.given : '', disabled: revealing })}
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
       </form>
@@ -224,10 +534,10 @@ function answerDiff(given, expected) {
 function retypeBlock({ retyped, retypeTried }) {
   const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
   // Une fois la forme recopiée, le champ et son bouton ne servent plus : seul le message reste.
-  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off">
+  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
     ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
     <div class="input-row">
-      <input id="retype" type="text" lang="fr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      ${answerInput('retype')}
       <button class="submit press" type="submit">OK</button>
     </div>`}
     <div class="retype-status" aria-live="polite">${status}</div>
@@ -315,154 +625,82 @@ const feedback = {
 
 const results = {
   screen: 'results',
-  theme: '--night',
   render({ context }) {
-    const { record, verdict, unlocked, missed, streak } = context.summary;
-    const unlockedHtml = unlocked.length
-      ? `<div style="display:flex;flex-direction:column;gap:10px">
-          <div class="kicker">Débloqué</div>
-          ${unlocked.map((p, i) => {
-            const [bg, rim] = TIER_COLORS[p.tier];
-            return `<div class="unlock" style="animation-delay:${600 + i * 150}ms">
-              <div class="em" style="background:${bg};box-shadow:inset 0 -3px 0 ${rim}">${p.emoji}</div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div class="n">${esc(unlockedLabel(p))}</div><div class="d">${esc(p.reachedGoal)}</div></div>
-            </div>`;
-          }).join('')}
+    const s = context.summary;
+    const { record, level } = s;
+    const gain = s.gainPercent;
+    const hero = gain > 0
+      ? `<span class="re-hero">+${gain}<small>%</small></span>`
+      : `<span class="re-hero">${s.percentAfter}<small>%</small></span>`;
+    const sub = gain > 0 ? `en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}` : `du niveau. ${VERDICT_TEXT[s.verdict]}`;
+    const dots = record.answers.map(a => `<i class="${a.correct ? 'ok' : 'ko'}"></i>`).join('');
+    const mastered = s.newlyMastered;
+    const masteredRow = mastered.length
+      ? `<div class="re-sep"></div>
+        <div class="re-new">
+          <span class="re-star">${ICON.star}</span>
+          <span><small>${mastered.length > 1 ? 'Nouvelles formes maîtrisées' : 'Nouvelle forme maîtrisée'}</small>
+          <b>${mastered.map(q => esc(q.expected.display)).join(', ')}</b></span>
         </div>`
       : '';
-    const review = missed.length
-      ? `<div class="review">${missed.map(({ question: q, given }, i) => `<div class="miss" style="animation-delay:${400 + i * 60}ms">
-          <span class="q">${questionLabel(q)}</span>
-          <b>${segmented(q.expected.segments)}</b>
-          <s>${esc(given)}</s>
-        </div>`).join('')}</div>`
-      : '<div class="review-none">Rien à revoir. Tout est juste.</div>';
+    const unlocked = unlockedChips(s.unlocked);
     return `<div class="screen end">
       <div class="top-safe"></div>
       <div class="end-body">
-        <div class="kicker">Partie terminée</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div class="score" id="score">0<small>%</small></div>
-          <div class="score-msg">${record.correctCount} sur ${record.total}. ${VERDICT_TEXT[verdict]}</div>
+        <div class="center-col">
+          <div class="re-head">
+            <span class="re-level">Niveau ${level.number} · ${esc(level.title)}</span>
+            ${hero}
+            <span class="re-sub">${sub}</span>
+          </div>
+          <div class="re-progress">
+            ${levelBar({ percent: s.percentAfter, today: gain }, { big: true, label: `Niveau passé de ${s.percentBefore} % à ${s.percentAfter} %` })}
+            <div class="re-legend"><span>${s.percentBefore} % → <b>${s.percentAfter} %</b></span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
+          </div>
+          <div class="re-card">
+            <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
+              <span class="re-dots" role="img" aria-label="${record.answers.map(a => (a.correct ? 'juste' : 'fausse')).join(', ')}">${dots}</span>
+            </div>
+            ${masteredRow}
+          </div>
+          ${unlocked}
         </div>
-        <div class="stats">
-          <div class="stat" style="animation-delay:150ms"><span>Temps</span><span>${formatClock(record.durationMs)}</span></div>
-          <div class="stat" style="animation-delay:220ms"><span>Combo max</span><span>🔥 ${record.maxCombo}</span></div>
-          <div class="stat" style="animation-delay:290ms"><span>Série</span><span>${streak} j</span></div>
-        </div>
-        ${unlockedHtml}
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div class="kicker">À revoir</div>
-          ${review}
-        </div>
-        <div class="grow"></div>
         <div class="end-actions">
-          <button class="replay press" data-event="${AppEvent.START}">Rejouer</button>
-          <button class="ghost" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.PROGRESS}">Voir ma progression</button>
+          ${playButton('Encore une', '', s.nextGamePercent)}
+          <button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>
         </div>
       </div>
     </div>`;
   },
-  mounted(root, { context }) {
-    const el = root.querySelector('#score');
-    const target = context.summary.record.accuracy;
-    const t0 = performance.now();
-    const frame = t => {
-      const p = Math.min(1, (t - t0) / 900);
-      if (el) el.firstChild.nodeValue = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-  },
 };
 
-/* ---------- Progrès ---------- */
+/* ---------- Progrès : le parcours ---------- */
 
-function chart(timeline, today) {
-  const n = timeline.length;
-  const x = i => 30 + i * 24;
-  const bars = timeline.map((g, i) => {
-    const h = Math.max(2, g.accuracy * 1.5);
-    const opacity = n === 1 ? 1 : (0.35 + (0.65 * i) / (n - 1)).toFixed(2);
-    return `<rect class="bar" x="${x(i)}" y="${170 - h}" width="14" height="${h}" rx="3" opacity="${opacity}" style="animation-delay:${i * 45}ms"><title>${shortDate(g.endedAt)} · ${g.accuracy} %</title></rect>`;
-  }).join('');
-  const mid = Math.floor((n - 1) / 2);
-  const last = timeline[n - 1].endedAt;
-  const lastLabel = dayKey(last) === dayKey(today) ? 'auj.' : shortDate(last);
-  const labels = `<text x="${x(0)}" y="190">${shortDate(timeline[0].endedAt)}</text>`
-    + (n >= 5 ? `<text x="${x(mid) + 7}" y="190" text-anchor="middle">${shortDate(timeline[mid].endedAt)}</text>` : '')
-    + `<text x="${x(n - 1) + 14}" y="190" text-anchor="end">${lastLabel}</text>`;
-  return `<svg class="chart" viewBox="0 0 320 200" role="img" aria-label="Pourcentage de réussite des dernières parties">
-    <g class="grid"><line x1="24" y1="20" x2="316" y2="20"/><line x1="24" y1="70" x2="316" y2="70"/><line x1="24" y1="120" x2="316" y2="120"/><line x1="24" y1="170" x2="316" y2="170"/></g>
-    <g class="axis"><text x="0" y="23">100</text><text x="6" y="73">66</text><text x="6" y="123">33</text><text x="12" y="173">0</text></g>
-    <g class="bars">${bars}</g>
-    <g class="axis">${labels}</g>
-  </svg>`;
-}
-
-const TENSE_ABBR = Object.freeze({ present: 'Prés.', imperfect: 'Imp.', passeCompose: 'P. c.', futurProche: 'F. pr.', futurSimple: 'F. s.' });
-const MASTERY_LABEL = Object.freeze({ unseen: 'pas encore vu', weak: 'à revoir', learning: 'en cours', mastered: 'acquis' });
-
-/** Grille de maîtrise : un verbe par ligne (regroupés par type), un temps par colonne. */
-function masteryPanel(grid) {
-  const head = `<div class="mg-row mg-head"><span></span>${Tense.ALL.map(t => `<span title="${esc(t.label)}">${TENSE_ABBR[t.id]}</span>`).join('')}</div>`;
-  const groups = grid.map(({ type, verbs }) => `<div class="mg-type">${esc(type.label)}</div>
-    ${verbs.map(({ verb, levels }) => `<div class="mg-row"><span class="mg-verb">${esc(verb.label)}</span>${levels
-      .map((level, i) => `<i class="mg-cell ${level}" title="${esc(verb.label)} ${esc(Tense.ALL[i].withPreposition)} : ${MASTERY_LABEL[level]}"></i>`).join('')}</div>`).join('')}`).join('');
-  const legend = Object.entries(MASTERY_LABEL).map(([level, label]) => `<span><i class="mg-cell ${level}"></i>${label}</span>`).join('');
-  return `<div class="panel mastery">
-    <div class="panel-head"><b>Maîtrise</b><span>verbe × temps</span></div>
-    <div class="mg">${head}${groups}</div>
-    <div class="mg-legend">${legend}</div>
-  </div>`;
-}
-
-const progress = {
-  screen: 'progress',
-  render({ context }, env) {
-    const report = context.progress;
-    const today = new Date(env.now());
-    let body;
-    if (!report.isUnlocked) {
-      const firsts = report.firstAccuracies;
-      const slots = Array.from({ length: PROGRESS_UNLOCK_GAMES }, (_, i) => (i < firsts.length
-        ? `<div class="slot full" style="animation-delay:${i * 80}ms">${firsts[i]}%</div>`
-        : `<div class="slot">${i + 1}</div>`)).join('');
-      const left = report.gamesUntilUnlock;
-      body = `<div class="locked-card">
-          <div class="slots">${slots}</div>
-          <h2>${report.gameCount === 0 ? `Joue ${PROGRESS_UNLOCK_GAMES} parties pour voir ta courbe.` : `Encore ${left} ${plural(left, 'partie')} pour voir ta courbe.`}</h2>
-          <p>Chaque partie terminée apparaîtra sur la chronologie.</p>
-          <button class="mid-btn press" data-event="${AppEvent.START}">Jouer la partie ${report.gameCount + 1}</button>
-        </div>`;
-    } else {
-      const trend = report.trend;
-      const rows = report.recent.map((g, i) => `<div class="game-row" style="animation-delay:${150 + i * 50}ms">
-          <span class="p">${g.accuracy}%</span>
-          <div class="meta"><span>${relativeDay(g.endedAt, today)}</span><span>${formatClock(g.durationMs)}</span></div>
-        </div>`).join('');
-      body = `<div class="kpis">
-          <div class="kpi"><span class="k">Réussite moyenne</span><span class="v">${report.averageAccuracy} %</span><span class="s${trend.delta > 0 ? ' up' : ''}">${trendText(trend)}</span></div>
-          <div class="kpi" style="animation-delay:60ms"><span class="k">Parties</span><span class="v">${report.gameCount}</span><span class="s">${report.questionsSeen} verbes conjugués</span></div>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><b>Chronologie</b><span>% de réussite</span></div>
-          ${chart(report.timeline, today)}
-          <div class="insight">${insightText(report.insight)}</div>
-        </div>
-        <div class="games">
-          <div class="lbl">Dernières parties</div>
-          ${rows}
-        </div>`;
-    }
+const journey = {
+  screen: 'journey',
+  render({ context }) {
+    const h = context.home;
+    const { level } = h;
+    const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
+        <span class="jr-check">${ICON.check}</span>
+        <span class="jr-text"><b>${esc(entry.level.label)}</b><span>${esc(entry.level.title)}</span></span>
+        <span class="jr-num">Niveau ${entry.level.number}</span>
+      </div>`).join('');
+    const bar = { ...homeBarParts(h), next: 0 };
+    const left = h.isLevelComplete ? 'Niveau terminé.' : `Encore ≈ ${partiesText(h.gamesLeft)} et une nouvelle étape s'ouvre.`;
     return `<div class="screen">
       <div class="top-safe"></div>
-      <div class="page">
-        <div class="page-title">Progrès</div>
-        ${body}
-        ${masteryPanel(context.mastery)}
+      <div class="page journey">
+        <div class="page-title">Mon parcours</div>
+        <div class="jr-current">
+          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+          ${levelBar(bar, { dark: true })}
+          <p>${bar.today ? `<b>+${bar.today}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
+        </div>
+        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
+        ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}
       </div>
-      ${tabbar(Destination.PROGRESS)}
+      ${tabbar(Destination.JOURNEY)}
     </div>`;
   },
 };
@@ -523,48 +761,19 @@ const achievements = {
   mounted: syncPopover,
 };
 
-/* ---------- Réglages ---------- */
-
-function settingsLists({ tenses, types }) {
-  const toggle = (event, id, label, on) =>
-    `<button class="toggle${on ? ' on' : ''}" data-event="${event}" data-id="${id}" aria-pressed="${on}"><span class="box">${on ? '✓' : ''}</span>${esc(label)}</button>`;
-  return `<div class="lbl">Temps</div>
-    <div class="toggles">${tenses.map(({ tense, on }) => toggle(AppEvent.TOGGLE_TENSE, tense.id, tense.label, on)).join('')}</div>
-    <div class="lbl">Verbes</div>
-    <div class="toggles">${types.map(({ type, on }) => toggle(AppEvent.TOGGLE_TYPE, type.id, type.label, on)).join('')}</div>`;
-}
-
-const settings = {
-  screen: 'settings',
-  render({ context }) {
-    return `<div class="screen">
-      <div class="top-safe"></div>
-      <div class="page">
-        <div class="page-title">Réglages</div>
-        <p class="settings-intro">Choisis ce que tu veux travailler. Il reste toujours au moins un temps et un type de verbe.</p>
-        <div class="settings-lists">${settingsLists(context.settings)}</div>
-        <button class="mid-btn press" data-event="${AppEvent.START}">Jouer avec ces réglages</button>
-      </div>
-      ${tabbar(Destination.HOME)}
-    </div>`;
-  },
-  patch(root, { context }) {
-    const lists = root.querySelector('.settings-lists');
-    if (lists) lists.innerHTML = settingsLists(context.settings);
-  },
-};
-
 /** Vue de chaque état de l'automate. */
 const VIEWS = Object.freeze({
+  [AppState.ONBOARDING]: onboarding,
+  [AppState.PLACEMENT]: placement,
+  [AppState.PLACEMENT_RESULT]: placementResult,
   [AppState.HOME]: home,
-  [AppState.COUNTDOWN]: home,
   [AppState.QUESTION]: question,
   [AppState.REVEALING]: question,
   [AppState.FEEDBACK]: feedback,
   [AppState.RESULTS]: results,
-  [AppState.PROGRESS]: progress,
+  [AppState.LEVEL_UP]: levelUp,
+  [AppState.JOURNEY]: journey,
   [AppState.ACHIEVEMENTS]: achievements,
-  [AppState.SETTINGS]: settings,
 });
 
 Object.assign(Conjugo, { VIEWS });

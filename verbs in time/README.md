@@ -10,33 +10,68 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
 
 ## Règles
 
-- Une partie compte **5 tours**.
-- À chaque tour, trois dimensions sont tirées au hasard, indépendamment :
-  - **personne** : je, tu, il, elle, nous, vous, ils, elles ;
-  - **verbe** : un des 20 verbes de la banque, sans répétition dans une partie (tant que les réglages le permettent) ;
-  - **temps** : présent, imparfait, passé composé, futur proche, futur simple.
+### Premier lancement
+
+Le joueur choisit son point de départ :
+
+- **Je débute** : il commence au niveau 1 ;
+- **Je connais déjà un peu** : un **test de placement** cherche son niveau. C'est une recherche dichotomique sur le parcours : le niveau du milieu de l'intervalle restant est testé sur une forme ; juste, on cherche plus haut, sinon plus bas. Le test pose 5 questions au plus. « Je ne sais pas » compte comme une erreur. Les réponses ne sont pas corrigées à l'écran et n'entrent pas dans les statistiques. Le joueur commence au premier niveau non prouvé ; les niveaux précédents sont validés, et les suivants partent de zéro. La règle de choix des questions est séparée du test : une autre règle (fonctions `next`, `result` et `remaining` sur l'historique des réponses ; `remaining` compte les questions restantes au plus, question en cours comprise, et vaut 0 quand `next` renvoie `null`) se branche via `createUseCases({ placementStrategy })`.
+
+### Niveaux
+
+Chaque niveau travaille un temps sur quelques verbes, aux **six cases de personne** : je, tu, il / elle / on, nous, vous, ils / elles. Il, elle et on comptent comme une seule case, ils et elles aussi ; la question montre l'un des sujets de la case, au hasard.
+
+| Niveaux | Temps | Verbes |
+|---|---|---|
+| 1 – 8 | présent | parler, habiter · manger · être, avoir · aller, faire, prendre · pouvoir, vouloir, devoir · finir · venir · commencer, acheter, préférer |
+| 9 – 17 | passé composé | les mêmes groupes, avec aller seul (il prend *être*) puis faire, prendre |
+| 18 | futur proche | parler, finir, prendre |
+| 19 – 20 | imparfait | forme régulière (parler, manger, finir, commencer) · être |
+| 21 – 22 | futur simple | forme régulière (parler, finir) · radicaux irréguliers (être, avoir, aller, faire, pouvoir, venir) |
+
+Une **forme** (verbe + temps + case de personne) est **acquise** quand sa dernière réponse est juste et qu'au moins 60 % de ses réponses le sont. Un niveau est terminé quand toutes ses formes sont acquises : un écran de fête le célèbre, sans décrire le niveau suivant, et la partie d'après s'y joue. Les niveaux à venir ne sont jamais listés.
+
+### Parties
+
+- Une partie compte **5 tours**. Chaque question est tirée dans l'un de quatre paniers :
+  - **60 %** : une forme du niveau en cours, hors de ses formes à revoir ;
+  - **20 %** : une des 20 formes du niveau en cours au plus faible taux de réussite (déjà ratées au moins une fois) ;
+  - **10 %** : une des 10 formes des niveaux précédents au plus faible taux de réussite ;
+  - **10 %** : une forme des niveaux précédents, hors de ces formes à revoir.
+
+  Un panier vide renvoie au niveau en cours, puis aux niveaux précédents. Une même forme ne revient pas dans une partie.
 - La question est située par une expression de temps (« Hier, nous … », « L’année prochaine, je … ») : le temps se comprend par son usage, pas seulement par son nom.
-- **Révisions** : environ 30 % des tirages reviennent sur une conjugaison faible (verbe + temps déjà raté et pas encore acquis ; acquis = au moins 3 réponses, la dernière juste, 80 % de réussite). Une conjugaison ratée revient ainsi d'elle-même dans les parties suivantes, jusqu'à être acquise.
-- **Réglages** (⚙ sur l'accueil) : choisir les temps et les types de verbes à travailler ; il en reste toujours au moins un de chaque.
-- Le joueur tape la forme conjuguée. Le pronom sujet est facultatif, verbes pronominaux compris (« finirons » vaut « nous finirons », « nous levons » vaut « nous nous levons ») ; le pronom réfléchi, lui, est obligatoire. La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ».
-- Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous et vous n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
+- Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »). La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ».
+- Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous, vous et on n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
 - Après chaque réponse, l'écran d'explication montre :
   - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, accord), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
-  - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, pronom réfléchi manquant, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
+  - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
   - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée (les accents n'y sont pas exigés) ;
   - la particularité du verbe, et les verbes qui **se conjuguent comme lui**.
-- **Progrès** : en plus de la chronologie, une grille de maîtrise verbe × temps (pas encore vu, à revoir, en cours, acquis).
+- Le **bilan** met en avant le gain du niveau (« +13 % »), les formes devenues acquises et ce qu'apporterait une partie de plus.
 
-## Un verbe par type de conjugaison
+### Accueil et progrès
+
+L'accueil ne montre jamais « +0 % » : son accroche dépend du dernier jour joué.
+
+| État | Quand | Accroche |
+|---|---|---|
+| joué aujourd'hui | une partie aujourd'hui | le gain du jour, en ambre sur la barre du niveau |
+| pas encore aujourd'hui | dernière partie hier (ou aucune) | ce qu'une partie rapporterait, en pointillé |
+| retour | 1 à 6 jours sans jouer | rien n'est perdu ; une nouvelle série commence |
+| longue absence | une semaine ou plus | le chemin déjà parcouru |
+
+Il montre aussi les formes acquises en tout, le niveau en cours, et le nombre de parties restantes, estimé d'après les 5 dernières parties du niveau (2 formes par partie, faute d'historique). L'onglet **Progrès** montre le niveau en cours et les niveaux terminés.
+
+## Verbes
 
 | Type | Verbes | Ce qu'ils illustrent |
 |---|---|---|
 | 1er groupe | parler, habiter | modèle -er ; élision devant un h muet (j’habite) |
-| 1er groupe à particularité | commencer, manger, acheter, préférer, appeler, nettoyer | -cer (ç), -ger (ge), e → è, é → è, -eler (ll), -oyer (y → i) |
+| 1er groupe à particularité | commencer, manger, acheter, préférer | -cer (ç), -ger (ge), e → è, é → è |
 | 2e groupe | finir | -iss- au pluriel et à l’imparfait |
-| 3e groupe | partir, venir, prendre, attendre, voir, pouvoir, faire, aller | -ir sans -iss-, -re, -oir ; futurs irréguliers ; auxiliaire *être* (partir, venir, aller) |
+| 3e groupe | venir, prendre, pouvoir, vouloir, devoir, faire, aller | radicaux qui changent au présent ; futurs irréguliers ; auxiliaire *être* (venir, aller) |
 | Auxiliaires | être, avoir | imparfait irrégulier (j’étais) ; futurs ser- / aur- |
-| Pronominal | se lever | pronom réfléchi, *être* au passé composé, futur proche « je vais me lever » |
 
 ## Architecture
 
@@ -44,22 +79,26 @@ Les dépendances vont toujours vers le centre : l'interface connaît l'applicati
 
 ```
 src/
-├── data/verbs.js                Types de verbes et 20 verbes (présent, participe, radicaux irréguliers, modèles, note)
+├── data/
+│   ├── verbs.js                 Types de verbes et 16 verbes (présent, participe, radicaux irréguliers, modèles, note)
+│   └── levels.js                Les 22 niveaux : temps, verbes, nom
 ├── domain/
 │   ├── errors.js                DomainError
-│   ├── conjugation.js           Person, Tense (expressions de temps), Verb.conjugate (formes découpées),
+│   ├── conjugation.js           Person (six cases), Tense (expressions de temps), Verb.conjugate (formes découpées),
 │   │                            Conjugation.check, Question, VerbBank
 │   ├── diagnosis.js             diagnose : nature d'une erreur (autre temps, autre personne, auxiliaire…)
 │   ├── calendar.js              dayKey, addDays, ActivityCalendar (série quotidienne)
-│   ├── answerStats.js           AnswerStat, AnswerStatsBook : réussites par verbe et par temps, conjugaisons faibles
-│   ├── gameRecord.js            GameRecord : partie terminée, archivée
+│   ├── answerStats.js           AnswerStat, AnswerStatsBook : réussites par forme, forme acquise, formes à revoir
+│   ├── gameRecord.js            GameRecord : partie terminée, archivée, avec son niveau et ses formes acquises
+│   ├── levels.js                Level, LevelLadder : formes d'un niveau, progression, niveau terminé
 │   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
-│   ├── questionSelection.js     QuestionPicker : triplet aléatoire, révisions, réglages
-│   ├── playerProfile.js         PlayerProfile : joueur
+│   ├── questionSelection.js     QuestionPicker : quatre paniers (niveau en cours, erreurs, révision)
+│   ├── placementTest.js         PlacementTest (historique, réponses) + règle de choix des questions (binarySearchPlacement par défaut)
+│   ├── playerProfile.js         PlayerProfile : joueur, niveau en cours, niveaux terminés
 │   ├── holidays.js              jours de fête (succès cachés)
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
-│   ├── progressReport.js        chronologie, tendance, conjugaison « piège », grille de maîtrise
-│   └── gameSummary.js           verdict et bilan de fin de partie
+│   ├── homeOverview.js          homeOverview : état de l'accueil, gain du jour, rythme, semaine, parcours
+│   └── gameSummary.js           verdict et bilan de fin de partie (gain du niveau, formes acquises)
 ├── application/
 │   ├── stateMachine.js          moteur d'automate générique
 │   ├── useCases.js              cas d'utilisation (orchestrent domaine + ports)
@@ -71,10 +110,10 @@ src/
 │   └── speech.js                lecture à voix haute
 ├── ui/
 │   ├── textFormat.js            mise en forme générique (dates, durées, écart lettre à lettre, succès)
-│   ├── format.js                verdicts, commentaires de la chronologie, diagnostics
+│   ├── format.js                verdicts, diagnostics
 │   ├── views.js                 une vue par état, HTML pur
 │   ├── renderer.js              rendu complet ou ciblé selon la transition
-│   ├── controller.js            clics, saisie, recopie → événements
+│   ├── controller.js            clics, saisie (partie et test de placement), recopie → événements
 │   └── effects.js               sons et vibrations selon les transitions
 └── main.js                      point d'assemblage
 ```
@@ -89,4 +128,4 @@ Seuls le présent, le participe passé et les radicaux irréguliers sont stocké
 
 ## Ajouter un verbe
 
-Ajouter une entrée dans `src/data/verbs.js`. Le présent et le participe se déduisent pour le 1er et le 2e groupe réguliers, et doivent être donnés pour les autres verbes. Il faut aussi préciser `futureStem` ou `imperfectStem` quand ils sont irréguliers. Au chargement, `VerbBank.fromData` refuse les doublons, les types inconnus, un présent incomplet ou un type sans verbe.
+Ajouter une entrée dans `src/data/verbs.js`, puis l'inscrire dans un niveau de `src/data/levels.js` pour qu'il soit posé. Le présent et le participe se déduisent pour le 1er et le 2e groupe réguliers, et doivent être donnés pour les autres verbes. Il faut aussi préciser `futureStem` ou `imperfectStem` quand ils sont irréguliers. Au chargement, `VerbBank.fromData` refuse les doublons, les types inconnus, un présent incomplet ou un type sans verbe, et `LevelLadder.fromData` un temps ou un verbe inconnu.

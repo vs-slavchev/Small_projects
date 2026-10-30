@@ -96,10 +96,15 @@ class GameSession {
     this.#present(now);
   }
 
-  /** Clôt la partie et produit l'enregistrement à archiver. */
-  finish(now) {
+  /**
+   * Clôt la partie et produit l'enregistrement à archiver.
+   * @param {number} now @param {{ level?: number, masteredBefore?: number, masteredAfter?: number }} [progress]
+   *   niveau joué et formes acquises de ce niveau avant et après la partie
+   */
+  finish(now, progress = {}) {
     if (!this.isComplete) throw new DomainError('La partie n’est pas terminée.');
     return new GameRecord({
+      ...progress,
       endedAt: new Date(now),
       durationMs: this.#thinkingMs,
       maxCombo: this.#maxCombo,

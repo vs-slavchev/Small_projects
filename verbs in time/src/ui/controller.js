@@ -6,8 +6,8 @@ const { AppEvent } = Conjugo;
 /**
  * Traduit les gestes du joueur en événements de l'automate.
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
- * La réponse est saisie dans le champ `#answer` et envoyée par le formulaire ; après une erreur,
- * la bonne forme est recopiée dans `#retype`. Les boutons `data-speak` font lire une forme à voix haute (`speak`).
+ * Un formulaire (réponse, test de placement, recopie après une erreur) porte lui aussi `data-event` :
+ * à l'envoi, la valeur de son champ part avec l'événement (`text`). Les boutons `data-speak` font lire une forme à voix haute (`speak`).
  * L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
@@ -25,16 +25,17 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
   };
 
   const confirmQuit = () => {
-    const session = machine.context.session;
-    return !session || !session.answers.length || confirm('Quitter la partie ? Elle ne sera pas enregistrée.');
+    const { session, placement } = machine.context;
+    if (session) return !session.answers.length || confirm('Quitter la partie ? Elle ne sera pas enregistrée.');
+    if (placement) return placement.position <= 1 || confirm('Quitter le test ? Il faudra le recommencer.');
+    return true;
   };
 
   root.addEventListener('submit', event => {
     event.preventDefault();
-    const answer = event.target.querySelector('#answer');
-    const retype = event.target.querySelector('#retype');
-    if (answer) machine.send(AppEvent.ANSWER, { text: answer.value });
-    else if (retype) machine.send(AppEvent.RETYPE, { text: retype.value });
+    const form = event.target;
+    const input = form.querySelector('input');
+    if (form.dataset.event && input) machine.send(form.dataset.event, { text: input.value });
   });
 
   root.addEventListener('click', event => {
@@ -43,7 +44,8 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
       speak(spoken.dataset.speak);
       return;
     }
-    const el = event.target.closest('[data-event]');
+    // Un formulaire porte aussi data-event, mais il n'agit qu'à l'envoi (voir `submit`).
+    const el = event.target.closest('[data-event]:not(form)');
     if (!el || !root.contains(el)) return;
     const type = el.dataset.event;
     if (type === AppEvent.QUIT && !confirmQuit()) return;

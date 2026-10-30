@@ -14,7 +14,7 @@
  *         entry: [fn], exit: [fn],       // actions d'entrée / de sortie : fn(context, event)
  *         on: { EVENT: handler },
  *         after: { delay, event },       // événement émis une fois après `delay` ms (nombre ou fn(context))
- *         every: { interval, event },    // événement émis périodiquement tant qu'on reste dans l'état
+ *         always: handler,               // transition immédiate, vérifiée juste après l'entrée dans l'état
  *       },
  *     },
  *   }
@@ -28,6 +28,10 @@
  *
  * Les événements envoyés pendant une transition sont mis en file et traités ensuite
  * (sémantique « run-to-completion »).
+ *
+ * `always` permet de choisir la destination d'après le résultat des actions : un état qui en a
+ * est quitté aussitôt entré si l'une de ses gardes est vraie (les états intermédiaires s'enchaînent
+ * sans être signalés aux abonnés, qui ne voient que l'état final).
  */
 
 const INIT_EVENT = Object.freeze({ type: '@@init' });
@@ -35,8 +39,6 @@ const INIT_EVENT = Object.freeze({ type: '@@init' });
 const defaultScheduler = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: id => clearTimeout(id),
-  setInterval: (fn, ms) => setInterval(fn, ms),
-  clearInterval: id => clearInterval(id),
 };
 
 function normalize(handler) {
@@ -58,7 +60,13 @@ function validate(definition) {
     }
   };
   check(definition.on, 'transition globale');
-  for (const [name, state] of Object.entries(states)) check(state.on, `état « ${name} »`);
+  for (const [name, state] of Object.entries(states)) {
+    check(state.on, `état « ${name} »`);
+    check(state.always && { always: state.always }, `état « ${name} »`);
+    if (normalize(state.always).some(t => t.target === undefined)) {
+      throw new Error(`Automate : état « ${name} », une transition always doit viser un état.`);
+    }
+  }
 }
 
 /**
@@ -87,10 +95,6 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
       const id = scheduler.setTimeout(() => send(node.after.event), delay);
       timers.push(() => scheduler.clearTimeout(id));
     }
-    if (node.every) {
-      const id = scheduler.setInterval(() => send(node.every.event), node.every.interval);
-      timers.push(() => scheduler.clearInterval(id));
-    }
   }
 
   function exit(name, event) {
@@ -109,6 +113,26 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
     for (const listener of [...listeners]) listener(snapshot);
   }
 
+  /**
+   * Suit les transitions `always` de l'état courant tant qu'une garde est vraie.
+   * Une chaîne plus longue que le nombre d'états tourne en rond : c'est une erreur de définition.
+   */
+  function settle(event) {
+    const visited = [state];
+    for (;;) {
+      const transition = normalize(definition.states[state].always).find(t => !t.guard || t.guard(context, event));
+      if (!transition) return;
+      if (visited.length > Object.keys(definition.states).length) {
+        throw new Error(`Automate : les transitions always bouclent (${visited.join(' → ')}).`);
+      }
+      exit(state, event);
+      run(transition.actions, event);
+      state = transition.target;
+      enter(state, event);
+      visited.push(state);
+    }
+  }
+
   function step(event) {
     const transition = select(event);
     if (!transition) return;
@@ -119,6 +143,7 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
     if (external) {
       state = transition.target;
       enter(state, event);
+      settle(event);
     }
     notify(Object.freeze({ state, previous, event, context, changed: external }));
   }
@@ -160,6 +185,7 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
       if (state !== null) return state;
       state = definition.initial;
       enter(state, INIT_EVENT);
+      settle(INIT_EVENT);
       notify(Object.freeze({ state, previous: null, event: INIT_EVENT, context, changed: true }));
       return state;
     },

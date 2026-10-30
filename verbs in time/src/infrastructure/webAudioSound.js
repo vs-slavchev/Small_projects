@@ -14,7 +14,6 @@ class WebAudioSound {
   }
 
   tap() { this.#tone(784, 0, 0.12, 0.05); }
-  tick() { this.#tone(1046.5, 0, 0.12, 0.06); }
 
   /** La note monte avec le combo. */
   correct(combo) {

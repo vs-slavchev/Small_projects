@@ -32,8 +32,6 @@ function relativeDay(date, today) {
   return shortDate(date);
 }
 
-/** Taille de police pour qu'un mot tienne sur une ligne de l'écran. */
-
 const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Sans faute. Impeccable.',
   [Verdict.WEEK_BEST]: 'Ton meilleur score de la semaine.',

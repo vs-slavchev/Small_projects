@@ -3,7 +3,7 @@
 
 const { DomainError } = Conjugo;
 
-/** Historique des réponses à un élément (un verbe à un temps). Objet valeur immuable. */
+/** Historique des réponses à un élément (un verbe, à un temps, à une personne). Objet valeur immuable. */
 class AnswerStat {
   /** Statistique vide de la classe appelante (AnswerStat ou une sous-classe). */
   static get EMPTY() {
@@ -11,9 +11,7 @@ class AnswerStat {
   }
 
   /** Taux de réussite à partir duquel un élément est considéré comme acquis. */
-  static MASTERY_ACCURACY = 0.8;
-  /** Nombre de réponses en dessous duquel un élément n'est jamais considéré comme acquis. */
-  static MASTERY_MIN_SEEN = 3;
+  static MASTERY_ACCURACY = 0.6;
 
   /**
    * @param {number} seen @param {number} correct
@@ -37,12 +35,17 @@ class AnswerStat {
   }
 
   /**
-   * Élément acquis : au moins MASTERY_MIN_SEEN réponses, dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
-   * Une erreur ancienne, suivie d'assez de bonnes réponses, ne le fait plus revenir en révision ;
+   * Élément acquis : dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
+   * Une erreur ancienne, suivie d'assez de bonnes réponses, ne l'empêche plus d'être acquis ;
    * une erreur toute récente, si.
    */
   get isMastered() {
-    return this.seen >= AnswerStat.MASTERY_MIN_SEEN && this.lastCorrect === true && this.accuracy >= AnswerStat.MASTERY_ACCURACY;
+    return this.lastCorrect === true && this.accuracy >= AnswerStat.MASTERY_ACCURACY;
+  }
+
+  /** Au moins une réponse fausse dans l'historique. */
+  get hasMistake() {
+    return this.correct < this.seen;
   }
 
   /** @param {boolean} correct @returns {this} une statistique de la même classe */
@@ -75,16 +78,24 @@ class AnswerStatsBook {
     return this.#stats.entries();
   }
 
+  /** Copie du carnet avec des réponses en plus ; le carnet lui-même ne change pas. @param {Iterable<[string, boolean]>} answers */
+  with(answers) {
+    const copy = new this.constructor(this.#stats);
+    for (const [key, correct] of answers) copy.record(key, correct);
+    return copy;
+  }
+
   /**
-   * Parmi `candidates`, les clés déjà vues et pas encore acquises (voir `AnswerStat.isMastered`),
-   * du plus faible taux de réussite au plus élevé.
+   * Parmi `candidates`, les clés ratées au moins une fois et pas encore acquises, du plus faible taux de réussite au plus élevé ;
+   * à taux égal, la dernière réponse fausse d'abord, puis la plus pratiquée.
    * @param {string[]} candidates @param {number} limit @returns {string[]}
    */
   weakest(candidates, limit) {
+    const recentMiss = s => (s.lastCorrect === false ? 0 : 1);
     return candidates
       .map(key => [key, this.get(key)])
-      .filter(([, s]) => s.seen > 0 && !s.isMastered)
-      .sort(([ka, a], [kb, b]) => a.accuracy - b.accuracy || b.seen - a.seen || ka.localeCompare(kb))
+      .filter(([, s]) => s.hasMistake && !s.isMastered)
+      .sort(([ka, a], [kb, b]) => a.accuracy - b.accuracy || recentMiss(a) - recentMiss(b) || b.seen - a.seen || ka.localeCompare(kb))
       .slice(0, limit)
       .map(([key]) => key);
   }

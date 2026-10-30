@@ -27,10 +27,12 @@ function withPronoun(kind, pronoun, segments) {
 }
 
 /**
- * Personne grammaticale. Objet valeur : les huit instances sont fixes, on les compare par identité.
- * `index` est le rang de la forme verbale (0 à 5) : il et elle, ils et elles partagent la leur.
+ * Personne grammaticale. Objet valeur : les neuf instances sont fixes, on les compare par identité.
+ * `index` est le rang de la forme verbale (0 à 5), qui sert aussi de case de suivi :
+ * il, elle et on partagent la leur, ils et elles aussi (voir `Person.SLOTS`).
  * `agreements` liste les terminaisons acceptées pour un participe accordé avec « être » :
- * le genre de je, tu, nous et vous n'est pas connu, toutes les possibilités sont justes.
+ * le genre de je, tu, nous et vous n'est pas connu, toutes les possibilités sont justes ;
+ * « on » peut désigner une ou plusieurs personnes, de l'un ou l'autre genre.
  */
 class Person {
   /** @param {string} subject @param {number} index @param {string[]} agreements @param {string} agreementLabel */
@@ -48,10 +50,17 @@ class Person {
   static ELLE = new Person('elle', 2, ['e'], 'e');
   static NOUS = new Person('nous', 3, ['s', 'es'], '(e)s');
   static VOUS = new Person('vous', 4, ['', 'e', 's', 'es'], '(e)(s)');
+  static ON = new Person('on', 2, ['', 'e', 's', 'es'], '(e)(s)');
   static ILS = new Person('ils', 5, ['s'], 's');
   static ELLES = new Person('elles', 5, ['es'], 'es');
-  static ALL = Object.freeze([Person.JE, Person.TU, Person.IL, Person.ELLE, Person.NOUS, Person.VOUS, Person.ILS, Person.ELLES]);
+  static ALL = Object.freeze([Person.JE, Person.TU, Person.IL, Person.ELLE, Person.ON, Person.NOUS, Person.VOUS, Person.ILS, Person.ELLES]);
+  /** Les six cases suivies par le jeu, et les sujets qui y sont posés : il / elle / on, ils / elles. */
+  static SLOTS = Object.freeze([0, 1, 2, 3, 4, 5].map(i => Object.freeze(Person.ALL.filter(p => p.index === i))));
 
+  /** @param {string} subject @returns {Person | undefined} */
+  static of(subject) {
+    return Person.ALL.find(p => p.subject === subject);
+  }
 }
 
 /** Temps de conjugaison. Objet valeur : les cinq instances sont fixes. */
@@ -283,6 +292,9 @@ class Conjugation {
   }
 }
 
+/** Clé de suivi d'une forme : un verbe (infinitif), à un temps (identifiant), dans une case de personne (0 à 5). */
+const comboKey = (verb, tense, slot) => `${verb}|${tense}|${slot}`;
+
 /** Question d'un tour : un verbe, un temps, une personne, et une expression de temps qui situe la phrase. */
 class Question {
   /** @param {{ verb: Verb, tense: Tense, person: Person, marker?: string | null }} props */
@@ -294,6 +306,11 @@ class Question {
     this.marker = marker;
     this.expected = verb.conjugate(tense, person);
     Object.freeze(this);
+  }
+
+  /** Clé de la forme posée (voir `comboKey`) : il, elle et on partagent la leur. */
+  get key() {
+    return comboKey(this.verb.infinitive, this.tense.id, this.person.index);
   }
 }
 
@@ -342,5 +359,5 @@ class VerbBank {
   }
 }
 
-Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank, normalizeAnswer, stripAccents });
+Object.assign(Conjugo, { Person, Tense, Verb, Question, VerbBank, comboKey, normalizeAnswer, stripAccents });
 })(globalThis.Conjugo ??= {});

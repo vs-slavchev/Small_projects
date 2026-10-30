@@ -27,7 +27,7 @@ machine.subscribe(createEffects({
   vibrate: ms => navigator.vibrate?.(ms),
   AppState,
   AppEvent,
-  extraTapEvents: [AppEvent.TOGGLE_TENSE, AppEvent.TOGGLE_TYPE, AppEvent.RETYPE],
+  extraTapEvents: [AppEvent.RETYPE, AppEvent.CHOOSE_BEGINNER, AppEvent.START_PLACEMENT, AppEvent.PLACEMENT_ANSWER, AppEvent.PLACEMENT_SKIP],
 }));
 const speaker = createSpeaker();
 // Sans synthèse vocale, les boutons « écouter » sont masqués.

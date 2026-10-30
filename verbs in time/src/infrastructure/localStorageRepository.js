@@ -39,19 +39,12 @@ class LocalStorageProfileRepository {
   }
 }
 
-const isIdList = value => value === null || (Array.isArray(value) && value.every(id => typeof id === 'string'));
-
-/** Préférences du jeu : le son, et les temps et types de verbes à travailler (null : tous). */
+/** Préférences du jeu : le son. */
 class LocalStoragePreferences extends PreferenceStore {
-  static DEFAULTS = Object.freeze({ ...PreferenceStore.DEFAULTS, tenses: null, types: null });
+  static DEFAULTS = PreferenceStore.DEFAULTS;
 
   constructor({ storage } = {}) {
-    super({
-      storage,
-      key: PREFERENCES_KEY,
-      defaults: LocalStoragePreferences.DEFAULTS,
-      validators: { tenses: isIdList, types: isIdList },
-    });
+    super({ storage, key: PREFERENCES_KEY, defaults: LocalStoragePreferences.DEFAULTS });
   }
 }
 
