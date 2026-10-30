@@ -389,8 +389,6 @@ function levelCard(home) {
   </div>`;
 }
 
-/** Hauteur maximale d'une barre de la semaine, en pixels. */
-const WEEK_BAR_MAX = 64;
 /** Gain le plus petit qui remplit une barre : une semaine de petits gains ne s'affiche pas en barres pleines. */
 const WEEK_BAR_MIN_PEAK = 4;
 
@@ -399,12 +397,13 @@ function weekChart(home) {
   const isPending = d => d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGameForms > 0;
   // Barres à l'échelle du meilleur jour de la semaine : les grosses journées restent distinctes.
   const peak = Math.max(WEEK_BAR_MIN_PEAK, ...home.week.map(d => (isPending(d) ? home.nextGameForms : d.gain)));
-  const weekBarHeight = forms => Math.max(4, Math.round((forms / peak) * WEEK_BAR_MAX));
+  // Part de la hauteur maximale ; la hauteur elle-même est fixée par la feuille de style (--wk-max).
+  const weekBarHeight = forms => Math.min(1, forms / peak).toFixed(3);
   const bars = home.week.map((d, i) => {
     const pending = isPending(d);
     let cls = 'wk-bar';
     let label = '';
-    let height = 4;
+    let height = 0;
     if (pending) {
       cls += ' next';
       label = `+${home.nextGameForms}&nbsp;?`;
@@ -414,14 +413,14 @@ function weekChart(home) {
     } else if (d.completed.length) {
       // Coche par niveau terminé, puis le gain déjà fait dans le niveau suivant.
       label = `${'✓'.repeat(d.completed.length)}${d.gain ? `&nbsp;+${d.gain}` : ''}`;
-      height = WEEK_BAR_MAX;
+      height = 1;
       cls += d.isToday ? ' today' : ' gain';
     } else {
       label = d.gain ? `+${d.gain}` : '0';
       height = weekBarHeight(d.gain);
       cls += d.isToday ? ' today' : d.gain ? ' gain' : ' zero';
     }
-    return `<div class="wk-day${d.isToday ? ' is-today' : ''}"><span class="wk-label">${label}</span><div class="${cls}" style="height:${height}px"></div><span class="wk-name">${WEEKDAYS[i]}</span></div>`;
+    return `<div class="wk-day${d.isToday ? ' is-today' : ''}"><span class="wk-label">${label}</span><div class="${cls}" style="--h:${height}"></div><span class="wk-name">${WEEKDAYS[i]}</span></div>`;
   }).join('');
   const note = home.state === HomeState.BACK && home.bestStreak
     ? `<span class="wk-note">Une nouvelle série commence aujourd'hui. Votre record&nbsp;: ${home.bestStreak} ${plural(home.bestStreak, 'jour')}.</span>`
