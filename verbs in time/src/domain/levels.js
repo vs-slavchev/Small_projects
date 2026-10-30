@@ -6,7 +6,9 @@ const { DomainError, Person, Tense, comboKey, LEVEL_DATA } = Conjugo;
 /** Une forme à acquérir : un verbe, à un temps, dans une case de personne. */
 const combo = (verb, tense, slot) => Object.freeze({ verb, tense, slot, key: comboKey(verb.infinitive, tense.id, slot) });
 
-const VERB_LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
+const FRENCH_LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
+/** « a, b et c » @param {string[]} items */
+const frenchList = items => FRENCH_LIST.format(items);
 
 /** Part entière en pourcentage : 2 sur 6 → 33. */
 const percentOf = (part, total) => Math.round((part / total) * 100);
@@ -36,7 +38,7 @@ class Level {
 
   /** Verbes du niveau en une phrase : « être et avoir », « aller, faire et prendre ». */
   get verbList() {
-    return VERB_LIST.format(this.verbs.map(v => v.label));
+    return frenchList(this.verbs.map(v => v.label));
   }
 
   /** Première et dernière formes du niveau, à afficher : « je finis » … « elles finissent ». */
@@ -108,5 +110,5 @@ class LevelLadder {
   }
 }
 
-Object.assign(Conjugo, { percentOf, Level, LevelLadder });
+Object.assign(Conjugo, { percentOf, frenchList, Level, LevelLadder });
 })(globalThis.Conjugo ??= {});

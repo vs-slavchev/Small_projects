@@ -4,7 +4,7 @@ import { realBank, sequence, seededRandom } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  LevelLadder, LEVEL_DATA, Tense, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
+  LevelLadder, LEVEL_DATA, Tense, VIEWS, AppState, percentOf, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
 } = Conjugo;
 
 const bank = realBank();
@@ -193,22 +193,63 @@ test('accueil : après le dernier niveau, il est terminé sans réapparaître da
   assert.equal(before.levelsCompleted, 21);
 });
 
-test('accueil : un niveau terminé aujourd’hui se compte à part, sans additionner les pourcentages de niveaux différents', () => {
-  const profile = profileWith();
-  const done = ladder.level(5);
-  profile.recordGame(new GameRecord({
-    endedAt: day(18), durationMs: 1, maxCombo: 0, level: 5, masteredBefore: done.combos.length - 3, masteredAfter: done.combos.length,
-    answers: [{ verb: done.verbs[0].infinitive, tense: done.tense.id, person: 'je', given: 'x', correct: true, timeMs: 1 }],
-  }));
+/** Partie archivée dans `level`, avec ses comptes de formes acquises avant et après. */
+const gameIn = (level, endedAt, before, after) => {
+  const l = ladder.level(level);
+  return new GameRecord({
+    endedAt, durationMs: 1, maxCombo: 0, level, masteredBefore: before, masteredAfter: after,
+    answers: [{ verb: l.verbs[0].infinitive, tense: l.tense.id, person: 'je', given: 'x', correct: true, timeMs: 1 }],
+  });
+};
+const renderHome = home => VIEWS[AppState.HOME].render({ context: { home, gameLength: 5, soundEnabled: true } });
+
+test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans additionner les pourcentages', () => {
+  const profile = PlayerProfile.empty();
+  profile.startAt(5, day(1));
+  const size5 = ladder.level(5).combos.length;
+  profile.recordGame(gameIn(5, day(17), 0, size5 - 3));
+  profile.recordGame(gameIn(5, day(18, 9), size5 - 3, size5));
+  profile.completeLevel(day(18, 9), 22);
+  profile.recordGame(gameIn(6, day(18, 10), 0, 2));
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.deepEqual(home.completedToday, [], 'terminé par le test de placement : pas une victoire du jour');
-  assert.equal(home.todayPercent, 0, 'barre du niveau en cours : rien encore');
-  profile.completeLevel(day(18, 15), 22);
-  const after = homeOverview(profile, ladder, day(18, 20));
-  assert.deepEqual(after.completedToday, [6], 'niveau terminé en jouant aujourd’hui');
-  assert.equal(after.week.find(d => d.isToday).levelsCompleted, 1, 'une coche plutôt qu’une somme de pourcentages');
+  assert.deepEqual(home.completedToday, [5]);
+  assert.equal(home.todayPercent, 33, 'gain du niveau 6 seulement');
+  const today = home.week.find(d => d.isToday);
+  assert.deepEqual([today.completed, today.gainPercent], [[5], 33], 'une coche, puis le gain du niveau suivant');
+  assert.equal(home.week.find(d => d.date.getDate() === 17).gainPercent, percentOf(size5 - 3, size5));
+  const html = renderHome(home);
+  assert.match(html, /vous avez terminé<\/span><h1><span class="hl">le niveau 5</);
+  assert.match(html, /Et déjà \+33&nbsp;% dans le niveau 6/);
+  assert.match(html, /✓&nbsp;\+33/);
+
+  profile.completeLevel(day(18, 11), 22);
+  const two = homeOverview(profile, ladder, day(18, 20));
+  assert.match(renderHome(two), /les niveaux 5 et 6/);
+  assert.match(renderHome(two), /✓✓/);
 });
 
+test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que le dernier', () => {
+  const profile = profileWith({ games: [[17, 0, 2]] });
+  profile.recordGame(gameIn(5, day(18, 9), 0, 3));
+  profile.recordGame(gameIn(6, day(18, 10), 2, 3));
+  const home = homeOverview(profile, ladder, day(18, 20));
+  assert.equal(home.todayPercent, 17, 'niveau en cours : une forme sur six');
+  assert.equal(home.week.find(d => d.isToday).gainPercent, 17, 'le titre et la semaine disent la même chose');
+  assert.match(renderHome(home), /avancé de<\/span><h1><span class="hl">\+17&nbsp;%/);
+});
+
+test('accueil : le dernier niveau terminé aujourd’hui ne s’annonce qu’une fois', () => {
+  const profile = PlayerProfile.empty();
+  profile.startAt(22, day(1));
+  const size = ladder.level(22).combos.length;
+  profile.recordGame(gameIn(22, day(18, 9), size - 2, size));
+  profile.completeLevel(day(18, 9), 22);
+  const home = homeOverview(profile, ladder, day(18, 20));
+  assert.deepEqual([home.completedToday, home.todayPercent], [[22], 0]);
+  const html = renderHome(home);
+  assert.match(html, /le niveau 22/);
+  assert.doesNotMatch(html, /Et déjà/);
+});
 test('accueil : sans partie dans le niveau, une partie est estimée à deux formes', () => {
   const home = homeOverview(profileWith(), ladder, day(18));
   assert.equal(home.gamesLeft, 3);

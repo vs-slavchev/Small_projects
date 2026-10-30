@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState,
+  AppState, AppEvent, Destination, HomeState, frenchList,
   escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
@@ -285,7 +285,7 @@ function homeHeadline(home) {
     case HomeState.PLAYED_TODAY: {
       const done = home.completedToday;
       if (done.length) {
-        const what = done.length === 1 ? `le niveau ${done[0]}` : `${done.length} niveaux`;
+        const what = `${done.length === 1 ? 'le niveau' : 'les niveaux'} ${frenchList(done.map(String))}`;
         // Le gain du niveau en cours s'ajoute, sauf si c'est le niveau terminé (le dernier, gardé pour réviser).
         const more = home.todayPercent > 0 && !done.includes(home.level.number)
           ? `<p>Et déjà +${home.todayPercent}&nbsp;% dans le niveau ${home.level.number}.</p>` : '';
@@ -391,8 +391,9 @@ function weekChart(home) {
       height = Math.max(8, Math.min(64, home.nextGamePercent * 2.4));
     } else if (d.isFuture) {
       cls += ' future';
-    } else if (d.levelsCompleted) {
-      label = d.levelsCompleted > 1 ? `✓&nbsp;${d.levelsCompleted}` : '✓';
+    } else if (d.completed.length) {
+      // Coche par niveau terminé, puis le gain déjà fait dans le niveau suivant.
+      label = `${'✓'.repeat(d.completed.length)}${d.gainPercent ? `&nbsp;+${d.gainPercent}` : ''}`;
       height = 64;
       cls += d.isToday ? ' today' : ' gain';
     } else {
