@@ -4,7 +4,7 @@ import { realBank, sequence, seededRandom } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  LevelLadder, LEVEL_DATA, Tense, AnswerStatsBook, PlacementTest, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
+  LevelLadder, LEVEL_DATA, Tense, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
 } = Conjugo;
 
 const bank = realBank();
@@ -88,6 +88,40 @@ test('placement : deux formes justes du même niveau avant de monter', () => {
   const second = placement.currentQuestion;
   assert.equal(second.tense, first.tense, 'même niveau');
   assert.notEqual(`${second.verb.infinitive}|${second.person.index}`, `${first.verb.infinitive}|${first.person.index}`);
+});
+
+test('placement : l’historique garde chaque question, son niveau et la réponse', () => {
+  const placement = new PlacementTest({ ladder, random: sequence(0) });
+  const first = placement.currentQuestion;
+  placement.answer(first.expected.forms[0]);
+  placement.skip();
+  const { history } = placement;
+  assert.deepEqual(history.map(e => [e.level, e.correct]), [[11, true], [11, false]]);
+  assert.equal(history[0].question, first);
+  assert.ok(Object.isFrozen(history) && Object.isFrozen(history[0]));
+  assert.equal(placement.currentQuestion.tense, ladder.level(5).tense, 'une erreur au niveau 11 : on teste le niveau 5');
+});
+
+test('placement : une autre règle se branche sans toucher au test', () => {
+  // Monte d'un niveau à chaque bonne réponse et s'arrête à la première erreur.
+  const stepUp = {
+    next: ({ ladder: l, history }) => {
+      if (history.some(e => !e.correct) || history.length >= l.count) return null;
+      const level = history.length + 1;
+      return { level, combo: l.level(level).combos[0] };
+    },
+    result: ({ history }) => history.filter(e => e.correct).length + 1,
+    maxLength: l => l.count,
+  };
+  const placement = new PlacementTest({ ladder, strategy: stepUp, random: sequence(0) });
+  assert.equal(placement.maxLength, 22);
+  placement.answer(placement.currentQuestion.expected.forms[0]);
+  placement.answer(placement.currentQuestion.expected.forms[0]);
+  assert.equal(placement.currentQuestion.verb, ladder.level(3).verbs[0]);
+  placement.skip();
+  assert.ok(placement.isComplete);
+  assert.equal(placement.result, 3);
+  assert.equal(binarySearchPlacement({ probesPerLevel: 3 }).maxLength(ladder), 15);
 });
 
 /** Profil au niveau `level`, avec des parties datées et leurs gains de formes. */

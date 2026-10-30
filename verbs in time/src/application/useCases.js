@@ -2,7 +2,7 @@
 'use strict';
 
 const {
-  GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, PlacementTest, LevelLadder,
+  GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, PlacementTest, binarySearchPlacement, LevelLadder,
   AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, levelPace, LevelVia, DomainError,
 } = Conjugo;
 
@@ -18,9 +18,14 @@ const {
  *
  * @param {{ bank: import('../domain/conjugation.js').VerbBank, profiles: object, preferences: object,
  *           clock: { now(): number }, random?: () => number, gameLength?: number,
- *           ladder?: import('../domain/levels.js').LevelLadder }} deps
+ *           ladder?: import('../domain/levels.js').LevelLadder,
+ *           placementStrategy?: import('../domain/placementTest.js').PlacementStrategy }} deps
+ *   `placementStrategy` : règle qui choisit les questions du test de placement (voir `binarySearchPlacement`)
  */
-function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH, ladder = LevelLadder.fromData(bank) }) {
+function createUseCases({
+  bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH,
+  ladder = LevelLadder.fromData(bank), placementStrategy = binarySearchPlacement(),
+}) {
   if (gameLength > QuestionPicker.MIN_CAPACITY) {
     throw new DomainError(`Partie de ${gameLength} tours impossible : ${QuestionPicker.MIN_CAPACITY} questions différentes sont garanties au plus.`);
   }
@@ -55,7 +60,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
 
     /** « Je connais déjà un peu » : un test de placement commence. Rien n'est enregistré avant la fin. */
     startPlacement() {
-      return new PlacementTest({ ladder, random });
+      return new PlacementTest({ ladder, strategy: placementStrategy, random });
     },
 
     /** @param {PlacementTest} placement @param {string} text forme saisie */

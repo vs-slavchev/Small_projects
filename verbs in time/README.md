@@ -15,7 +15,7 @@ npm test    # lanceur de tests intégré de Node (≥ 20)
 Le joueur choisit son point de départ :
 
 - **Je débute** : il commence au niveau 1 ;
-- **Je connais déjà un peu** : un **test de placement** cherche son niveau. C'est une recherche dichotomique sur le parcours : le niveau du milieu de l'intervalle restant est testé sur deux formes ; toutes deux justes, on cherche plus haut, sinon plus bas. Le test pose 10 questions au plus. « Je ne sais pas » compte comme une erreur. Les réponses ne sont pas corrigées à l'écran et n'entrent pas dans les statistiques. Le joueur commence au premier niveau non prouvé ; les niveaux précédents sont validés, et les suivants partent de zéro.
+- **Je connais déjà un peu** : un **test de placement** cherche son niveau. C'est une recherche dichotomique sur le parcours : le niveau du milieu de l'intervalle restant est testé sur deux formes ; toutes deux justes, on cherche plus haut, sinon plus bas. Le test pose 10 questions au plus. « Je ne sais pas » compte comme une erreur. Les réponses ne sont pas corrigées à l'écran et n'entrent pas dans les statistiques. Le joueur commence au premier niveau non prouvé ; les niveaux précédents sont validés, et les suivants partent de zéro. La règle de choix des questions est séparée du test : une autre règle (fonctions `next`, `result`, `maxLength` sur l'historique des réponses) se branche via `createUseCases({ placementStrategy })`.
 
 ### Niveaux
 
@@ -93,7 +93,7 @@ src/
 │   ├── levels.js                Level, LevelLadder : formes d'un niveau, progression, niveau terminé
 │   ├── gameSession.js           GameSession : partie en cours (5 tours, réponse saisie)
 │   ├── questionSelection.js     QuestionPicker : quatre paniers (niveau en cours, erreurs, révision)
-│   ├── placementTest.js         PlacementTest : recherche dichotomique du niveau de départ
+│   ├── placementTest.js         PlacementTest (historique, réponses) + règle de choix des questions (binarySearchPlacement par défaut)
 │   ├── playerProfile.js         PlayerProfile : joueur, niveau en cours, niveaux terminés
 │   ├── holidays.js              jours de fête (succès cachés)
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
