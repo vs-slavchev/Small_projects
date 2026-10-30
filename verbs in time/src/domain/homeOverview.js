@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { dayKey, addDays, daysBetween, percentOf, LevelVia } = Conjugo;
+const { dayKey, addDays, daysBetween, LevelVia } = Conjugo;
 
 /** Ce que l'accueil met en avant, selon le dernier jour joué. */
 const HomeState = Object.freeze({
@@ -34,7 +34,7 @@ const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
  * Rythme du joueur dans un niveau, d'après ses dernières parties dans ce niveau.
  * @param {import('./gameRecord.js').GameRecord[]} games parties archivées, dans l'ordre
  * @param {import('./levels.js').Level} level @param {number} mastered formes du niveau déjà acquises
- * @returns {{ gamesLeft: number, nextGamePercent: number }} parties restantes, gain estimé d'une partie (au moins 1 %, 0 si tout est acquis)
+ * @returns {{ gamesLeft: number, nextGameForms: number }} parties restantes, formes qu'une partie devrait rapporter (au moins 1, 0 si tout est acquis)
  */
 function levelPace(games, level, mastered) {
   const total = level.combos.length;
@@ -43,13 +43,14 @@ function levelPace(games, level, mastered) {
   const remaining = total - mastered;
   return Object.freeze({
     gamesLeft: remaining > 0 ? Math.ceil(remaining / pace) : 0,
-    nextGamePercent: remaining > 0 ? Math.max(1, Math.min(percentOf(pace, total), 100 - percentOf(mastered, total))) : 0,
+    // Seule l'estimation affichée est arrondie : les parties restantes gardent le rythme exact.
+    nextGameForms: remaining > 0 ? Math.min(Math.max(1, Math.round(pace)), remaining) : 0,
   });
 }
 
 /**
  * Tout ce que l'accueil et le parcours affichent, calculé à partir du profil.
- * Les gains sont comptés en formes acquises, niveau par niveau, puis convertis en pourcentage du niveau.
+ * Les gains sont comptés en formes acquises, niveau par niveau.
  * @param {import('./playerProfile.js').PlayerProfile} profile joueur placé (niveau non nul)
  * @param {import('./levels.js').LevelLadder} ladder
  * @param {Date} now
@@ -76,19 +77,18 @@ function homeOverview(profile, ladder, now) {
   }
   const completedOn = date => completedByDay.get(dayKey(date)) ?? [];
   /**
-   * Gain d'une journée dans un seul niveau, en pourcentage de ce niveau : on n'additionne jamais
-   * les pourcentages de niveaux différents. Un niveau terminé ce jour-là compte comme une coche, pas comme un gain.
+   * Gain d'une journée dans un seul niveau, en formes acquises : on n'additionne jamais
+   * les gains de niveaux différents. Un niveau terminé ce jour-là compte comme une coche, pas comme un gain.
    */
   const dayGain = (date, levelNumber) => {
     if (levelNumber === undefined || completedOn(date).includes(levelNumber)) return 0;
-    const gain = sumGain(onDay(date).filter(g => g.level === levelNumber));
-    return Math.max(0, percentOf(gain, ladder.level(levelNumber).combos.length));
+    return Math.max(0, sumGain(onDay(date).filter(g => g.level === levelNumber)));
   };
 
   // Formes réellement acquises en jouant : les niveaux validés par le test de placement n'en apportent aucune.
   const formsMastered = ladder.keys.filter(key => profile.practice.get(key).isMastered).length;
   const today = onDay(now);
-  const todayPercent = dayGain(now, level.number);
+  const todayGain = dayGain(now, level.number);
 
   return Object.freeze({
     state,
@@ -97,10 +97,11 @@ function homeOverview(profile, ladder, now) {
     streak: profile.calendar.currentStreak(now),
     bestStreak: profile.calendar.longestStreak(),
     level,
-    percent: percentOf(mastered, total),
+    /** Formes acquises du niveau en cours (sur `level.combos.length`). */
+    mastered,
     isLevelComplete: mastered === total,
-    /** Gain du jour dans le niveau en cours (un niveau terminé aujourd'hui est dans `completedToday`, pas ici). */
-    todayPercent,
+    /** Formes gagnées aujourd'hui dans le niveau en cours (un niveau terminé aujourd'hui est dans `completedToday`, pas ici). */
+    todayGain,
     /** Numéros des niveaux terminés aujourd'hui en jouant, dans l'ordre. */
     completedToday: Object.freeze(completedOn(now)),
     formsMastered,
@@ -108,13 +109,13 @@ function homeOverview(profile, ladder, now) {
     formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),
     ...levelPace(profile.games, level, mastered),
     /**
-     * `completed` : niveaux terminés ce jour-là ; `gainPercent` : gain dans le niveau joué en dernier ce jour-là
+     * `completed` : niveaux terminés ce jour-là ; `gain` : formes gagnées dans le niveau joué en dernier ce jour-là
      * (aujourd'hui : le niveau en cours, comme le titre de l'accueil).
      */
     week: Object.freeze(profile.calendar.week(now).map(d => Object.freeze({
       ...d,
       completed: Object.freeze(completedOn(d.date)),
-      gainPercent: d.isToday ? todayPercent : dayGain(d.date, onDay(d.date).at(-1)?.level),
+      gain: d.isToday ? todayGain : dayGain(d.date, onDay(d.date).at(-1)?.level),
     }))),
     /** Nombre de niveaux terminés, niveau en cours compris s'il l'est déjà. */
     levelsCompleted: profile.levelHistory.length,

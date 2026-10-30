@@ -117,8 +117,8 @@ test('déroulé complet d’une partie jusqu’au bilan', () => {
   assert.equal(summary.streak, 1);
   assert.equal(summary.level.number, 1);
   assert.equal(summary.newlyMastered.length, 3, 'chaque forme juste du niveau est acquise');
-  assert.equal(summary.percentAfter, 25, '3 formes sur 12');
-  assert.equal(summary.gainPercent, 25);
+  assert.deepEqual([summary.record.masteredBefore, summary.record.masteredAfter, summary.level.combos.length], [0, 3, 12], '3 formes sur 12');
+  assert.equal(summary.record.masteredGain, 3);
   const saved = env.profiles.load();
   assert.equal(saved.gameCount, 1, 'partie archivée');
   assert.deepEqual([saved.games[0].level, saved.games[0].masteredBefore, saved.games[0].masteredAfter], [1, 0, 3]);
@@ -131,7 +131,7 @@ test('niveau terminé : écran de fête, puis le niveau suivant', () => {
   assert.equal(env.machine.state, AppState.LEVEL_UP);
   const { summary } = env.machine.context;
   assert.ok(summary.levelCompleted);
-  assert.equal(summary.percentAfter, 100);
+  assert.equal(summary.record.masteredAfter, summary.level.combos.length);
   assert.equal(summary.nextLevel, 2);
   assert.equal(summary.levelsPlayed, 1, '« Et d’un ! »');
   assert.equal(env.profiles.load().level, 2);
@@ -197,8 +197,8 @@ test('après le bilan : « Encore une » relance une partie, « Accueil » montr
   env.machine.send(AppEvent.NAVIGATE, { to: Destination.HOME });
   const { home } = env.machine.context;
   assert.equal(home.state, HomeState.PLAYED_TODAY);
-  assert.equal(home.todayPercent, home.percent);
-  assert.ok(home.todayPercent > 0);
+  assert.equal(home.todayGain, home.mastered);
+  assert.ok(home.todayGain > 0);
 });
 
 test('un niveau déjà entièrement acquis se termine à la partie suivante', () => {
@@ -226,8 +226,8 @@ test('le dernier niveau ne se termine qu’une fois ; ensuite, on révise', () =
   assert.equal(env.profiles.load().levelHistory.length, 2);
   const { summary } = env.machine.context;
   const stored = summary.level.progress(env.profiles.load().practice);
-  assert.equal(summary.percentAfter, Math.round((stored.mastered / stored.total) * 100), 'le bilan correspond aux statistiques enregistrées');
-  assert.equal(summary.nextGamePercent, 0, 'rien à gagner : pas de « +1 % »');
+  assert.deepEqual([summary.record.masteredAfter, summary.level.combos.length], [stored.mastered, stored.total], 'le bilan correspond aux statistiques enregistrées');
+  assert.equal(summary.nextGameForms, 0, 'rien à gagner : pas de « +1 forme »');
 });
 
 test('Progrès : le parcours montre le niveau en cours et les niveaux terminés', () => {

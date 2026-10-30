@@ -11,6 +11,9 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, c => HTML_ESCAPES[
 
 const plural = (n, singular, pluralForm = `${singular}s`) => (Math.abs(n) > 1 ? pluralForm : singular);
 
+/** Part entière en pourcentage, pour la largeur d'une barre : 2 sur 6 → 33. */
+const percentOf = (part, total) => Math.round((part / total) * 100);
+
 /** 41 000 ms → « 0:41 » */
 function formatClock(ms) {
   const s = Math.floor(ms / 1000);
@@ -84,5 +87,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(Conjugo, { escapeHtml, plural, formatClock, formatSeconds, durationText, diffChars, similarity, fitFontSize, achievementStatus, unlockedLabel });
+Object.assign(Conjugo, { escapeHtml, plural, percentOf, formatClock, formatSeconds, durationText, diffChars, similarity, fitFontSize, achievementStatus, unlockedLabel });
 })(globalThis.Conjugo ??= {});

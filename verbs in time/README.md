@@ -48,11 +48,11 @@ Une **forme** (verbe + temps + case de personne) est **acquise** quand sa derni�
   - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
   - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée (les accents n'y sont pas exigés) ;
   - la particularité du verbe, et les verbes qui **se conjuguent comme lui**.
-- Le **bilan** met en avant le gain du niveau (« +13 % »), les formes devenues acquises et ce qu'apporterait une partie de plus.
+- Le **bilan** met en avant les formes gagnées dans le niveau (« +3 formes », puis « 5 → 8 / 12 formes »), les formes devenues acquises et ce qu'apporterait une partie de plus.
 
 ### Accueil et progrès
 
-L'accueil ne montre jamais « +0 % » : son accroche dépend du dernier jour joué.
+L'accueil ne montre jamais « +0 forme » : son accroche dépend du dernier jour joué.
 
 | État | Quand | Accroche |
 |---|---|---|
