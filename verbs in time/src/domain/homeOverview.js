@@ -74,8 +74,7 @@ function homeOverview(profile, ladder, now) {
   };
 
   // Formes réellement acquises en jouant : les niveaux validés par le test de placement n'en apportent aucune.
-  const formsMastered = [...new Set(ladder.levels.flatMap(l => l.combos.map(c => c.key)))]
-    .filter(key => profile.practice.get(key).isMastered).length;
+  const formsMastered = ladder.keys.filter(key => profile.practice.get(key).isMastered).length;
   const today = onDay(now);
 
   return Object.freeze({

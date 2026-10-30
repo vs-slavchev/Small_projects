@@ -62,11 +62,13 @@ class Level {
 /** Les niveaux, dans l'ordre du parcours. Valide les données au chargement. */
 class LevelLadder {
   #levels;
+  #keys;
 
   /** @param {Level[]} levels */
   constructor(levels) {
     if (!levels.length) throw new DomainError('Aucun niveau.');
     this.#levels = Object.freeze([...levels]);
+    this.#keys = Object.freeze([...new Set(levels.flatMap(l => l.combos.map(c => c.key)))]);
   }
 
   /** @param {import('./conjugation.js').VerbBank} bank */
@@ -85,6 +87,8 @@ class LevelLadder {
 
   get levels() { return this.#levels; }
   get count() { return this.#levels.length; }
+  /** Clés de toutes les formes du parcours, sans doublon (une forme peut revenir dans plusieurs niveaux). */
+  get keys() { return this.#keys; }
 
   /** @param {number} number de 1 à `count` @returns {Level} */
   level(number) {

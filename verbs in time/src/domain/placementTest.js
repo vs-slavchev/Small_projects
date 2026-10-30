@@ -80,20 +80,21 @@ class PlacementTest {
 
   /** @param {{ ladder: import('./levels.js').LevelLadder, strategy?: PlacementStrategy, random?: () => number }} deps */
   constructor({ ladder, strategy = binarySearchPlacement(), random = Math.random }) {
+    const missing = ['next', 'result', 'remaining'].filter(name => typeof strategy?.[name] !== 'function');
+    if (missing.length) throw new DomainError(`Règle de placement incomplète : ${missing.join(', ')} manquant.`);
     this.#ladder = ladder;
     this.#strategy = strategy;
     this.#random = random;
     this.#advance();
   }
 
-  /** Nombre de questions au plus, selon la règle. */
-  get maxLength() {
-    return this.#strategy.remaining({ ladder: this.#ladder, history: [] });
-  }
-
-  /** Longueur prévue d'après les réponses déjà données : se raccourcit quand la recherche se resserre plus vite. */
+  /**
+   * Longueur prévue d'après les réponses déjà données : se raccourcit quand la recherche se resserre plus vite.
+   * Jamais moins que la question en cours, même si la règle sous-estime ce qui reste.
+   */
   get plannedLength() {
-    return this.#history.length + this.#strategy.remaining({ ladder: this.#ladder, history: this.#history });
+    const remaining = this.#strategy.remaining({ ladder: this.#ladder, history: this.#history });
+    return Math.max(this.position, this.#history.length + (Number.isFinite(remaining) ? Math.max(0, remaining) : 0));
   }
 
   /** Questions déjà répondues, dans l'ordre (liste figée, remplacée à chaque réponse). @returns {readonly PlacementEntry[]} */

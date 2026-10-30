@@ -19,6 +19,7 @@ test('22 niveaux : présent, passé composé, futur proche, imparfait, futur sim
   assert.equal(ladder.level(12).title, 'aller', 'aller seul au passé composé : il prend être');
   assert.equal(ladder.level(13).title, 'faire, prendre');
   assert.equal(ladder.level(1).combos.length, 12, 'deux verbes × six cases');
+  assert.equal(ladder.keys.length, new Set(ladder.levels.flatMap(l => l.combos.map(c => c.key))).size, 'clés sans doublon');
   assert.deepEqual(ladder.before(3).map(l => l.number), [1, 2]);
   assert.throws(() => ladder.level(23), DomainError);
   assert.deepEqual(ladder.level(6).span, { from: 'je finis', to: 'elles finissent' });
@@ -52,6 +53,7 @@ test('progression d’un niveau : formes acquises sur formes du niveau', () => {
 /** Test de placement où le joueur connaît tout jusqu'au niveau `known` inclus. */
 function runPlacement(known, random = seededRandom(3)) {
   const placement = new PlacementTest({ ladder, random });
+  const maxLength = placement.plannedLength;
   let questions = 0;
   while (!placement.isComplete) {
     const q = placement.currentQuestion;
@@ -62,7 +64,7 @@ function runPlacement(known, random = seededRandom(3)) {
     else placement.skip();
     questions++;
   }
-  return { result: placement.result, questions, maxLength: placement.maxLength };
+  return { result: placement.result, questions, maxLength };
 }
 
 test('placement : la recherche trouve le premier niveau non connu, en 5 questions au plus', () => {
@@ -116,14 +118,25 @@ test('placement : une autre règle se branche sans toucher au test', () => {
     remaining: ({ ladder: l, history }) => (history.some(e => !e.correct) ? 0 : l.count - history.length),
   };
   const placement = new PlacementTest({ ladder, strategy: stepUp, random: sequence(0) });
-  assert.equal(placement.maxLength, 22);
+  assert.equal(placement.plannedLength, 22);
   placement.answer(placement.currentQuestion.expected.forms[0]);
   placement.answer(placement.currentQuestion.expected.forms[0]);
   assert.equal(placement.currentQuestion.verb, ladder.level(3).verbs[0]);
   placement.skip();
   assert.ok(placement.isComplete);
   assert.equal(placement.result, 3);
-  assert.equal(new PlacementTest({ ladder, strategy: binarySearchPlacement({ probesPerLevel: 3 }) }).maxLength, 15);
+  assert.equal(new PlacementTest({ ladder, strategy: binarySearchPlacement({ probesPerLevel: 3 }) }).plannedLength, 15);
+});
+
+test('placement : une règle incomplète est refusée ; une estimation trop basse garde la question en cours', () => {
+  const { next, result } = binarySearchPlacement();
+  assert.throws(() => new PlacementTest({ ladder, strategy: { next, result, maxLength: () => 5 } }), /remaining manquant/);
+  for (const remaining of [() => 0, () => -3, () => NaN]) {
+    const placement = new PlacementTest({ ladder, strategy: { next, result, remaining }, random: sequence(0) });
+    assert.equal(placement.plannedLength, 1);
+    placement.skip();
+    assert.equal(placement.plannedLength, 2, 'au moins la question affichée');
+  }
 });
 
 /** Profil au niveau `level`, avec des parties datées et leurs gains de formes. */
@@ -165,6 +178,19 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   assert.equal(home.nextGamePercent, 22);
   assert.equal(home.week.find(d => d.isToday).gainPercent, 33);
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
+});
+
+test('accueil : après le dernier niveau, il est terminé sans réapparaître dans le parcours', () => {
+  const profile = profileWith({ level: 22 });
+  profile.completeLevel(day(17), 22);
+  const home = homeOverview(profile, ladder, day(18));
+  assert.equal(home.levelAlreadyCompleted, true);
+  assert.equal(home.levelsCompleted, 22);
+  assert.equal(home.journey.length, 21);
+  assert.ok(home.journey.every(h => h.level.number !== 22));
+  const before = homeOverview(profileWith({ level: 22 }), ladder, day(18));
+  assert.equal(before.levelAlreadyCompleted, false);
+  assert.equal(before.levelsCompleted, 21);
 });
 
 test('accueil : un niveau terminé aujourd’hui compte dans le gain du jour', () => {

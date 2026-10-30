@@ -408,7 +408,7 @@ function journeyDots(home) {
   ].join('');
   return `<div class="week-chart">
     <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} en cours à ${home.percent} %">${dots}</div>
+    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours à ${home.percent} %`}">${dots}</div>
   </div>`;
 }
 
@@ -683,7 +683,7 @@ const journey = {
           ${levelBar(bar, { dark: true })}
           <p>${bar.today ? `<b>+${bar.today}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
         </div>
-        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.journey.length} ${plural(h.journey.length, 'niveau')}</span></div>
+        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
         ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}
       </div>
       ${tabbar(Destination.JOURNEY)}
