@@ -140,7 +140,6 @@ function createUseCases({
         missed,
         streak: profile.calendar.currentStreak(now),
         level,
-        total: after.total,
         newlyMastered,
         levelCompleted,
         levelsPlayed: profile.levelHistory.filter(h => h.via === LevelVia.PLAY).length,

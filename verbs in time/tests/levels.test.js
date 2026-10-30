@@ -170,7 +170,7 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   // Niveau 6 (finir, 6 formes) : 2 formes acquises aujourd'hui, 4 en tout.
   const profile = profileWith({ games: [[17, 0, 2], [18, 2, 3], [18, 3, 4]], mastered: 4 });
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.deepEqual([home.mastered, home.total], [4, 6]);
+  assert.deepEqual([home.mastered, home.level.combos.length], [4, 6]);
   assert.equal(home.todayGain, 2, 'deux formes aujourd’hui');
   assert.equal(home.formsToday, 2);
   assert.equal(home.formsMastered, 4, 'seules les formes acquises en jouant : les niveaux validés par le test n’en apportent pas');
@@ -226,6 +226,17 @@ test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans a
   const two = homeOverview(profile, ladder, day(18, 20));
   assert.match(renderHome(two), /les niveaux 5 et 6/);
   assert.match(renderHome(two), /✓✓/);
+});
+
+test('rythme : seule l’estimation affichée est arrondie, pas les parties restantes', () => {
+  const games = [gameIn(1, day(16), 0, 1), gameIn(1, day(17), 1, 3)];
+  assert.deepEqual(levelPace(games, ladder.level(1), 2), { gamesLeft: 7, nextGameForms: 2 }, '1,5 forme par partie, 10 restantes');
+});
+
+test('accueil : de retour avec une seule forme acquise, elle est nommée', () => {
+  const home = homeOverview(profileWith({ games: [[15, 0, 1]], mastered: 1 }), ladder, day(18));
+  assert.equal(home.state, HomeState.BACK);
+  assert.match(renderHome(home), /1&nbsp;forme acquise vous attendait bien au chaud/);
 });
 
 test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que le dernier', () => {

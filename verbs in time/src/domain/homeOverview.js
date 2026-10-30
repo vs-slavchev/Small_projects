@@ -39,12 +39,12 @@ const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
 function levelPace(games, level, mastered) {
   const total = level.combos.length;
   const recent = games.filter(g => g.level === level.number && isMeasured(g, level)).slice(-PACE_GAMES);
-  // Formes par partie, entières : l'estimation affichée et le nombre de parties restantes concordent.
-  const pace = recent.length ? Math.max(1, Math.round(sumGain(recent) / recent.length)) : DEFAULT_PACE;
+  const pace = recent.length ? Math.max(1, sumGain(recent) / recent.length) : DEFAULT_PACE;
   const remaining = total - mastered;
   return Object.freeze({
     gamesLeft: remaining > 0 ? Math.ceil(remaining / pace) : 0,
-    nextGameForms: Math.min(pace, remaining),
+    // Seule l'estimation affichée est arrondie : les parties restantes gardent le rythme exact.
+    nextGameForms: remaining > 0 ? Math.min(Math.max(1, Math.round(pace)), remaining) : 0,
   });
 }
 
@@ -97,9 +97,8 @@ function homeOverview(profile, ladder, now) {
     streak: profile.calendar.currentStreak(now),
     bestStreak: profile.calendar.longestStreak(),
     level,
-    /** Formes acquises du niveau en cours, sur les formes qu'il demande. */
+    /** Formes acquises du niveau en cours (sur `level.combos.length`). */
     mastered,
-    total,
     isLevelComplete: mastered === total,
     /** Formes gagnées aujourd'hui dans le niveau en cours (un niveau terminé aujourd'hui est dans `completedToday`, pas ici). */
     todayGain,

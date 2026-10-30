@@ -262,8 +262,10 @@ const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
 const partiesText = n => `${n} ${plural(n, 'partie')}`;
 /** « 3 formes », « 1 forme » */
 const formsText = n => `${n}&nbsp;${plural(n, 'forme')}`;
+/** « 8 formes acquises » */
+const acquiredText = n => `${n}&nbsp;${plural(n, 'forme acquise', 'formes acquises')}`;
 /** « 8 formes acquises sur 12 » */
-const masteredText = (n, total) => `${n} ${plural(n, 'forme acquise', 'formes acquises')} sur ${total}`;
+const masteredText = (n, total) => `${acquiredText(n)} sur ${total}`;
 
 function soundButton(on) {
   return `<button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(on)}">${on ? ICON.soundOn : ICON.soundOff}</button>`;
@@ -309,9 +311,9 @@ function homeHeadline(home) {
     }
     case HomeState.BACK:
       return `<span class="eyebrow">Content de vous revoir&nbsp;!</span><h1>Rien n'est perdu.</h1>
-        <p>${!home.mastered ? 'Votre niveau vous attendait bien au chaud.'
-          : home.mastered === 1 ? 'Votre forme acquise vous attendait bien au chaud.'
-            : `Vos ${home.mastered}&nbsp;formes acquises vous attendaient bien au chaud.`}</p>`;
+        <p>${home.mastered
+    ? `${acquiredText(home.mastered)} vous ${plural(home.mastered, 'attendait', 'attendaient')} bien au chaud.`
+    : 'Votre niveau vous attendait bien au chaud.'}</p>`;
     default:
       return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
   }
@@ -343,17 +345,20 @@ function achievedCard(home) {
  */
 function levelBar({ mastered, total, today = 0, next = 0 }, { dark = false, big = false, label } = {}) {
   const gained = Math.max(0, Math.min(today, mastered));
+  // Largeurs prises entre bords arrondis : leur somme ne dépasse jamais 100 %.
   const width = n => percentOf(n, total);
-  const slice = gained ? `<div class="lb-today" style="width:${width(gained)}%"></div>` : next ? `<div class="lb-next" style="width:${width(next)}%"></div>` : '';
+  const slice = gained ? `<div class="lb-today" style="width:${width(mastered) - width(mastered - gained)}%"></div>`
+    : next ? `<div class="lb-next" style="width:${width(mastered + next) - width(mastered)}%"></div>` : '';
   const filled = masteredText(mastered, total);
   label ??= gained ? `${filled}, dont ${gained} aujourd'hui`
     : next ? `${filled}, environ ${mastered + next} après une partie` : filled;
   const cls = ['level-bar', dark && 'dark', big && 'big'].filter(Boolean).join(' ');
-  return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${width(mastered) - width(gained)}%"></div>${slice}</div>`;
+  return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${width(mastered - gained)}%"></div>${slice}</div>`;
 }
 
 /** En-tête d'une carte de niveau : petite ligne, verbes du niveau (et une précision), formes acquises sur formes du niveau. */
-function levelHead(eyebrow, level, mastered, total, extra = '') {
+function levelHead(eyebrow, level, mastered, extra = '') {
+  const total = level.combos.length;
   return `<div class="lc-head">
     <div class="lc-name"><span class="eyebrow">${eyebrow}</span><b>${esc(level.title)}</b>${extra}</div>
     <span class="lc-pct" role="img" aria-label="${masteredText(mastered, total)}">${mastered}<small>/${total}</small></span>
@@ -364,7 +369,7 @@ function levelHead(eyebrow, level, mastered, total, extra = '') {
 function homeBarParts(home) {
   const played = home.state === HomeState.PLAYED_TODAY && home.todayGain > 0;
   return {
-    mastered: home.mastered, total: home.total,
+    mastered: home.mastered, total: home.level.combos.length,
     today: played ? home.todayGain : 0, next: played ? 0 : home.nextGameForms,
   };
 }
@@ -383,7 +388,7 @@ function levelCard(home) {
     [HomeState.AWAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
   }[home.state];
   return `<div class="level-card">
-    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.mastered, home.total)}
+    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.mastered)}
     ${levelBar(homeBarParts(home))}
     <div class="lc-foot">${footer}</div>
   </div>`;
@@ -396,7 +401,9 @@ const WEEK_BAR_MIN_PEAK = 4;
 function weekChart(home) {
   const isPending = d => d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGameForms > 0;
   // Barres à l'échelle du meilleur jour de la semaine : les grosses journées restent distinctes.
-  const peak = Math.max(WEEK_BAR_MIN_PEAK, ...home.week.map(d => (isPending(d) ? home.nextGameForms : d.gain)));
+  // Un jour où un niveau est terminé a déjà sa barre pleine : il ne fixe pas l'échelle.
+  const peak = Math.max(WEEK_BAR_MIN_PEAK, ...home.week.filter(d => !d.completed.length)
+    .map(d => (isPending(d) ? home.nextGameForms : d.gain)));
   // Part de la hauteur maximale ; la hauteur elle-même est fixée par la feuille de style (--wk-max).
   const weekBarHeight = forms => Math.min(1, forms / peak).toFixed(3);
   const bars = home.week.map((d, i) => {
@@ -441,7 +448,7 @@ function journeyDots(home) {
   ].join('');
   return `<div class="week-chart">
     <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.total)}`}">${dots}</div>
+    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.level.combos.length)}`}">${dots}</div>
   </div>`;
 }
 
@@ -647,11 +654,11 @@ const results = {
   render({ context }) {
     const s = context.summary;
     const { record, level } = s;
-    const { gain } = s;
-    const { masteredBefore, masteredAfter } = record;
+    const { masteredBefore, masteredAfter, masteredGain: gain } = record;
+    const total = level.combos.length;
     const hero = gain > 0
       ? `<span class="re-hero">+${gain}</span>`
-      : `<span class="re-hero">${masteredAfter}<small>/${s.total}</small></span>`;
+      : `<span class="re-hero">${masteredAfter}<small>/${total}</small></span>`;
     const sub = gain > 0
       ? `${plural(gain, 'forme')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`
       : `${plural(masteredAfter, 'forme acquise', 'formes acquises')} du niveau. ${VERDICT_TEXT[s.verdict]}`;
@@ -676,8 +683,8 @@ const results = {
             <span class="re-sub">${sub}</span>
           </div>
           <div class="re-progress">
-            ${levelBar({ mastered: masteredAfter, total: s.total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${s.total}` })}
-            <div class="re-legend"><span>${masteredBefore} → <b>${masteredAfter}</b> / ${formsText(s.total)}</span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
+            ${levelBar({ mastered: masteredAfter, total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${total}` })}
+            <div class="re-legend"><span>${masteredBefore} → <b>${masteredAfter}</b> / ${formsText(total)}</span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
           </div>
           <div class="re-card">
             <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
@@ -715,7 +722,7 @@ const journey = {
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
         <div class="jr-current">
-          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, h.total, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
           ${levelBar(bar, { dark: true })}
           <p>${bar.today ? `<b>+${formsText(bar.today)} aujourd'hui.</b> ` : ''}${left}</p>
         </div>

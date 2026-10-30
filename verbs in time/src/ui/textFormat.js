@@ -68,7 +68,7 @@ function achievementStatus(p) {
   const tierLabel = p.isSingleStep
     ? (p.reached ? 'Obtenu' : 'Pas encore obtenu')
     : (p.reached ? `Niveau ${p.tierName}${p.isComplete ? '' : ` · ${p.reached}/${p.thresholds.length}`}` : 'Pas encore obtenu');
-  const percent = percentOf(p.ratio, 1);
+  const percent = Math.round(p.ratio * 100);
   if (p.isComplete) return { tierLabel, nextLabel: 'Niveau maximal atteint', progressLabel: '✓', percent };
   if (p.isBelowGoal) {
     return {
