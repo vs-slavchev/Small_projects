@@ -47,9 +47,7 @@ class GameSummary {
     this.streak = streak;
     /** Niveau dans lequel la partie a été jouée. */
     this.level = level;
-    /** Formes acquises du niveau avant et après la partie, sur `total`. */
-    this.masteredBefore = before.mastered;
-    this.masteredAfter = after.mastered;
+    /** Formes du niveau ; les formes acquises avant et après la partie sont dans `record`. */
     this.total = after.total;
     /** Formes devenues acquises pendant la partie, dans l'ordre où elles ont été posées. */
     this.newlyMastered = Object.freeze([...newlyMastered]);
@@ -63,7 +61,7 @@ class GameSummary {
 
   /** Formes gagnées dans le niveau (négatif si des formes ont été perdues). */
   get gain() {
-    return this.masteredAfter - this.masteredBefore;
+    return this.record.masteredGain;
   }
 }
 

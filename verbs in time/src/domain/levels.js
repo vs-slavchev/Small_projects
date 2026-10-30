@@ -10,9 +10,6 @@ const FRENCH_LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
 /** « a, b et c » @param {string[]} items */
 const frenchList = items => FRENCH_LIST.format(items);
 
-/** Part entière en pourcentage : 2 sur 6 → 33. */
-const percentOf = (part, total) => Math.round((part / total) * 100);
-
 /**
  * Niveau du parcours : un temps, quelques verbes, et les six cases de personne de chacun.
  * Il est terminé quand toutes ses formes sont acquises (voir `AnswerStat.isMastered`).
@@ -110,5 +107,5 @@ class LevelLadder {
   }
 }
 
-Object.assign(Conjugo, { percentOf, frenchList, Level, LevelLadder });
+Object.assign(Conjugo, { frenchList, Level, LevelLadder });
 })(globalThis.Conjugo ??= {});

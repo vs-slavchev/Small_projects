@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState, frenchList, percentOf,
+  AppState, AppEvent, Destination, HomeState, frenchList,
   escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
@@ -262,6 +262,10 @@ const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
 const partiesText = n => `${n} ${plural(n, 'partie')}`;
 /** « 3 formes », « 1 forme » */
 const formsText = n => `${n}&nbsp;${plural(n, 'forme')}`;
+/** « 8 formes acquises sur 12 » */
+const masteredText = (n, total) => `${n} ${plural(n, 'forme acquise', 'formes acquises')} sur ${total}`;
+/** Part entière en pourcentage, pour la largeur d'une barre : 2 sur 6 → 33. */
+const percentOf = (part, total) => Math.round((part / total) * 100);
 
 function soundButton(on) {
   return `<button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(on)}">${on ? ICON.soundOn : ICON.soundOff}</button>`;
@@ -339,12 +343,11 @@ function achievedCard(home) {
  */
 function levelBar({ mastered, total, today = 0, next = 0 }, { dark = false, big = false, label } = {}) {
   const gained = Math.max(0, Math.min(today, mastered));
-  const ahead = Math.min(next, total - mastered);
   const width = n => percentOf(n, total);
-  const slice = gained ? `<div class="lb-today" style="width:${width(gained)}%"></div>` : ahead ? `<div class="lb-next" style="width:${width(ahead)}%"></div>` : '';
-  const filled = `${mastered} ${plural(mastered, 'forme acquise', 'formes acquises')} sur ${total}`;
+  const slice = gained ? `<div class="lb-today" style="width:${width(gained)}%"></div>` : next ? `<div class="lb-next" style="width:${width(next)}%"></div>` : '';
+  const filled = masteredText(mastered, total);
   label ??= gained ? `${filled}, dont ${gained} aujourd'hui`
-    : ahead ? `${filled}, environ ${mastered + ahead} après une partie` : filled;
+    : next ? `${filled}, environ ${mastered + next} après une partie` : filled;
   const cls = ['level-bar', dark && 'dark', big && 'big'].filter(Boolean).join(' ');
   return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${width(mastered) - width(gained)}%"></div>${slice}</div>`;
 }
@@ -353,7 +356,7 @@ function levelBar({ mastered, total, today = 0, next = 0 }, { dark = false, big 
 function levelHead(eyebrow, level, mastered, total, extra = '') {
   return `<div class="lc-head">
     <div class="lc-name"><span class="eyebrow">${eyebrow}</span><b>${esc(level.title)}</b>${extra}</div>
-    <span class="lc-pct" aria-label="${mastered} ${plural(mastered, 'forme acquise', 'formes acquises')} sur ${total}">${mastered}<small>/${total}</small></span>
+    <span class="lc-pct" aria-label="${masteredText(mastered, total)}">${mastered}<small>/${total}</small></span>
   </div>`;
 }
 
@@ -362,7 +365,7 @@ function homeBarParts(home) {
   const played = home.state === HomeState.PLAYED_TODAY && home.todayGain > 0;
   return {
     mastered: home.mastered, total: home.total,
-    today: played ? home.todayGain : 0, next: played || home.isLevelComplete ? 0 : home.nextGameForms,
+    today: played ? home.todayGain : 0, next: played ? 0 : home.nextGameForms,
   };
 }
 
@@ -399,7 +402,7 @@ function weekChart(home) {
     if (pending) {
       cls += ' next';
       label = `+${home.nextGameForms}&nbsp;?`;
-      height = Math.max(8, weekBarHeight(home.nextGameForms));
+      height = weekBarHeight(home.nextGameForms);
     } else if (d.isFuture) {
       cls += ' future';
     } else if (d.completed.length) {
@@ -433,7 +436,7 @@ function journeyDots(home) {
   ].join('');
   return `<div class="week-chart">
     <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${home.mastered} ${plural(home.mastered, 'forme acquise', 'formes acquises')} sur ${home.total}`}">${dots}</div>
+    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.total)}`}">${dots}</div>
   </div>`;
 }
 
@@ -640,12 +643,13 @@ const results = {
     const s = context.summary;
     const { record, level } = s;
     const { gain } = s;
+    const { masteredBefore, masteredAfter } = record;
     const hero = gain > 0
       ? `<span class="re-hero">+${gain}</span>`
-      : `<span class="re-hero">${s.masteredAfter}<small>/${s.total}</small></span>`;
+      : `<span class="re-hero">${masteredAfter}<small>/${s.total}</small></span>`;
     const sub = gain > 0
       ? `${plural(gain, 'forme')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`
-      : `${plural(s.masteredAfter, 'forme acquise', 'formes acquises')} du niveau. ${VERDICT_TEXT[s.verdict]}`;
+      : `${plural(masteredAfter, 'forme acquise', 'formes acquises')} du niveau. ${VERDICT_TEXT[s.verdict]}`;
     const dots = record.answers.map(a => `<i class="${a.correct ? 'ok' : 'ko'}"></i>`).join('');
     const mastered = s.newlyMastered;
     const masteredRow = mastered.length
@@ -667,8 +671,8 @@ const results = {
             <span class="re-sub">${sub}</span>
           </div>
           <div class="re-progress">
-            ${levelBar({ mastered: s.masteredAfter, total: s.total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${s.masteredBefore} à ${s.masteredAfter} sur ${s.total}` })}
-            <div class="re-legend"><span>${s.masteredBefore} → <b>${s.masteredAfter}</b> / ${formsText(s.total)}</span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
+            ${levelBar({ mastered: masteredAfter, total: s.total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${s.total}` })}
+            <div class="re-legend"><span>${masteredBefore} → <b>${masteredAfter}</b> / ${formsText(s.total)}</span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
           </div>
           <div class="re-card">
             <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
