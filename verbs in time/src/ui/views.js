@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState, frenchList,
+  AppState, AppEvent, Destination, HomeState, frenchList, percentOf,
   escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
@@ -260,6 +260,8 @@ const ICON = Object.freeze({
 
 const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
 const partiesText = n => `${n} ${plural(n, 'partie')}`;
+/** « 3 formes », « 1 forme » */
+const formsText = n => `${n}&nbsp;${plural(n, 'forme')}`;
 
 function soundButton(on) {
   return `<button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(on)}">${on ? ICON.soundOn : ICON.soundOff}</button>`;
@@ -287,12 +289,12 @@ function homeHeadline(home) {
       if (done.length) {
         const what = `${done.length === 1 ? 'le niveau' : 'les niveaux'} ${frenchList(done.map(String))}`;
         // Le gain du niveau en cours s'ajoute, sauf si c'est le niveau terminé (le dernier, gardé pour réviser).
-        const more = home.todayPercent > 0 && !done.includes(home.level.number)
-          ? `<p>Et déjà +${home.todayPercent}&nbsp;% dans le niveau ${home.level.number}.</p>` : '';
+        const more = home.todayGain > 0 && !done.includes(home.level.number)
+          ? `<p>Et déjà +${formsText(home.todayGain)} dans le niveau ${home.level.number}.</p>` : '';
         return `<span class="eyebrow">Aujourd'hui, vous avez terminé</span><h1>${amber(what)}</h1>${more}`;
       }
-      return home.todayPercent > 0
-        ? `<span class="eyebrow">Aujourd'hui, vous avez avancé de</span><h1>${amber(`+${home.todayPercent}&nbsp;%`)}</h1>`
+      return home.todayGain > 0
+        ? `<span class="eyebrow">Aujourd'hui, vous avez avancé de</span><h1>${amber(`+${formsText(home.todayGain)}`)}</h1>`
         : `<span class="eyebrow">Vous avez joué aujourd'hui.</span><h1>Chaque partie compte.</h1>`;
     }
     case HomeState.NOT_YET_TODAY: {
@@ -301,11 +303,11 @@ function homeHeadline(home) {
         : 'et votre série commence.';
       return home.isLevelComplete
         ? `<h1>Tout est acquis.</h1><p>Une partie de révision garde les formes en mémoire, ${streak}</p>`
-        : `<h1>Une partie aujourd'hui, c'est environ ${amber(`+${home.nextGamePercent}&nbsp;%`)}</h1><p>en 2 minutes, ${streak}</p>`;
+        : `<h1>Une partie aujourd'hui, c'est environ ${amber(`+${formsText(home.nextGameForms)}`)}</h1><p>en 2 minutes, ${streak}</p>`;
     }
     case HomeState.BACK:
       return `<span class="eyebrow">Content de vous revoir&nbsp;!</span><h1>Rien n'est perdu.</h1>
-        <p>${home.percent ? `Vos ${home.percent}&nbsp;% vous attendaient bien au chaud.` : 'Votre niveau vous attendait bien au chaud.'}</p>`;
+        <p>${home.mastered > 1 ? `Vos ${home.mastered}&nbsp;formes acquises vous attendaient bien au chaud.` : 'Votre niveau vous attendait bien au chaud.'}</p>`;
     default:
       return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
   }
@@ -331,75 +333,84 @@ function achievedCard(home) {
 }
 
 /**
- * Barre du niveau : acquis avant aujourd'hui, puis le gain du jour (plein, ambre)
+ * Barre du niveau, en formes acquises sur `total` : acquis avant aujourd'hui, puis le gain du jour (plein, ambre)
  * ou celui qu'apporterait une prochaine partie (pointillé).
- * @param {{ percent: number, today?: number, next?: number }} parts @param {{ dark?: boolean }} [options]
+ * @param {{ mastered: number, total: number, today?: number, next?: number }} parts @param {{ dark?: boolean }} [options]
  */
-function levelBar({ percent, today = 0, next = 0 }, { dark = false, big = false, label } = {}) {
-  const gained = Math.max(0, Math.min(today, percent));
-  const slice = gained ? `<div class="lb-today" style="width:${gained}%"></div>` : next ? `<div class="lb-next" style="width:${next}%"></div>` : '';
-  label ??= gained ? `Niveau rempli à ${percent} %, dont ${gained} % aujourd'hui`
-    : next ? `Niveau rempli à ${percent} %, environ ${Math.min(100, percent + next)} % après une partie` : `Niveau rempli à ${percent} %`;
+function levelBar({ mastered, total, today = 0, next = 0 }, { dark = false, big = false, label } = {}) {
+  const gained = Math.max(0, Math.min(today, mastered));
+  const ahead = Math.min(next, total - mastered);
+  const width = n => percentOf(n, total);
+  const slice = gained ? `<div class="lb-today" style="width:${width(gained)}%"></div>` : ahead ? `<div class="lb-next" style="width:${width(ahead)}%"></div>` : '';
+  const filled = `${mastered} ${plural(mastered, 'forme acquise', 'formes acquises')} sur ${total}`;
+  label ??= gained ? `${filled}, dont ${gained} aujourd'hui`
+    : ahead ? `${filled}, environ ${mastered + ahead} après une partie` : filled;
   const cls = ['level-bar', dark && 'dark', big && 'big'].filter(Boolean).join(' ');
-  return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${percent - gained}%"></div>${slice}</div>`;
+  return `<div class="${cls}" role="img" aria-label="${label}"><div class="lb-done" style="width:${width(mastered) - width(gained)}%"></div>${slice}</div>`;
 }
 
-/** En-tête d'une carte de niveau : petite ligne, verbes du niveau (et une précision), pourcentage. */
-function levelHead(eyebrow, level, percent, extra = '') {
+/** En-tête d'une carte de niveau : petite ligne, verbes du niveau (et une précision), formes acquises sur formes du niveau. */
+function levelHead(eyebrow, level, mastered, total, extra = '') {
   return `<div class="lc-head">
     <div class="lc-name"><span class="eyebrow">${eyebrow}</span><b>${esc(level.title)}</b>${extra}</div>
-    <span class="lc-pct">${percent}<small>%</small></span>
+    <span class="lc-pct" aria-label="${mastered} ${plural(mastered, 'forme acquise', 'formes acquises')} sur ${total}">${mastered}<small>/${total}</small></span>
   </div>`;
 }
 
 /** Parts de la barre du niveau sur l'accueil : le gain du jour s'il y en a un, sinon la prochaine partie. */
 function homeBarParts(home) {
-  const played = home.state === HomeState.PLAYED_TODAY && home.todayPercent > 0;
-  return { percent: home.percent, today: played ? home.todayPercent : 0, next: played || home.isLevelComplete ? 0 : home.nextGamePercent };
+  const played = home.state === HomeState.PLAYED_TODAY && home.todayGain > 0;
+  return {
+    mastered: home.mastered, total: home.total,
+    today: played ? home.todayGain : 0, next: played || home.isLevelComplete ? 0 : home.nextGameForms,
+  };
 }
 
 function levelCard(home) {
   const { level } = home;
   const parties = partiesText(home.gamesLeft);
   const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
-  const next = `≈ +${home.nextGamePercent}&nbsp;%`;
+  const next = `≈ +${formsText(home.nextGameForms)}`;
   const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
-    [HomeState.PLAYED_TODAY]: home.todayPercent > 0
-      ? `${badge(`+${home.todayPercent}&nbsp;% aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
+    [HomeState.PLAYED_TODAY]: home.todayGain > 0
+      ? `${badge(`+${formsText(home.todayGain)} aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
       : `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
     [HomeState.NOT_YET_TODAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">≈ ${parties} et il est à vous</span>`,
     [HomeState.BACK]: badge(`Une partie suffit pour repartir&nbsp;: ${next}`, true),
     [HomeState.AWAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
   }[home.state];
   return `<div class="level-card">
-    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.percent)}
+    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.mastered, home.total)}
     ${levelBar(homeBarParts(home))}
     <div class="lc-foot">${footer}</div>
   </div>`;
 }
 
-/** Semaine en barres : gain de chaque jour ; aujourd'hui en ambre (joué) ou en pointillé (à jouer). */
+/** Hauteur d'une barre de la semaine pour un gain de `forms` formes. */
+const weekBarHeight = forms => Math.max(4, Math.min(64, forms * 8));
+
+/** Semaine en barres : formes gagnées chaque jour ; aujourd'hui en ambre (joué) ou en pointillé (à jouer). */
 function weekChart(home) {
   const bars = home.week.map((d, i) => {
-    const pending = d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGamePercent > 0;
+    const pending = d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGameForms > 0;
     let cls = 'wk-bar';
     let label = '';
     let height = 4;
     if (pending) {
       cls += ' next';
-      label = `+${home.nextGamePercent}&nbsp;?`;
-      height = Math.max(8, Math.min(64, home.nextGamePercent * 2.4));
+      label = `+${home.nextGameForms}&nbsp;?`;
+      height = Math.max(8, weekBarHeight(home.nextGameForms));
     } else if (d.isFuture) {
       cls += ' future';
     } else if (d.completed.length) {
       // Coche par niveau terminé, puis le gain déjà fait dans le niveau suivant.
-      label = `${'✓'.repeat(d.completed.length)}${d.gainPercent ? `&nbsp;+${d.gainPercent}` : ''}`;
+      label = `${'✓'.repeat(d.completed.length)}${d.gain ? `&nbsp;+${d.gain}` : ''}`;
       height = 64;
       cls += d.isToday ? ' today' : ' gain';
     } else {
-      label = d.gainPercent ? `+${d.gainPercent}` : '0';
-      height = Math.max(4, Math.min(64, d.gainPercent * 2.4));
-      cls += d.isToday ? ' today' : d.gainPercent ? ' gain' : ' zero';
+      label = d.gain ? `+${d.gain}` : '0';
+      height = weekBarHeight(d.gain);
+      cls += d.isToday ? ' today' : d.gain ? ' gain' : ' zero';
     }
     return `<div class="wk-day${d.isToday ? ' is-today' : ''}"><span class="wk-label">${label}</span><div class="${cls}" style="height:${height}px"></div><span class="wk-name">${WEEKDAYS[i]}</span></div>`;
   }).join('');
@@ -408,7 +419,7 @@ function weekChart(home) {
     : '';
   return `<div class="week-chart">
     <span class="section-label">Cette semaine</span>
-    <div class="wk-bars" role="img" aria-label="Gain de chaque jour de la semaine, en pourcentage du niveau ; coche : niveau terminé ce jour-là">${bars}</div>
+    <div class="wk-bars" role="img" aria-label="Formes acquises chaque jour de la semaine dans le niveau joué ; coche : niveau terminé ce jour-là">${bars}</div>
     ${note}
   </div>`;
 }
@@ -422,7 +433,7 @@ function journeyDots(home) {
   ].join('');
   return `<div class="week-chart">
     <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours à ${home.percent} %`}">${dots}</div>
+    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${home.mastered} ${plural(home.mastered, 'forme acquise', 'formes acquises')} sur ${home.total}`}">${dots}</div>
   </div>`;
 }
 
@@ -435,10 +446,10 @@ const PLAY_CTA = Object.freeze({
 });
 
 /** Bouton de partie : libellé, précision éventuelle, et ce qu'une partie rapporte. */
-function playButton(label, sub, percent) {
+function playButton(label, sub, forms) {
   return `<button class="play-btn press" data-event="${AppEvent.START}">
     <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
-    ${percent > 0 ? `<span class="pb-tag">≈ +${percent}&nbsp;%</span>` : ''}
+    ${forms > 0 ? `<span class="pb-tag">≈ +${formsText(forms)}</span>` : ''}
   </button>`;
 }
 
@@ -457,7 +468,7 @@ const home = {
         ${levelCard(h)}
         ${h.state === HomeState.AWAY ? journeyDots(h) : weekChart(h)}
         <div class="grow"></div>
-        ${playButton(label, sub ?? length, h.nextGamePercent)}
+        ${playButton(label, sub ?? length, h.nextGameForms)}
       </div>
       ${tabbar(Destination.HOME)}
     </div>`;
@@ -628,11 +639,13 @@ const results = {
   render({ context }) {
     const s = context.summary;
     const { record, level } = s;
-    const gain = s.gainPercent;
+    const { gain } = s;
     const hero = gain > 0
-      ? `<span class="re-hero">+${gain}<small>%</small></span>`
-      : `<span class="re-hero">${s.percentAfter}<small>%</small></span>`;
-    const sub = gain > 0 ? `en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}` : `du niveau. ${VERDICT_TEXT[s.verdict]}`;
+      ? `<span class="re-hero">+${gain}</span>`
+      : `<span class="re-hero">${s.masteredAfter}<small>/${s.total}</small></span>`;
+    const sub = gain > 0
+      ? `${plural(gain, 'forme')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`
+      : `${plural(s.masteredAfter, 'forme acquise', 'formes acquises')} du niveau. ${VERDICT_TEXT[s.verdict]}`;
     const dots = record.answers.map(a => `<i class="${a.correct ? 'ok' : 'ko'}"></i>`).join('');
     const mastered = s.newlyMastered;
     const masteredRow = mastered.length
@@ -654,8 +667,8 @@ const results = {
             <span class="re-sub">${sub}</span>
           </div>
           <div class="re-progress">
-            ${levelBar({ percent: s.percentAfter, today: gain }, { big: true, label: `Niveau passé de ${s.percentBefore} % à ${s.percentAfter} %` })}
-            <div class="re-legend"><span>${s.percentBefore} % → <b>${s.percentAfter} %</b></span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
+            ${levelBar({ mastered: s.masteredAfter, total: s.total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${s.masteredBefore} à ${s.masteredAfter} sur ${s.total}` })}
+            <div class="re-legend"><span>${s.masteredBefore} → <b>${s.masteredAfter}</b> / ${formsText(s.total)}</span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
           </div>
           <div class="re-card">
             <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
@@ -666,7 +679,7 @@ const results = {
           ${unlocked}
         </div>
         <div class="end-actions">
-          ${playButton('Encore une', '', s.nextGamePercent)}
+          ${playButton('Encore une', '', s.nextGameForms)}
           <button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>
         </div>
       </div>
@@ -693,9 +706,9 @@ const journey = {
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
         <div class="jr-current">
-          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, h.total, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
           ${levelBar(bar, { dark: true })}
-          <p>${bar.today ? `<b>+${bar.today}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
+          <p>${bar.today ? `<b>+${formsText(bar.today)} aujourd'hui.</b> ` : ''}${left}</p>
         </div>
         <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
         ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}

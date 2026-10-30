@@ -147,7 +147,7 @@ function createUseCases({
         levelsPlayed: profile.levelHistory.filter(h => h.via === LevelVia.PLAY).length,
         nextLevel: profile.level,
         gamesLeft: pace.gamesLeft,
-        nextGamePercent: pace.nextGamePercent,
+        nextGameForms: pace.nextGameForms,
       });
     },
 

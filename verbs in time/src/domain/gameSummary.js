@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { addDays, GameRecord, percentOf } = Conjugo;
+const { addDays, GameRecord } = Conjugo;
 
 /** Appréciation d'une partie, du meilleur au moins bon. */
 const Verdict = Object.freeze({
@@ -34,11 +34,11 @@ class GameSummary {
    *           missed: { question: import('./conjugation.js').Question, given: string }[], streak: number,
    *           level: import('./levels.js').Level, before: { mastered: number, total: number },
    *           after: { mastered: number, total: number }, newlyMastered: import('./conjugation.js').Question[],
-   *           levelCompleted: boolean, levelsPlayed: number, nextLevel: number, gamesLeft: number, nextGamePercent: number }} props
+   *           levelCompleted: boolean, levelsPlayed: number, nextLevel: number, gamesLeft: number, nextGameForms: number }} props
    *   `before` / `after` : formes acquises du niveau avant et après la partie ;
-   *   `levelsPlayed` : niveaux terminés en jouant (hors placement) ; `nextLevel` : niveau du joueur après la partie ; `nextGamePercent` : gain estimé d'une prochaine partie
+   *   `levelsPlayed` : niveaux terminés en jouant (hors placement) ; `nextLevel` : niveau du joueur après la partie ; `nextGameForms` : formes qu'une prochaine partie devrait rapporter
    */
-  constructor({ record, verdict, unlocked, missed, streak, level, before, after, newlyMastered, levelCompleted, levelsPlayed, nextLevel, gamesLeft, nextGamePercent }) {
+  constructor({ record, verdict, unlocked, missed, streak, level, before, after, newlyMastered, levelCompleted, levelsPlayed, nextLevel, gamesLeft, nextGameForms }) {
     this.record = record;
     this.verdict = verdict;
     this.unlocked = Object.freeze([...unlocked]);
@@ -47,21 +47,23 @@ class GameSummary {
     this.streak = streak;
     /** Niveau dans lequel la partie a été jouée. */
     this.level = level;
-    this.percentBefore = percentOf(before.mastered, before.total);
-    this.percentAfter = percentOf(after.mastered, after.total);
+    /** Formes acquises du niveau avant et après la partie, sur `total`. */
+    this.masteredBefore = before.mastered;
+    this.masteredAfter = after.mastered;
+    this.total = after.total;
     /** Formes devenues acquises pendant la partie, dans l'ordre où elles ont été posées. */
     this.newlyMastered = Object.freeze([...newlyMastered]);
     this.levelCompleted = levelCompleted;
     this.levelsPlayed = levelsPlayed;
     this.nextLevel = nextLevel;
     this.gamesLeft = gamesLeft;
-    this.nextGamePercent = nextGamePercent;
+    this.nextGameForms = nextGameForms;
     Object.freeze(this);
   }
 
-  /** Points de pourcentage gagnés dans le niveau (négatif si des formes ont été perdues). */
-  get gainPercent() {
-    return this.percentAfter - this.percentBefore;
+  /** Formes gagnées dans le niveau (négatif si des formes ont été perdues). */
+  get gain() {
+    return this.masteredAfter - this.masteredBefore;
   }
 }
 

@@ -4,7 +4,7 @@ import { realBank, sequence, seededRandom } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  LevelLadder, LEVEL_DATA, Tense, VIEWS, AppState, percentOf, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
+  LevelLadder, LEVEL_DATA, Tense, VIEWS, AppState, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
 } = Conjugo;
 
 const bank = realBank();
@@ -27,7 +27,7 @@ test('22 niveaux : présent, passé composé, futur proche, imparfait, futur sim
   assert.equal(ladder.level(4).verbList, 'aller, faire et prendre');
   assert.equal(ladder.level(3).verbList, 'être et avoir');
   assert.equal(ladder.level(6).verbList, 'finir');
-  assert.deepEqual(levelPace([], ladder.level(6), 6), { gamesLeft: 0, nextGamePercent: 0 }, 'niveau acquis : rien à gagner');
+  assert.deepEqual(levelPace([], ladder.level(6), 6), { gamesLeft: 0, nextGameForms: 0 }, 'niveau acquis : rien à gagner');
 });
 
 test('données de niveau invalides refusées au chargement', () => {
@@ -170,13 +170,13 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   // Niveau 6 (finir, 6 formes) : 2 formes acquises aujourd'hui, 4 en tout.
   const profile = profileWith({ games: [[17, 0, 2], [18, 2, 3], [18, 3, 4]], mastered: 4 });
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.equal(home.percent, 67);
-  assert.equal(home.todayPercent, 33, 'deux formes sur six, arrondi une seule fois');
+  assert.deepEqual([home.mastered, home.total], [4, 6]);
+  assert.equal(home.todayGain, 2, 'deux formes aujourd’hui');
   assert.equal(home.formsToday, 2);
   assert.equal(home.formsMastered, 4, 'seules les formes acquises en jouant : les niveaux validés par le test n’en apportent pas');
   assert.equal(home.gamesLeft, 2, '2 formes restantes, 4/3 de forme par partie');
-  assert.equal(home.nextGamePercent, 22);
-  assert.equal(home.week.find(d => d.isToday).gainPercent, 33);
+  assert.equal(home.nextGameForms, 1, '4/3 de forme par partie, arrondi');
+  assert.equal(home.week.find(d => d.isToday).gain, 2);
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
 });
 
@@ -203,7 +203,7 @@ const gameIn = (level, endedAt, before, after) => {
 };
 const renderHome = home => VIEWS[AppState.HOME].render({ context: { home, gameLength: 5, soundEnabled: true } });
 
-test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans additionner les pourcentages', () => {
+test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans additionner les gains des deux niveaux', () => {
   const profile = PlayerProfile.empty();
   profile.startAt(5, day(1));
   const size5 = ladder.level(5).combos.length;
@@ -213,14 +213,14 @@ test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans a
   profile.recordGame(gameIn(6, day(18, 10), 0, 2));
   const home = homeOverview(profile, ladder, day(18, 20));
   assert.deepEqual(home.completedToday, [5]);
-  assert.equal(home.todayPercent, 33, 'gain du niveau 6 seulement');
+  assert.equal(home.todayGain, 2, 'gain du niveau 6 seulement');
   const today = home.week.find(d => d.isToday);
-  assert.deepEqual([today.completed, today.gainPercent], [[5], 33], 'une coche, puis le gain du niveau suivant');
-  assert.equal(home.week.find(d => d.date.getDate() === 17).gainPercent, percentOf(size5 - 3, size5));
+  assert.deepEqual([today.completed, today.gain], [[5], 2], 'une coche, puis le gain du niveau suivant');
+  assert.equal(home.week.find(d => d.date.getDate() === 17).gain, size5 - 3);
   const html = renderHome(home);
   assert.match(html, /vous avez terminé<\/span><h1><span class="hl">le niveau 5</);
-  assert.match(html, /Et déjà \+33&nbsp;% dans le niveau 6/);
-  assert.match(html, /✓&nbsp;\+33/);
+  assert.match(html, /Et déjà \+2&nbsp;formes dans le niveau 6/);
+  assert.match(html, /✓&nbsp;\+2/);
 
   profile.completeLevel(day(18, 11), 22);
   const two = homeOverview(profile, ladder, day(18, 20));
@@ -233,9 +233,9 @@ test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que l
   profile.recordGame(gameIn(5, day(18, 9), 0, 3));
   profile.recordGame(gameIn(6, day(18, 10), 2, 3));
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.equal(home.todayPercent, 17, 'niveau en cours : une forme sur six');
-  assert.equal(home.week.find(d => d.isToday).gainPercent, 17, 'le titre et la semaine disent la même chose');
-  assert.match(renderHome(home), /avancé de<\/span><h1><span class="hl">\+17&nbsp;%/);
+  assert.equal(home.todayGain, 1, 'niveau en cours : une forme');
+  assert.equal(home.week.find(d => d.isToday).gain, 1, 'le titre et la semaine disent la même chose');
+  assert.match(renderHome(home), /avancé de<\/span><h1><span class="hl">\+1&nbsp;forme</);
 });
 
 test('accueil : le dernier niveau terminé aujourd’hui ne s’annonce qu’une fois', () => {
@@ -245,7 +245,7 @@ test('accueil : le dernier niveau terminé aujourd’hui ne s’annonce qu’une
   profile.recordGame(gameIn(22, day(18, 9), size - 2, size));
   profile.completeLevel(day(18, 9), 22);
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.deepEqual([home.completedToday, home.todayPercent], [[22], 0]);
+  assert.deepEqual([home.completedToday, home.todayGain], [[22], 0]);
   const html = renderHome(home);
   assert.match(html, /le niveau 22/);
   assert.doesNotMatch(html, /Et déjà/);
@@ -253,8 +253,8 @@ test('accueil : le dernier niveau terminé aujourd’hui ne s’annonce qu’une
 test('accueil : sans partie dans le niveau, une partie est estimée à deux formes', () => {
   const home = homeOverview(profileWith(), ladder, day(18));
   assert.equal(home.gamesLeft, 3);
-  assert.equal(home.nextGamePercent, 33);
-  assert.equal(home.todayPercent, 0);
+  assert.equal(home.nextGameForms, 2);
+  assert.equal(home.todayGain, 0);
   assert.equal(home.isLevelComplete, false);
 });
 
@@ -278,7 +278,7 @@ test('accueil : une partie d’un niveau qui n’existe plus, ou aux comptes imp
     answers: [{ verb: 'finir', tense: 'present', person: 'je', given: 'x', correct: true, timeMs: 1 }],
   }));
   const home = homeOverview(profile, ladder, day(18, 20));
-  assert.equal(home.todayPercent, 33, 'comptes plus grands que le niveau : partie ignorée');
+  assert.equal(home.todayGain, 2, 'comptes plus grands que le niveau : partie ignorée');
   assert.equal(ladder.has(40), false);
   assert.ok(ladder.has(22));
 });

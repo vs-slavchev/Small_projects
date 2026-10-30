@@ -5,7 +5,7 @@
 
 const { Verdict, ErrorKind, escapeHtml } = Conjugo;
 
-/** Mot d'encouragement du bilan, après « +13 % en 2 minutes. » */
+/** Mot d'encouragement du bilan, après « +3 formes en 2 minutes. » */
 const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Parfait&nbsp;!',
   [Verdict.WEEK_BEST]: 'Record de la semaine&nbsp;!',
