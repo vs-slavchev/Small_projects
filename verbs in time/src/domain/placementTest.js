@@ -15,12 +15,10 @@ const PROBES_PER_LEVEL = 1;
  *   next(args: { ladder: import('./levels.js').LevelLadder, history: readonly PlacementEntry[], random: () => number }):
  *     { level: number, combo: object } | null,
  *   result(args: { ladder: import('./levels.js').LevelLadder, history: readonly PlacementEntry[] }): number,
- *   maxLength(ladder: import('./levels.js').LevelLadder): number,
- *   remaining?(args: { ladder: import('./levels.js').LevelLadder, history: readonly PlacementEntry[] }): number,
+ *   remaining(args: { ladder: import('./levels.js').LevelLadder, history: readonly PlacementEntry[] }): number,
  * }} PlacementStrategy
  *   `next` : niveau et forme à poser, ou null pour terminer ; `result` : niveau de départ ;
- *   `maxLength` : nombre de questions au plus ; `remaining` (facultatif) : questions restantes au plus,
- *   question en cours comprise (sans elle, la barre de progression compte `maxLength` segments)
+ *   `remaining` : questions restantes au plus, question en cours comprise (longueur de la barre de progression)
  */
 
 /**
@@ -59,9 +57,6 @@ function binarySearchPlacement({ probesPerLevel = PROBES_PER_LEVEL } = {}) {
     result({ ladder, history }) {
       return replay(ladder, history).low;
     },
-    maxLength(ladder) {
-      return probesPerLevel * Math.ceil(Math.log2(ladder.count + 1));
-    },
     remaining({ ladder, history }) {
       const { low, high, round } = replay(ladder, history);
       return Math.max(0, probesPerLevel * Math.ceil(Math.log2(high - low + 2)) - round.length);
@@ -80,7 +75,7 @@ class PlacementTest {
   #ladder;
   #random;
   #strategy;
-  #history = [];
+  #history = Object.freeze([]);
   #current = null;
 
   /** @param {{ ladder: import('./levels.js').LevelLadder, strategy?: PlacementStrategy, random?: () => number }} deps */
@@ -93,17 +88,16 @@ class PlacementTest {
 
   /** Nombre de questions au plus, selon la règle. */
   get maxLength() {
-    return this.#strategy.maxLength(this.#ladder);
+    return this.#strategy.remaining({ ladder: this.#ladder, history: [] });
   }
 
   /** Longueur prévue d'après les réponses déjà données : se raccourcit quand la recherche se resserre plus vite. */
   get plannedLength() {
-    if (!this.#strategy.remaining) return this.maxLength;
-    return this.#history.length + this.#strategy.remaining({ ladder: this.#ladder, history: this.history });
+    return this.#history.length + this.#strategy.remaining({ ladder: this.#ladder, history: this.#history });
   }
 
-  /** Questions déjà répondues, dans l'ordre. @returns {readonly PlacementEntry[]} */
-  get history() { return Object.freeze([...this.#history]); }
+  /** Questions déjà répondues, dans l'ordre (liste figée, remplacée à chaque réponse). @returns {readonly PlacementEntry[]} */
+  get history() { return this.#history; }
   get currentQuestion() { return this.#current?.question ?? null; }
   /** Rang de la question courante, à partir de 1. */
   get position() { return this.#history.length + (this.isComplete ? 0 : 1); }
@@ -112,7 +106,7 @@ class PlacementTest {
   /** Niveau de départ du joueur, ramené dans le parcours. */
   get result() {
     if (!this.isComplete) throw new DomainError('Le test de placement n’est pas terminé.');
-    const level = this.#strategy.result({ ladder: this.#ladder, history: this.history });
+    const level = this.#strategy.result({ ladder: this.#ladder, history: this.#history });
     return Math.max(1, Math.min(level, this.#ladder.count));
   }
 
@@ -138,12 +132,12 @@ class PlacementTest {
   }
 
   #record(correct) {
-    this.#history.push(Object.freeze({ ...this.#current, correct }));
+    this.#history = Object.freeze([...this.#history, Object.freeze({ ...this.#current, correct })]);
     this.#advance();
   }
 
   #advance() {
-    const next = this.#strategy.next({ ladder: this.#ladder, history: this.history, random: this.#random });
+    const next = this.#strategy.next({ ladder: this.#ladder, history: this.#history, random: this.#random });
     this.#current = next && Object.freeze({ level: next.level, combo: next.combo, question: questionFor(next.combo, this.#random) });
   }
 }

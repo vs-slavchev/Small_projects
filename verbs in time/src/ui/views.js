@@ -305,7 +305,7 @@ function homeHeadline(home) {
 /** Carte sombre : les formes déjà acquises (masquée tant qu'il n'y en a aucune). */
 function achievedCard(home) {
   if (!home.formsMastered) return '';
-  const done = home.journey.length;
+  const done = home.levelsCompleted;
   const sub = {
     [HomeState.PLAYED_TODAY]: home.formsToday ? `+${home.formsToday} aujourd'hui` : '',
     [HomeState.NOT_YET_TODAY]: home.formsYesterday ? `+${home.formsYesterday} hier` : '',
@@ -408,7 +408,7 @@ function journeyDots(home) {
   ].join('');
   return `<div class="week-chart">
     <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${done.length ? `${home.journey.length} ${plural(home.journey.length, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} en cours à ${home.percent} %">${dots}</div>
+    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} en cours à ${home.percent} %">${dots}</div>
   </div>`;
 }
 
@@ -667,10 +667,7 @@ const journey = {
   render({ context }) {
     const h = context.home;
     const { level } = h;
-    // Après le dernier niveau, le joueur y reste pour réviser : il est en tête, pas aussi dans la liste.
-    const finished = h.journey.some(entry => entry.level.number === level.number);
-    const past = h.journey.filter(entry => entry.level.number !== level.number);
-    const rows = past.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
+    const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
         <span class="jr-check">${ICON.check}</span>
         <span class="jr-text"><b>${esc(entry.level.label)}</b><span>${esc(entry.level.title)}</span></span>
         <span class="jr-num">Niveau ${entry.level.number}</span>
@@ -682,11 +679,11 @@ const journey = {
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
         <div class="jr-current">
-          ${levelHead(`${finished ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
           ${levelBar(bar, { dark: true })}
           <p>${bar.today ? `<b>+${bar.today}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
         </div>
-        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${past.length} ${plural(past.length, 'niveau')}</span></div>
+        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.journey.length} ${plural(h.journey.length, 'niveau')}</span></div>
         ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}
       </div>
       ${tabbar(Destination.JOURNEY)}

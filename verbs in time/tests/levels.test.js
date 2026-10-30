@@ -113,7 +113,7 @@ test('placement : une autre règle se branche sans toucher au test', () => {
       return { level, combo: l.level(level).combos[0] };
     },
     result: ({ history }) => history.filter(e => e.correct).length + 1,
-    maxLength: l => l.count,
+    remaining: ({ ladder: l, history }) => (history.some(e => !e.correct) ? 0 : l.count - history.length),
   };
   const placement = new PlacementTest({ ladder, strategy: stepUp, random: sequence(0) });
   assert.equal(placement.maxLength, 22);
@@ -123,7 +123,7 @@ test('placement : une autre règle se branche sans toucher au test', () => {
   placement.skip();
   assert.ok(placement.isComplete);
   assert.equal(placement.result, 3);
-  assert.equal(binarySearchPlacement({ probesPerLevel: 3 }).maxLength(ladder), 15);
+  assert.equal(new PlacementTest({ ladder, strategy: binarySearchPlacement({ probesPerLevel: 3 }) }).maxLength, 15);
 });
 
 /** Profil au niveau `level`, avec des parties datées et leurs gains de formes. */

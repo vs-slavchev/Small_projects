@@ -49,12 +49,10 @@ export function fakeScheduler() {
   let now = 0;
   let nextId = 1;
   const tasks = new Map();
-  const add = (fn, ms, repeat) => { const id = nextId++; tasks.set(id, { fn, at: now + ms, ms, repeat }); return id; };
+  const add = (fn, ms) => { const id = nextId++; tasks.set(id, { fn, at: now + ms }); return id; };
   return {
-    setTimeout: (fn, ms) => add(fn, ms, false),
-    setInterval: (fn, ms) => add(fn, ms, true),
+    setTimeout: add,
     clearTimeout: id => tasks.delete(id),
-    clearInterval: id => tasks.delete(id),
     get pending() { return tasks.size; },
     advance(ms) {
       const end = now + ms;
@@ -63,7 +61,7 @@ export function fakeScheduler() {
         if (!due) break;
         const [id, task] = due;
         now = task.at;
-        if (task.repeat) task.at += task.ms; else tasks.delete(id);
+        tasks.delete(id);
         task.fn();
       }
       now = end;

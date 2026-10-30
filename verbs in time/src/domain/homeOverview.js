@@ -74,8 +74,8 @@ function homeOverview(profile, ladder, now) {
   };
 
   // Formes réellement acquises en jouant : les niveaux validés par le test de placement n'en apportent aucune.
-  const formsMastered = new Set(ladder.levels.flatMap(l => l.combos).map(c => c.key)
-    .filter(key => profile.practice.get(key).isMastered)).size;
+  const formsMastered = [...new Set(ladder.levels.flatMap(l => l.combos.map(c => c.key)))]
+    .filter(key => profile.practice.get(key).isMastered).length;
   const today = onDay(now);
 
   return Object.freeze({
@@ -96,8 +96,13 @@ function homeOverview(profile, ladder, now) {
     formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),
     ...levelPace(profile.games, level, mastered),
     week: Object.freeze(profile.calendar.week(now).map(d => Object.freeze({ ...d, gainPercent: gainPercentOf(onDay(d.date)) }))),
-    /** Niveaux terminés, du plus récent au plus ancien. */
-    journey: Object.freeze([...profile.levelHistory].reverse().map(h => Object.freeze({ ...h, level: ladder.level(h.level) }))),
+    /** Nombre de niveaux terminés, niveau en cours compris s'il l'est déjà. */
+    levelsCompleted: profile.levelHistory.length,
+    /** Après le dernier niveau, le joueur y reste pour réviser : il est terminé tout en restant en cours. */
+    levelAlreadyCompleted: profile.hasCompleted(level.number),
+    /** Niveaux terminés autres que le niveau en cours, du plus récent au plus ancien. */
+    journey: Object.freeze([...profile.levelHistory].reverse().filter(h => h.level !== level.number)
+      .map(h => Object.freeze({ ...h, level: ladder.level(h.level) }))),
   });
 }
 
