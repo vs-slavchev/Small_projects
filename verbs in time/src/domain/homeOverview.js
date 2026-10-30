@@ -39,11 +39,12 @@ const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
 function levelPace(games, level, mastered) {
   const total = level.combos.length;
   const recent = games.filter(g => g.level === level.number && isMeasured(g, level)).slice(-PACE_GAMES);
-  const pace = recent.length ? Math.max(1, sumGain(recent) / recent.length) : DEFAULT_PACE;
+  // Formes par partie, entières : l'estimation affichée et le nombre de parties restantes concordent.
+  const pace = recent.length ? Math.max(1, Math.round(sumGain(recent) / recent.length)) : DEFAULT_PACE;
   const remaining = total - mastered;
   return Object.freeze({
     gamesLeft: remaining > 0 ? Math.ceil(remaining / pace) : 0,
-    nextGameForms: remaining > 0 ? Math.max(1, Math.min(Math.round(pace), remaining)) : 0,
+    nextGameForms: Math.min(pace, remaining),
   });
 }
 

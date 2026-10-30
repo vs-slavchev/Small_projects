@@ -10,7 +10,7 @@
 
 const {
   AppState, AppEvent, Destination, HomeState, frenchList,
-  escapeHtml: esc, plural, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
+  escapeHtml: esc, plural, percentOf, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
@@ -264,8 +264,6 @@ const partiesText = n => `${n} ${plural(n, 'partie')}`;
 const formsText = n => `${n}&nbsp;${plural(n, 'forme')}`;
 /** « 8 formes acquises sur 12 » */
 const masteredText = (n, total) => `${n} ${plural(n, 'forme acquise', 'formes acquises')} sur ${total}`;
-/** Part entière en pourcentage, pour la largeur d'une barre : 2 sur 6 → 33. */
-const percentOf = (part, total) => Math.round((part / total) * 100);
 
 function soundButton(on) {
   return `<button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(on)}">${on ? ICON.soundOn : ICON.soundOff}</button>`;
@@ -311,7 +309,9 @@ function homeHeadline(home) {
     }
     case HomeState.BACK:
       return `<span class="eyebrow">Content de vous revoir&nbsp;!</span><h1>Rien n'est perdu.</h1>
-        <p>${home.mastered > 1 ? `Vos ${home.mastered}&nbsp;formes acquises vous attendaient bien au chaud.` : 'Votre niveau vous attendait bien au chaud.'}</p>`;
+        <p>${!home.mastered ? 'Votre niveau vous attendait bien au chaud.'
+          : home.mastered === 1 ? 'Votre forme acquise vous attendait bien au chaud.'
+            : `Vos ${home.mastered}&nbsp;formes acquises vous attendaient bien au chaud.`}</p>`;
     default:
       return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
   }
@@ -356,7 +356,7 @@ function levelBar({ mastered, total, today = 0, next = 0 }, { dark = false, big 
 function levelHead(eyebrow, level, mastered, total, extra = '') {
   return `<div class="lc-head">
     <div class="lc-name"><span class="eyebrow">${eyebrow}</span><b>${esc(level.title)}</b>${extra}</div>
-    <span class="lc-pct" aria-label="${masteredText(mastered, total)}">${mastered}<small>/${total}</small></span>
+    <span class="lc-pct" role="img" aria-label="${masteredText(mastered, total)}">${mastered}<small>/${total}</small></span>
   </div>`;
 }
 
@@ -373,7 +373,7 @@ function levelCard(home) {
   const { level } = home;
   const parties = partiesText(home.gamesLeft);
   const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
-  const next = `≈ +${formsText(home.nextGameForms)}`;
+  const next = `≈&nbsp;+${formsText(home.nextGameForms)}`;
   const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
     [HomeState.PLAYED_TODAY]: home.todayGain > 0
       ? `${badge(`+${formsText(home.todayGain)} aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
@@ -389,13 +389,19 @@ function levelCard(home) {
   </div>`;
 }
 
-/** Hauteur d'une barre de la semaine pour un gain de `forms` formes. */
-const weekBarHeight = forms => Math.max(4, Math.min(64, forms * 8));
+/** Hauteur maximale d'une barre de la semaine, en pixels. */
+const WEEK_BAR_MAX = 64;
+/** Gain le plus petit qui remplit une barre : une semaine de petits gains ne s'affiche pas en barres pleines. */
+const WEEK_BAR_MIN_PEAK = 4;
 
 /** Semaine en barres : formes gagnées chaque jour ; aujourd'hui en ambre (joué) ou en pointillé (à jouer). */
 function weekChart(home) {
+  const isPending = d => d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGameForms > 0;
+  // Barres à l'échelle du meilleur jour de la semaine : les grosses journées restent distinctes.
+  const peak = Math.max(WEEK_BAR_MIN_PEAK, ...home.week.map(d => (isPending(d) ? home.nextGameForms : d.gain)));
+  const weekBarHeight = forms => Math.max(4, Math.round((forms / peak) * WEEK_BAR_MAX));
   const bars = home.week.map((d, i) => {
-    const pending = d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGameForms > 0;
+    const pending = isPending(d);
     let cls = 'wk-bar';
     let label = '';
     let height = 4;
@@ -408,7 +414,7 @@ function weekChart(home) {
     } else if (d.completed.length) {
       // Coche par niveau terminé, puis le gain déjà fait dans le niveau suivant.
       label = `${'✓'.repeat(d.completed.length)}${d.gain ? `&nbsp;+${d.gain}` : ''}`;
-      height = 64;
+      height = WEEK_BAR_MAX;
       cls += d.isToday ? ' today' : ' gain';
     } else {
       label = d.gain ? `+${d.gain}` : '0';
@@ -452,7 +458,7 @@ const PLAY_CTA = Object.freeze({
 function playButton(label, sub, forms) {
   return `<button class="play-btn press" data-event="${AppEvent.START}">
     <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
-    ${forms > 0 ? `<span class="pb-tag">≈ +${formsText(forms)}</span>` : ''}
+    ${forms > 0 ? `<span class="pb-tag">≈&nbsp;+${formsText(forms)}</span>` : ''}
   </button>`;
 }
 
