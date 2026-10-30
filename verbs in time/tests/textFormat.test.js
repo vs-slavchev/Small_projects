@@ -2,7 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Conjugo } from './game.js';
 
-const { diffChars, similarity } = Conjugo;
+const { diffChars, similarity, durationText } = Conjugo;
+
+test('durée en toutes lettres : secondes, puis minutes et secondes', () => {
+  assert.equal(durationText(45_000), '45 secondes');
+  assert.equal(durationText(1_000), '1 seconde');
+  assert.equal(durationText(89_000), '1 min 29 s');
+  assert.equal(durationText(120_000), '2 minutes');
+  assert.equal(durationText(150_000), '2 min 30 s');
+});
 
 test('écart lettre à lettre : lettres en trop et lettres manquantes', () => {
   assert.deepEqual(diffChars('il parlais', 'il parlait'), [

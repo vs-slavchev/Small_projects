@@ -65,11 +65,11 @@ function runPlacement(known, random = seededRandom(3)) {
   return { result: placement.result, questions, maxLength: placement.maxLength };
 }
 
-test('placement : la recherche trouve le premier niveau non connu, en 10 questions au plus', () => {
+test('placement : la recherche trouve le premier niveau non connu, en 5 questions au plus', () => {
   for (const known of [0, 1, 5, 8, 13, 21, 22]) {
     const { result, questions, maxLength } = runPlacement(known);
     assert.equal(result, Math.min(known + 1, 22), `connu jusqu’au niveau ${known}`);
-    assert.ok(questions <= maxLength && maxLength === 10, `${questions} questions`);
+    assert.ok(questions <= maxLength && maxLength === 5, `${questions} questions`);
   }
 });
 
@@ -81,25 +81,27 @@ test('placement : une erreur ou « je ne sais pas » fait chercher plus bas, san
   assert.throws(() => placement.result, /pas terminé/);
 });
 
-test('placement : deux formes justes du même niveau avant de monter', () => {
+test('placement : une forme juste suffit pour chercher plus haut ; la barre suit la recherche', () => {
   const placement = new PlacementTest({ ladder, random: sequence(0) });
-  const first = placement.currentQuestion;
-  placement.answer(first.expected.forms[0]);
-  const second = placement.currentQuestion;
-  assert.equal(second.tense, first.tense, 'même niveau');
-  assert.notEqual(`${second.verb.infinitive}|${second.person.index}`, `${first.verb.infinitive}|${first.person.index}`);
+  assert.equal(placement.plannedLength, 5);
+  placement.answer(placement.currentQuestion.expected.forms[0]);
+  assert.equal(placement.currentQuestion.tense, ladder.level(17).tense, 'niveau 11 connu : on teste le niveau 17');
+  assert.equal(placement.position, 2);
+  for (const _ of [1, 2, 3]) placement.skip();
+  assert.ok(placement.isComplete, 'branche courte : 4 questions');
+  assert.equal(placement.plannedLength, 4, 'la barre se termine pleine');
+  assert.equal(placement.result, 12);
 });
-
 test('placement : l’historique garde chaque question, son niveau et la réponse', () => {
   const placement = new PlacementTest({ ladder, random: sequence(0) });
   const first = placement.currentQuestion;
   placement.answer(first.expected.forms[0]);
   placement.skip();
   const { history } = placement;
-  assert.deepEqual(history.map(e => [e.level, e.correct]), [[11, true], [11, false]]);
+  assert.deepEqual(history.map(e => [e.level, e.correct]), [[11, true], [17, false]]);
   assert.equal(history[0].question, first);
   assert.ok(Object.isFrozen(history) && Object.isFrozen(history[0]));
-  assert.equal(placement.currentQuestion.tense, ladder.level(5).tense, 'une erreur au niveau 11 : on teste le niveau 5');
+  assert.equal(placement.currentQuestion.tense, ladder.level(14).tense, 'une erreur au niveau 17 : on teste le niveau 14');
 });
 
 test('placement : une autre règle se branche sans toucher au test', () => {
@@ -158,11 +160,23 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   assert.equal(home.percent, 67);
   assert.equal(home.todayPercent, 33, 'deux formes sur six, arrondi une seule fois');
   assert.equal(home.formsToday, 2);
-  assert.equal(home.formsMastered, ladder.before(6).reduce((n, l) => n + l.combos.length, 0) + 4, 'niveaux validés + formes du niveau');
+  assert.equal(home.formsMastered, 4, 'seules les formes acquises en jouant : les niveaux validés par le test n’en apportent pas');
   assert.equal(home.gamesLeft, 2, '2 formes restantes, 4/3 de forme par partie');
   assert.equal(home.nextGamePercent, 22);
   assert.equal(home.week.find(d => d.isToday).gainPercent, 33);
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
+});
+
+test('accueil : un niveau terminé aujourd’hui compte dans le gain du jour', () => {
+  const profile = profileWith();
+  const done = ladder.level(5);
+  profile.recordGame(new GameRecord({
+    endedAt: day(18), durationMs: 1, maxCombo: 0, level: 5, masteredBefore: done.combos.length - 3, masteredAfter: done.combos.length,
+    answers: [{ verb: done.verbs[0].infinitive, tense: done.tense.id, person: 'je', given: 'x', correct: true, timeMs: 1 }],
+  }));
+  const home = homeOverview(profile, ladder, day(18, 20));
+  assert.equal(home.todayPercent, Math.round((3 / done.combos.length) * 100), 'titre de l’accueil : le gain du niveau terminé');
+  assert.equal(home.todayLevelPercent, 0, 'barre du niveau en cours : rien encore');
 });
 
 test('accueil : sans partie dans le niveau, une partie est estimée à deux formes', () => {

@@ -73,9 +73,9 @@ function homeOverview(profile, ladder, now) {
     return Math.max(0, [...byLevel].reduce((sum, [n, gain]) => sum + percentOf(gain, ladder.level(n).combos.length), 0));
   };
 
-  const completedNumbers = new Set(profile.levelHistory.map(h => h.level));
-  const formsMastered = ladder.levels.filter(l => completedNumbers.has(l.number) && l.number !== level.number)
-    .reduce((sum, l) => sum + l.combos.length, 0) + mastered;
+  // Formes réellement acquises en jouant : les niveaux validés par le test de placement n'en apportent aucune.
+  const formsMastered = new Set(ladder.levels.flatMap(l => l.combos).map(c => c.key)
+    .filter(key => profile.practice.get(key).isMastered)).size;
   const today = onDay(now);
 
   return Object.freeze({
@@ -87,7 +87,10 @@ function homeOverview(profile, ladder, now) {
     level,
     percent: percentOf(mastered, total),
     isLevelComplete: mastered === total,
-    todayPercent: gainPercentOf(today.filter(g => g.level === level.number)),
+    /** Gain du jour, tous niveaux confondus (un niveau terminé aujourd'hui compte). */
+    todayPercent: gainPercentOf(today),
+    /** Part du gain du jour dans le niveau en cours : le segment « aujourd'hui » de sa barre. */
+    todayLevelPercent: gainPercentOf(today.filter(g => g.level === level.number)),
     formsMastered,
     formsToday: Math.max(0, sumGain(today)),
     formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),

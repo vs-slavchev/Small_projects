@@ -20,12 +20,12 @@ function formatClock(ms) {
 /** 9 000 ms → « 9 s », 12 340 ms → « 12,3 s » */
 const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
 
-/** Durée en toutes lettres : « 45 secondes », « 2 minutes ». */
+/** Durée en toutes lettres : « 45 secondes », « 1 min 29 s », « 2 minutes ». */
 function durationText(ms) {
   const s = Math.max(1, Math.round(ms / 1000));
   if (s < 60) return `${s} ${plural(s, 'seconde')}`;
-  const m = Math.round(s / 60);
-  return `${m} ${plural(m, 'minute')}`;
+  const m = Math.floor(s / 60);
+  return s % 60 ? `${m} min ${s % 60} s` : `${m} ${plural(m, 'minute')}`;
 }
 
 /**

@@ -12,9 +12,9 @@ const MAX_TIER = TIER_NAMES.length;
 
 const NIGHT_END_HOUR = 5;
 const MORNING_END_HOUR = 8;
-/** Polyvalent : réussite à atteindre sur chaque temps, cumulée sur cette taille de série de parties consécutives. */
+/** Polyvalent : réussite cumulée à atteindre sur chaque temps, mesurée à partir de ce nombre de réponses par temps. */
 const BALANCE_ACCURACY = 80;
-const BALANCE_WINDOW_GAMES = 10;
+const BALANCE_MIN_ANSWERS = 10;
 /** Précision : une partie compte si sa réussite atteint ce pourcentage (4 sur 5). */
 const PRECISE_ACCURACY = 80;
 /** Types de verbes comptés par « Dompteur » : les verbes à apprendre un par un. */
@@ -41,9 +41,8 @@ class AchievementFacts {
     const typesFound = new Set();
     const verbsFound = new Set();
     const gamesByDay = new Map();
-    // Polyvalent : bilan { juste, total } par temps de chacune des dernières parties.
-    const recentTallies = [];
-    let balance = 0;
+    // Polyvalent : bilan { juste, total } par temps, sur toutes les parties.
+    const tally = Object.fromEntries(Tense.ALL.map(t => [t.id, { correct: 0, total: 0 }]));
 
     for (const game of profile.games) {
       const hour = game.endedAt.getHours();
@@ -56,7 +55,6 @@ class AchievementFacts {
       // Éclair : seule une partie réussie compte, sinon taper n'importe quoi suffirait.
       if (game.accuracy >= PRECISE_ACCURACY && (bestDurationMs === null || game.durationMs < bestDurationMs)) bestDurationMs = game.durationMs;
 
-      const tally = Object.fromEntries(Tense.ALL.map(t => [t.id, { correct: 0, total: 0 }]));
       for (const a of game.answers) {
         const verb = bank.verb(a.verb);
         if (tally[a.tense]) {
@@ -72,18 +70,9 @@ class AchievementFacts {
         if (IRREGULAR_TYPES.has(verb.type.id)) irregularCorrect++;
         if (a.tense === Tense.PASSE_COMPOSE.id && verb.auxiliary === 'être') beingVerbsCorrect++;
       }
-
-      recentTallies.push(tally);
-      if (recentTallies.length > BALANCE_WINDOW_GAMES) recentTallies.shift();
-      if (recentTallies.length === BALANCE_WINDOW_GAMES) {
-        const ratios = Tense.ALL.map(t => {
-          const correct = recentTallies.reduce((sum, r) => sum + r[t.id].correct, 0);
-          const total = recentTallies.reduce((sum, r) => sum + r[t.id].total, 0);
-          return total ? Math.floor((correct * 100) / total) : 0;
-        });
-        balance = Math.max(balance, Math.min(...ratios));
-      }
     }
+    const balance = Math.min(...Object.values(tally).map(({ correct, total }) =>
+      (total >= BALANCE_MIN_ANSWERS ? Math.floor((correct * 100) / total) : 0)));
 
     return Object.freeze({
       totalCorrect, perfectGames, maxCombo, playedAtNight, playedEarly, holidaysPlayed,
@@ -134,7 +123,7 @@ const ACHIEVEMENTS = Object.freeze([
     measure: f => f.beingVerbsCorrect, thresholds: [3, 10, 30], goal: n => `${n} passés composés avec être réussis` },
   { id: 'comeback', emoji: '🧭', name: 'Retour', description: 'Réussir un verbe à un temps où il avait été raté.',
     measure: f => f.recoveries, thresholds: [5, 20, 50], goal: n => `${n} conjugaisons ratées puis réussies` },
-  { id: 'balanced', emoji: '⚖️', name: 'Polyvalent', description: `Atteindre ${BALANCE_ACCURACY} % de réussite à chacun des cinq temps, sur ${BALANCE_WINDOW_GAMES} parties d’affilée.`,
+  { id: 'balanced', emoji: '⚖️', name: 'Polyvalent', description: `Atteindre ${BALANCE_ACCURACY} % de réussite à chacun des cinq temps (${BALANCE_MIN_ANSWERS} réponses au moins par temps).`,
     measure: f => f.balance, thresholds: [BALANCE_ACCURACY], unit: '%', goal: () => `${BALANCE_ACCURACY} % à chaque temps` },
   { id: 'precision', emoji: '🏹', name: 'Précision', description: `Enchaîner des parties à ${PRECISE_ACCURACY} % ou plus.`,
     measure: f => f.longestPreciseRun, thresholds: [3, 7, 15], goal: n => `${n} parties d’affilée à ${PRECISE_ACCURACY} % ou plus` },

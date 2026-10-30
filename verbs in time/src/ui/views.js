@@ -141,14 +141,15 @@ const placement = {
   render({ context }) {
     const test = context.placement;
     const q = test.currentQuestion;
-    const segments = Array.from({ length: test.maxLength }, (_, i) =>
+    const length = test.plannedLength;
+    const segments = Array.from({ length }, (_, i) =>
       `<div class="seg ${i < test.position - 1 ? 'done' : i === test.position - 1 ? 'cur' : ''}"></div>`).join('');
     return `<div class="screen play">
       <div class="top-safe"></div>
       <div class="play-top">
         <div class="bar-row">
           <button class="close" data-event="${AppEvent.QUIT}" aria-label="Quitter le test">✕</button>
-          <div class="segs neutral" style="grid-template-columns:repeat(${test.maxLength},1fr)" aria-hidden="true">${segments}</div>
+          <div class="segs neutral" style="grid-template-columns:repeat(${length},1fr)" aria-hidden="true">${segments}</div>
         </div>
         <div class="sub-row"><span class="count">Test de placement · question ${test.position}</span></div>
       </div>
@@ -344,8 +345,8 @@ function levelHead(eyebrow, level, percent, extra = '') {
 
 /** Parts de la barre du niveau sur l'accueil : le gain du jour s'il y en a un, sinon la prochaine partie. */
 function homeBarParts(home) {
-  const played = home.state === HomeState.PLAYED_TODAY && home.todayPercent > 0;
-  return { percent: home.percent, today: played ? home.todayPercent : 0, next: played || home.isLevelComplete ? 0 : home.nextGamePercent };
+  const played = home.state === HomeState.PLAYED_TODAY && home.todayLevelPercent > 0;
+  return { percent: home.percent, today: played ? home.todayLevelPercent : 0, next: played || home.isLevelComplete ? 0 : home.nextGamePercent };
 }
 
 function levelCard(home) {
@@ -354,8 +355,8 @@ function levelCard(home) {
   const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
   const next = `≈ +${home.nextGamePercent}&nbsp;%`;
   const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
-    [HomeState.PLAYED_TODAY]: home.todayPercent > 0
-      ? `${badge(`+${home.todayPercent}&nbsp;% aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
+    [HomeState.PLAYED_TODAY]: home.todayLevelPercent > 0
+      ? `${badge(`+${home.todayLevelPercent}&nbsp;% aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
       : `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
     [HomeState.NOT_YET_TODAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">≈ ${parties} et il est à vous</span>`,
     [HomeState.BACK]: badge(`Une partie suffit pour repartir&nbsp;: ${next}`, true),
@@ -378,7 +379,7 @@ function weekChart(home) {
     if (pending) {
       cls += ' next';
       label = `+${home.nextGamePercent}&nbsp;?`;
-      height = Math.max(8, home.nextGamePercent * 2.4);
+      height = Math.max(8, Math.min(64, home.nextGamePercent * 2.4));
     } else if (d.isFuture) {
       cls += ' future';
     } else {
@@ -666,7 +667,10 @@ const journey = {
   render({ context }) {
     const h = context.home;
     const { level } = h;
-    const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
+    // Après le dernier niveau, le joueur y reste pour réviser : il est en tête, pas aussi dans la liste.
+    const finished = h.journey.some(entry => entry.level.number === level.number);
+    const past = h.journey.filter(entry => entry.level.number !== level.number);
+    const rows = past.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
         <span class="jr-check">${ICON.check}</span>
         <span class="jr-text"><b>${esc(entry.level.label)}</b><span>${esc(entry.level.title)}</span></span>
         <span class="jr-num">Niveau ${entry.level.number}</span>
@@ -678,11 +682,11 @@ const journey = {
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
         <div class="jr-current">
-          ${levelHead(`En cours · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+          ${levelHead(`${finished ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.percent, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
           ${levelBar(bar, { dark: true })}
           <p>${bar.today ? `<b>+${bar.today}&nbsp;% aujourd'hui.</b> ` : ''}${left}</p>
         </div>
-        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.journey.length} ${plural(h.journey.length, 'niveau')}</span></div>
+        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${past.length} ${plural(past.length, 'niveau')}</span></div>
         ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}
       </div>
       ${tabbar(Destination.JOURNEY)}

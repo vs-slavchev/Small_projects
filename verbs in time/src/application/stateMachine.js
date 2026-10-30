@@ -14,7 +14,6 @@
  *         entry: [fn], exit: [fn],       // actions d'entrée / de sortie : fn(context, event)
  *         on: { EVENT: handler },
  *         after: { delay, event },       // événement émis une fois après `delay` ms (nombre ou fn(context))
- *         every: { interval, event },    // événement émis périodiquement tant qu'on reste dans l'état
  *         always: handler,               // transition immédiate, vérifiée juste après l'entrée dans l'état
  *       },
  *     },
@@ -40,8 +39,6 @@ const INIT_EVENT = Object.freeze({ type: '@@init' });
 const defaultScheduler = {
   setTimeout: (fn, ms) => setTimeout(fn, ms),
   clearTimeout: id => clearTimeout(id),
-  setInterval: (fn, ms) => setInterval(fn, ms),
-  clearInterval: id => clearInterval(id),
 };
 
 function normalize(handler) {
@@ -97,10 +94,6 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
       const delay = typeof node.after.delay === 'function' ? node.after.delay(context) : node.after.delay;
       const id = scheduler.setTimeout(() => send(node.after.event), delay);
       timers.push(() => scheduler.clearTimeout(id));
-    }
-    if (node.every) {
-      const id = scheduler.setInterval(() => send(node.every.event), node.every.interval);
-      timers.push(() => scheduler.clearInterval(id));
     }
   }
 

@@ -4,7 +4,7 @@
 const { DomainError, randomIndex, questionFor } = Conjugo;
 
 /** Formes posées par niveau testé : toutes justes, le niveau est connu. */
-const PROBES_PER_LEVEL = 2;
+const PROBES_PER_LEVEL = 1;
 
 /**
  * Règle de placement : décide de la prochaine question et du niveau de départ à partir de tout l'historique.
@@ -16,9 +16,11 @@ const PROBES_PER_LEVEL = 2;
  *     { level: number, combo: object } | null,
  *   result(args: { ladder: import('./levels.js').LevelLadder, history: readonly PlacementEntry[] }): number,
  *   maxLength(ladder: import('./levels.js').LevelLadder): number,
+ *   remaining?(args: { ladder: import('./levels.js').LevelLadder, history: readonly PlacementEntry[] }): number,
  * }} PlacementStrategy
  *   `next` : niveau et forme à poser, ou null pour terminer ; `result` : niveau de départ ;
- *   `maxLength` : nombre de questions au plus (segments de la barre de progression)
+ *   `maxLength` : nombre de questions au plus ; `remaining` (facultatif) : questions restantes au plus,
+ *   question en cours comprise (sans elle, la barre de progression compte `maxLength` segments)
  */
 
 /**
@@ -60,6 +62,10 @@ function binarySearchPlacement({ probesPerLevel = PROBES_PER_LEVEL } = {}) {
     maxLength(ladder) {
       return probesPerLevel * Math.ceil(Math.log2(ladder.count + 1));
     },
+    remaining({ ladder, history }) {
+      const { low, high, round } = replay(ladder, history);
+      return Math.max(0, probesPerLevel * Math.ceil(Math.log2(high - low + 2)) - round.length);
+    },
   });
 }
 
@@ -88,6 +94,12 @@ class PlacementTest {
   /** Nombre de questions au plus, selon la règle. */
   get maxLength() {
     return this.#strategy.maxLength(this.#ladder);
+  }
+
+  /** Longueur prévue d'après les réponses déjà données : se raccourcit quand la recherche se resserre plus vite. */
+  get plannedLength() {
+    if (!this.#strategy.remaining) return this.maxLength;
+    return this.#history.length + this.#strategy.remaining({ ladder: this.#ladder, history: this.history });
   }
 
   /** Questions déjà répondues, dans l'ordre. @returns {readonly PlacementEntry[]} */

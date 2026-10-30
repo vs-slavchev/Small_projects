@@ -78,24 +78,6 @@ test('`after` émet son événement après le délai et s’annule en quittant l
   assert.equal(scheduler.pending, 0, 'minuterie annulée à la sortie');
 });
 
-test('`every` répète son événement tant qu’on reste dans l’état', () => {
-  const scheduler = fakeScheduler();
-  const machine = createMachine({
-    initial: 'running',
-    context: { ticks: 0 },
-    states: {
-      running: { every: { interval: 100, event: 'TICK' }, on: { TICK: [{ guard: c => c.ticks < 2, actions: [c => { c.ticks++; }] }, 'done'] } },
-      done: {},
-    },
-  }, { scheduler });
-  machine.start();
-  scheduler.advance(250);
-  assert.equal(machine.context.ticks, 2);
-  scheduler.advance(100);
-  assert.equal(machine.state, 'done');
-  assert.equal(scheduler.pending, 0);
-});
-
 test('un événement envoyé pendant une transition est traité après elle (run-to-completion)', () => {
   const order = [];
   let machine;
