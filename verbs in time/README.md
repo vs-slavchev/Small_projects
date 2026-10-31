@@ -97,7 +97,7 @@ src/
 │   ├── playerProfile.js         PlayerProfile : joueur, niveau en cours, niveaux terminés
 │   ├── holidays.js              jours de fête (succès cachés)
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
-│   ├── homeOverview.js          homeOverview : état de l'accueil, gain du jour, rythme, semaine, parcours
+│   ├── homeOverview.js          homeOverview : état de l'accueil, gain du jour, rythme, parcours
 │   └── gameSummary.js           verdict et bilan de fin de partie (gain du niveau, formes acquises)
 ├── application/
 │   ├── stateMachine.js          moteur d'automate générique

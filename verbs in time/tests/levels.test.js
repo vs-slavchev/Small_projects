@@ -216,7 +216,6 @@ test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans a
   const html = renderHome(home);
   assert.match(html, /vous avez terminé<\/span><h1><span class="hl">le niveau 5</);
   assert.match(html, /Et déjà \+2&nbsp;formes dans le niveau 6/);
-  assert.doesNotMatch(html, /wk-bar/, 'pas de semaine en barres sur l’accueil');
 
   profile.completeLevel(day(18, 11), 22);
   const two = homeOverview(profile, ladder, day(18, 20));
@@ -231,7 +230,7 @@ test('rythme : seule l’estimation affichée est arrondie, pas les parties rest
 test('accueil : de retour avec une seule forme acquise, elle est nommée', () => {
   const home = homeOverview(profileWith({ games: [[15, 0, 1]], mastered: 1 }), ladder, day(18));
   assert.equal(home.state, HomeState.BACK);
-  assert.match(renderHome(home), /1&nbsp;forme acquise vous attendait bien au chaud/);
+  assert.match(renderHome(home), /1&nbsp;forme acquise vous attendait bien au chaud\. Une nouvelle série commence aujourd'hui\./);
 });
 
 test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que le dernier', () => {

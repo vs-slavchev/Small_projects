@@ -80,7 +80,7 @@ function createUseCases({
       return currentLevel();
     },
 
-    /** Niveau en cours, gain du jour, rythme, semaine et parcours : pour l'accueil et l'écran Progrès. */
+    /** Niveau en cours, gain du jour, rythme et parcours : pour l'accueil et l'écran Progrès. */
     getHomeOverview() {
       return homeOverview(profile, ladder, today());
     },

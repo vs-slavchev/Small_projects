@@ -70,25 +70,18 @@ function homeOverview(profile, ladder, now) {
     if (ladder.has(g.level) && isMeasured(g, ladder.level(g.level))) groupInto(byDay, dayKey(g.endedAt), g);
   }
   const onDay = date => byDay.get(dayKey(date)) ?? [];
-  // Niveaux terminés en jouant, par jour : un tel jour se fête d'une coche.
-  const completedByDay = new Map();
-  for (const h of profile.levelHistory) {
-    if (h.via === LevelVia.PLAY) groupInto(completedByDay, dayKey(h.completedAt), h.level);
-  }
-  const completedOn = date => completedByDay.get(dayKey(date)) ?? [];
-  /**
-   * Gain d'une journée dans un seul niveau, en formes acquises : on n'additionne jamais
-   * les gains de niveaux différents. Un niveau terminé ce jour-là compte comme une coche, pas comme un gain.
-   */
-  const dayGain = (date, levelNumber) => {
-    if (levelNumber === undefined || completedOn(date).includes(levelNumber)) return 0;
-    return Math.max(0, sumGain(onDay(date).filter(g => g.level === levelNumber)));
-  };
+  // Niveaux terminés aujourd'hui en jouant, dans l'ordre.
+  const todayKey = dayKey(now);
+  const completedToday = profile.levelHistory
+    .filter(h => h.via === LevelVia.PLAY && dayKey(h.completedAt) === todayKey).map(h => h.level);
 
   // Formes réellement acquises en jouant : les niveaux validés par le test de placement n'en apportent aucune.
   const formsMastered = ladder.keys.filter(key => profile.practice.get(key).isMastered).length;
   const today = onDay(now);
-  const todayGain = dayGain(now, level.number);
+  // Gain du jour dans le seul niveau en cours : on n'additionne jamais les gains de niveaux différents,
+  // et un niveau terminé aujourd'hui est annoncé comme tel, pas comme un gain.
+  const todayGain = completedToday.includes(level.number)
+    ? 0 : Math.max(0, sumGain(today.filter(g => g.level === level.number)));
 
   return Object.freeze({
     state,
@@ -102,7 +95,7 @@ function homeOverview(profile, ladder, now) {
     /** Formes gagnées aujourd'hui dans le niveau en cours (un niveau terminé aujourd'hui est dans `completedToday`, pas ici). */
     todayGain,
     /** Numéros des niveaux terminés aujourd'hui en jouant, dans l'ordre. */
-    completedToday: Object.freeze(completedOn(now)),
+    completedToday: Object.freeze(completedToday),
     formsMastered,
     formsToday: Math.max(0, sumGain(today)),
     formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),
