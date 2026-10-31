@@ -220,12 +220,11 @@ test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans a
   const html = renderHome(home);
   assert.match(html, /vous avez terminé<\/span><h1><span class="hl">le niveau 5</);
   assert.match(html, /Et déjà \+2&nbsp;formes dans le niveau 6/);
-  assert.match(html, /✓&nbsp;\+2/);
+  assert.doesNotMatch(html, /week-chart|wk-bar/, 'pas de semaine en barres sur l’accueil');
 
   profile.completeLevel(day(18, 11), 22);
   const two = homeOverview(profile, ladder, day(18, 20));
   assert.match(renderHome(two), /les niveaux 5 et 6/);
-  assert.match(renderHome(two), /✓✓/);
 });
 
 test('rythme : seule l’estimation affichée est arrondie, pas les parties restantes', () => {
