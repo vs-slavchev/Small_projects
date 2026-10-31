@@ -227,7 +227,6 @@ test('le dernier niveau ne se termine qu’une fois ; ensuite, on révise', () =
   const { summary } = env.machine.context;
   const stored = summary.level.progress(env.profiles.load().practice);
   assert.deepEqual([summary.record.masteredAfter, summary.level.combos.length], [stored.mastered, stored.total], 'le bilan correspond aux statistiques enregistrées');
-  assert.equal(summary.nextGameForms, 0, 'rien à gagner : pas de « +1 forme »');
 });
 
 test('Progrès : le parcours montre le niveau en cours et les niveaux terminés', () => {

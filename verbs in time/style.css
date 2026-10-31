@@ -186,7 +186,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .level-bar.dark .lb-done { background: var(--green-l); }
 .lb-today { background: var(--amber-2); border-left: 2px solid var(--ink); }
 .lb-next { background: var(--amber-tint); border: 2px dashed var(--amber-d); border-left: none; border-radius: 0 8px 8px 0; }
-.week-chart { display: flex; flex-direction: column; gap: 8px; padding: 0 4px; }
+.journey-dots { display: flex; flex-direction: column; gap: 8px; padding: 0 4px; }
 .section-label { font-size: 13px; font-weight: 800; color: var(--ink-3); }
 .jd-row { display: flex; align-items: center; }
 .jd { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; box-sizing: border-box; }
@@ -308,7 +308,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .re-hero small { font-size: 44px; }
 .re-sub { font-size: 16px; color: var(--ink-3); }
 .re-progress { display: flex; flex-direction: column; gap: 8px; }
-.re-legend { display: flex; justify-content: space-between; font-size: 14px; font-weight: 800; color: var(--ink-3); }
+.re-legend { font-size: 14px; font-weight: 800; color: var(--ink-3); }
 .re-legend b { color: var(--ink); }
 .re-card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; animation: fadeUp .4s ease both .15s; }
 .re-score { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
@@ -434,7 +434,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 @keyframes spark { from { transform: translate(0, 0) scale(1); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
 @keyframes unlock { from { opacity: 0; transform: translateY(14px) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes shine { to { transform: translateX(100%); } }
-@keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes popUp { from { opacity: 0; transform: translateY(20px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes meter { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 

@@ -33,10 +33,10 @@ class GameSummary {
    *           unlocked: import('./achievements.js').AchievementProgress[],
    *           missed: { question: import('./conjugation.js').Question, given: string }[], streak: number,
    *           level: import('./levels.js').Level, newlyMastered: import('./conjugation.js').Question[],
-   *           levelCompleted: boolean, levelsPlayed: number, nextLevel: number, gamesLeft: number, nextGameForms: number }} props
-   *   `levelsPlayed` : niveaux terminés en jouant (hors placement) ; `nextLevel` : niveau du joueur après la partie ; `nextGameForms` : formes qu'une prochaine partie devrait rapporter
+   *           levelCompleted: boolean, levelsPlayed: number, nextLevel: number }} props
+   *   `levelsPlayed` : niveaux terminés en jouant (hors placement) ; `nextLevel` : niveau du joueur après la partie
    */
-  constructor({ record, verdict, unlocked, missed, streak, level, newlyMastered, levelCompleted, levelsPlayed, nextLevel, gamesLeft, nextGameForms }) {
+  constructor({ record, verdict, unlocked, missed, streak, level, newlyMastered, levelCompleted, levelsPlayed, nextLevel }) {
     this.record = record;
     this.verdict = verdict;
     this.unlocked = Object.freeze([...unlocked]);
@@ -50,8 +50,6 @@ class GameSummary {
     this.levelCompleted = levelCompleted;
     this.levelsPlayed = levelsPlayed;
     this.nextLevel = nextLevel;
-    this.gamesLeft = gamesLeft;
-    this.nextGameForms = nextGameForms;
     Object.freeze(this);
   }
 }

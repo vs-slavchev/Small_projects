@@ -92,10 +92,9 @@ function homeOverview(profile, ladder, now) {
 
   return Object.freeze({
     state,
-    /** Le joueur revient après au moins un jour sans jouer : la série est rompue, on montre le record. */
+    /** Le joueur revient après au moins un jour sans jouer. */
     isReturning: state === HomeState.BACK || state === HomeState.AWAY,
     streak: profile.calendar.currentStreak(now),
-    bestStreak: profile.calendar.longestStreak(),
     level,
     /** Formes acquises du niveau en cours (sur `level.combos.length`). */
     mastered,
@@ -108,15 +107,6 @@ function homeOverview(profile, ladder, now) {
     formsToday: Math.max(0, sumGain(today)),
     formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),
     ...levelPace(profile.games, level, mastered),
-    /**
-     * `completed` : niveaux terminés ce jour-là ; `gain` : formes gagnées dans le niveau joué en dernier ce jour-là
-     * (aujourd'hui : le niveau en cours, comme le titre de l'accueil).
-     */
-    week: Object.freeze(profile.calendar.week(now).map(d => Object.freeze({
-      ...d,
-      completed: Object.freeze(completedOn(d.date)),
-      gain: d.isToday ? todayGain : dayGain(d.date, onDay(d.date).at(-1)?.level),
-    }))),
     /** Nombre de niveaux terminés, niveau en cours compris s'il l'est déjà. */
     levelsCompleted: profile.levelHistory.length,
     /** Après le dernier niveau, le joueur y reste pour réviser : il est terminé tout en restant en cours. */

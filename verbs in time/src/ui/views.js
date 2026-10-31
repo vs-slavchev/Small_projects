@@ -394,7 +394,7 @@ function journeyDots(home) {
     ...done.map(h => `<span class="jd done" title="Niveau ${h.level.number}">${ICON.check}</span><span class="jd-link"></span>`),
     `<span class="jd current">${home.level.number}</span>`,
   ].join('');
-  return `<div class="week-chart">
+  return `<div class="journey-dots">
     <span class="section-label">Votre parcours</span>
     <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.level.combos.length)}`}">${dots}</div>
   </div>`;
@@ -631,7 +631,7 @@ const results = {
           </div>
           <div class="re-progress">
             ${levelBar({ mastered: masteredAfter, total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${total}` })}
-            ${gain > 0 ? `<div class="re-legend"><span><b>${masteredAfter}</b> / ${formsText(total)}</span></div>` : ''}
+            ${gain > 0 ? `<div class="re-legend"><b>${masteredAfter}</b> / ${formsText(total)}</div>` : ''}
           </div>
           <div class="re-card">
             <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
