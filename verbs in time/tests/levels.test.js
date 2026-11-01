@@ -243,7 +243,7 @@ test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que l
   profile.recordGame(gameIn(6, day(18, 10), 2, 3));
   const home = homeOverview(profile, ladder, day(18, 20));
   assert.equal(home.todayGain, 1, 'niveau en cours : une forme');
-  assert.match(renderHome(home), /avancé de<\/span><h1><span class="hl">\+1&nbsp;forme</);
+  assert.match(renderHome(home), /Aujourd'hui<\/span><h1><span class="hl">\+1&nbsp;forme<\/span> acquise</);
 });
 
 test('accueil : le dernier niveau terminé aujourd’hui ne s’annonce qu’une fois', () => {
