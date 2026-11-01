@@ -9,7 +9,7 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState, frenchList,
+  AppState, AppEvent, Destination, HomeState, PROGRESS_UNLOCK_GAMES, frenchList,
   escapeHtml: esc, plural, percentOf, formatSeconds, durationText, fitFontSize, diffChars, similarity, accentMarks,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
@@ -768,24 +768,46 @@ const journey = {
   render({ context }) {
     const h = context.home;
     const { level } = h;
-    const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
-        <span class="jr-check">${ICON.check}</span>
-        <span class="jr-text"><b>${esc(entry.level.label)}</b><span>${esc(entry.level.title)}</span></span>
-        <span class="jr-num">Niveau ${entry.level.number}</span>
-      </div>`).join('');
     const bar = { ...homeBarParts(h), next: 0 };
-    const left = h.isLevelComplete ? 'Niveau terminé.' : `Encore ≈ ${partiesText(h.gamesLeft)} et une nouvelle étape s'ouvre.`;
+    const left = h.isLevelComplete ? 'Niveau terminé.' : `Encore ≈ ${partiesText(h.gamesLeft)} et il est à vous.`;
+    const current = `<div class="jr-current">
+        ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+        ${levelBar(bar, { dark: true })}
+        <p>${bar.today ? `<b>+${formsText(bar.today)} aujourd'hui.</b> ` : ''}${left}</p>
+      </div>`;
+    let body;
+    if (h.gamesPlayed < PROGRESS_UNLOCK_GAMES) {
+      // Statistiques verrouillées : une case par partie à jouer, remplie avec son score.
+      const slots = Array.from({ length: PROGRESS_UNLOCK_GAMES }, (_, i) => {
+        const g = h.firstScores[i];
+        return g ? `<div class="slot full" style="animation-delay:${i * 80}ms">${g.correct}/${g.total}</div>` : '<div class="slot"></div>';
+      }).join('');
+      const left = PROGRESS_UNLOCK_GAMES - h.gamesPlayed;
+      body = `<div class="locked-card">
+          <div class="slots" role="img" aria-label="${h.gamesPlayed} ${plural(h.gamesPlayed, 'partie jouée', 'parties jouées')} sur ${PROGRESS_UNLOCK_GAMES}">${slots}</div>
+          <h2>${h.gamesPlayed === 0 ? `Jouez ${PROGRESS_UNLOCK_GAMES} parties pour voir vos statistiques.` : `Encore ${left} ${plural(left, 'partie')} pour voir vos statistiques.`}</h2>
+          <p>Formes acquises, temps de pratique, niveaux maîtrisés : tout se remplit au fil des parties.</p>
+        </div>`;
+    } else {
+      const minutes = Math.max(1, Math.round(h.practiceMs / 60_000));
+      const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
+          <span class="jr-check">${ICON.check}</span>
+          <span class="jr-text"><b>${esc(entry.level.title)}</b><span>${esc(capitalize(entry.level.tense.label))} · ${esc(entry.level.label)}</span></span>
+          <span class="jr-num">Niveau ${entry.level.number}</span>
+        </div>`).join('');
+      body = `<div class="jr-tiles">
+          <div class="jr-tile"><b>${h.formsMastered}</b><span>${plural(h.formsMastered, 'forme acquise', 'formes acquises')}</span></div>
+          <div class="jr-tile"><b>${minutes} min</b><span>de pratique</span></div>
+        </div>
+        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
+        ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}`;
+    }
     return `<div class="screen">
       <div class="top-safe"></div>
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
-        <div class="jr-current">
-          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
-          ${levelBar(bar, { dark: true })}
-          <p>${bar.today ? `<b>+${formsText(bar.today)} aujourd'hui.</b> ` : ''}${left}</p>
-        </div>
-        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
-        ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}
+        ${current}
+        ${body}
       </div>
       ${tabbar(Destination.JOURNEY)}
     </div>`;
