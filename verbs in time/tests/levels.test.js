@@ -230,7 +230,7 @@ test('rythme : seule l’estimation affichée est arrondie, pas les parties rest
 test('accueil : de retour avec une seule forme acquise, elle est nommée', () => {
   const home = homeOverview(profileWith({ games: [[15, 0, 1]], mastered: 1 }), ladder, day(18));
   assert.equal(home.state, HomeState.BACK);
-  assert.match(renderHome(home), /1&nbsp;forme acquise vous attendait bien au chaud\. Une nouvelle série commence aujourd'hui\./);
+  assert.match(renderHome(home), /1&nbsp;forme acquise vous attendait bien au chaud/);
 });
 
 test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que le dernier', () => {

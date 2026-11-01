@@ -306,7 +306,7 @@ function homeHeadline(home) {
       return `<span class="eyebrow">Content de vous revoir&nbsp;!</span><h1>Rien n'est perdu.</h1>
         <p>${home.mastered
     ? `${acquiredText(home.mastered)} vous ${plural(home.mastered, 'attendait', 'attendaient')} bien au chaud.`
-    : 'Votre niveau vous attendait bien au chaud.'} Une nouvelle série commence aujourd'hui.</p>`;
+    : 'Votre niveau vous attendait bien au chaud.'}</p>`;
     default:
       return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
   }
