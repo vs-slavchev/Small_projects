@@ -91,3 +91,19 @@ test('la partie ne se clôt qu’une fois tous les mots répondus', () => {
   assert.deepEqual(record.missedWords, [bank.words[1].text]);
   assert.equal(record.endedAt.getTime(), 10);
 });
+
+test('la réponse garde une anecdote tirée au hasard parmi celles du mot', () => {
+  const groups = [{ id: 'ette', label: '-ette', g: 'f', rule: '' }];
+  const small = LeOuLa.WordBank.fromData({ groups, words: [
+    { w: 'recette', g: 'f', grp: 'ette', fun: ['Une.', 'Deux.'] },
+    { w: 'baguette', g: 'f', grp: 'ette' },
+  ] });
+  const draw = ({ excluded }) => small.words.find(w => !excluded.has(w.text));
+  for (const [r, expected] of [[0, 'Une.'], [0.99, 'Deux.']]) {
+    const s = GameSession.start({ length: 2, difficulty: Difficulty.initial(), drawWord: draw, random: () => r, now: 0 });
+    assert.equal(s.answer(Gender.FEMININE, 1).anecdote, expected);
+    s.next(10);
+    assert.equal(s.lastAnswer.anecdote, expected, 'conservée avec le temps de lecture');
+    assert.equal(s.answer(Gender.FEMININE, 11).anecdote, null);
+  }
+});

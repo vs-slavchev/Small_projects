@@ -93,7 +93,7 @@ class AchievementFacts {
         const t = tally[word.gender.code];
         t.total++;
         if (a.correct) t.correct++;
-        if (word.anecdote) {
+        if (word.hasAnecdote) {
           anecdotes++;
           if (a.readMs === null || a.readMs < READ_MIN_MS) allAnecdotesRead = false;
         }

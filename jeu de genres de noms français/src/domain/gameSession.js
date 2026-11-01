@@ -7,9 +7,11 @@ const DEFAULT_GAME_LENGTH = 10;
 
 /** Réponse donnée à un mot. `readMs`, temps passé sur l'explication, est connu une fois l'explication quittée. */
 class Answer {
-  /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number, readMs?: number | null }} props */
-  constructor({ word, chosen, timeMs, readMs = null }) {
+  /** @param {{ word: import('./wordBank.js').Word, chosen: Gender, timeMs: number, readMs?: number | null, anecdote?: string | null }} props */
+  constructor({ word, chosen, timeMs, readMs = null, anecdote = null }) {
     this.word = word;
+    /** L'anecdote tirée pour cette réponse, ou null si le mot n'en a pas. */
+    this.anecdote = anecdote;
     this.chosen = chosen;
     this.timeMs = timeMs;
     this.readMs = readMs;
@@ -19,7 +21,7 @@ class Answer {
 
   /** @param {number} readMs @returns {Answer} */
   withReadMs(readMs) {
-    return new Answer({ word: this.word, chosen: this.chosen, timeMs: this.timeMs, readMs });
+    return new Answer({ word: this.word, chosen: this.chosen, timeMs: this.timeMs, readMs, anecdote: this.anecdote });
   }
 }
 
@@ -44,17 +46,21 @@ class GameSession {
   #thinkingMs = 0;
   #presentedAt = 0;
   #answeredAt = 0;
+  #random;
 
   /**
    * @param {{ length?: number, difficulty: Difficulty,
-   *           drawWord: (req: { excluded: Set<string>, difficulty: Difficulty }) => import('./wordBank.js').Word }} props
+   *           drawWord: (req: { excluded: Set<string>, difficulty: Difficulty }) => import('./wordBank.js').Word,
+   *           random?: () => number }} props
+   * `random` (dans [0, 1)) tire l'anecdote affichée à chaque réponse.
    */
-  constructor({ length = DEFAULT_GAME_LENGTH, difficulty, drawWord }) {
+  constructor({ length = DEFAULT_GAME_LENGTH, difficulty, drawWord, random = Math.random }) {
     if (!Number.isInteger(length) || length < 1) throw new DomainError(`Longueur de partie invalide : ${length}.`);
     if (!(difficulty instanceof Difficulty)) throw new DomainError('Une partie a besoin d’une difficulté.');
     if (typeof drawWord !== 'function') throw new DomainError('Une partie a besoin d’une source de mots.');
     this.#length = length;
     this.#drawWord = drawWord;
+    this.#random = random;
     this.#difficultyStart = difficulty;
     this.#difficulty = difficulty;
   }
@@ -91,7 +97,8 @@ class GameSession {
     if (!(gender instanceof Gender)) throw new DomainError('Réponse invalide.');
     if (!this.isAwaitingAnswer) throw new DomainError('Aucun mot n’attend de réponse.');
     const timeMs = Math.max(0, now - this.#presentedAt);
-    const answer = new Answer({ word: this.currentWord, chosen: gender, timeMs });
+    const word = this.currentWord;
+    const answer = new Answer({ word, chosen: gender, timeMs, anecdote: word.pickAnecdote(this.#random) });
     this.#answers.push(answer);
     this.#thinkingMs += timeMs;
     this.#answeredAt = now;

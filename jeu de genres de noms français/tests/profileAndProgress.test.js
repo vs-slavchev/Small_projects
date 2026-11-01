@@ -28,7 +28,7 @@ test('archiver une partie met à jour statistiques, difficulté et compteurs', (
   assert.equal(profile.wordStats.get(words[0].text).seen, 2);
   assert.equal(profile.wordStats.get(words[0].text).accuracy, 0.5);
   assert.equal(profile.recoveries, 10, 'chaque mot raté puis réussi compte');
-  assert.equal(profile.anecdotesRead, 2 * words.filter(w => w.anecdote).length);
+  assert.equal(profile.anecdotesRead, 2 * words.filter(w => w.hasAnecdote).length);
   assert.equal(profile.difficulty.value, 40);
 });
 

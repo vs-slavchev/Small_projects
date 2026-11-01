@@ -1,7 +1,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { DomainError, Gender } = LeOuLa;
+const { DomainError, Gender, pickRandom } = LeOuLa;
 
 /** Article élidé : « l’école », « l’horizon ». */
 const ELIDED_ARTICLE = 'l\u2019';
@@ -40,9 +40,9 @@ class WordGroup {
 class Word {
   /**
    * @param {{ text: string, gender: Gender, group: WordGroup | null, isException?: boolean,
-   *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
+   *           aspiratedH?: boolean, translation?: string, anecdotes?: string[] }} props
    */
-  constructor({ text, gender, group = null, isException = false, aspiratedH, translation = '', anecdote = null }) {
+  constructor({ text, gender, group = null, isException = false, aspiratedH, translation = '', anecdotes = [] }) {
     if (!text) throw new DomainError('Un mot doit avoir un texte.');
     if (!(gender instanceof Gender)) throw new DomainError(`« ${text} » : genre invalide.`);
     if (group === null) {
@@ -65,9 +65,18 @@ class Word {
     this.isException = isException;
     this.aspiratedH = aspiratedH === true;
     this.translation = translation;
-    this.anecdote = anecdote || null;
+    if (!Array.isArray(anecdotes) || anecdotes.some(a => typeof a !== 'string' || !a.trim())) {
+      throw new DomainError(`« ${text} » : chaque anecdote doit être un texte non vide.`);
+    }
+    /** Anecdotes possibles ; une seule est tirée au hasard à chaque réponse. */
+    this.anecdotes = Object.freeze([...anecdotes]);
     Object.freeze(this);
   }
+
+  get hasAnecdote() { return this.anecdotes.length > 0; }
+
+  /** @param {() => number} random @returns {string | null} une anecdote au hasard, ou null */
+  pickAnecdote(random) { return pickRandom(this.anecdotes, random); }
 
   /** Vrai pour un mot régulier de son groupe ; faux pour une exception ou un mot sans règle. */
   get followsRule() {
@@ -145,7 +154,7 @@ class WordBank {
       const group = w.grp ? byId.get(w.grp) : null;
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
-        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdote: w.fun,
+        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdotes: [].concat(w.fun ?? []).filter(a => typeof a !== 'string' || a.trim()),
       });
     });
     return new WordBank(groupList, wordList);

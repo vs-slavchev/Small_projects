@@ -14,12 +14,13 @@ const {
  * - profiles    : { load(): PlayerProfile, save(profile): void }
  * - preferences : { load(): { soundEnabled: boolean }, save(prefs): void }
  * - clock       : { now(): number }   // millisecondes
- * - random      : () => number        // [0, 1)
+ * - random      : () => number        // [0, 1), tirage des mots
+ * - anecdoteRandom : () => number     // [0, 1), tirage des anecdotes (flux séparé)
  *
  * @param {{ bank: import('../domain/wordBank.js').WordBank, profiles: object, preferences: object,
- *           clock: { now(): number }, random?: () => number, gameLength?: number }} deps
+ *           clock: { now(): number }, random?: () => number, anecdoteRandom?: () => number, gameLength?: number }} deps
  */
-function createUseCases({ bank, profiles, preferences, clock, random = Math.random, gameLength = DEFAULT_GAME_LENGTH }) {
+function createUseCases({ bank, profiles, preferences, clock, random = Math.random, anecdoteRandom = random, gameLength = DEFAULT_GAME_LENGTH }) {
   const profile = profiles.load();
   let prefs = preferences.load();
   const today = () => new Date(clock.now());
@@ -47,6 +48,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
         length: gameLength,
         difficulty: profile.difficulty,
         drawWord: request => policy.pick(request).word,
+        random: anecdoteRandom,
         now: clock.now(),
       });
     },
