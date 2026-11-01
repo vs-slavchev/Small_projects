@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Conjugo } from './game.js';
 
-const { diffChars, similarity, durationText } = Conjugo;
+const { diffChars, similarity, durationText, accentMarks } = Conjugo;
 
 test('durée en toutes lettres : secondes, puis minutes et secondes', () => {
   assert.equal(durationText(45_000), '45 secondes');
@@ -26,4 +26,14 @@ test('écart lettre à lettre : lettres en trop et lettres manquantes', () => {
 test('similarité : nombre de lettres communes dans l’ordre', () => {
   assert.equal(similarity('parlais', 'parlait'), 6);
   assert.ok(similarity('finirons', 'nous finirons') > similarity('finirons', 'tu finiras'));
+});
+
+test('lettres à accentuer : positions dans la forme juste et dans la réponse', () => {
+  assert.deepEqual(accentMarks('vous avez ete', 'vous avez été'), { target: [10, 12], given: [10, 12] });
+  // Sujet omis : la réponse est alignée sur la fin de la forme.
+  assert.deepEqual(accentMarks('avez ete', 'vous avez été'), { target: [10, 12], given: [5, 7] });
+  // Casse et apostrophe ne comptent pas.
+  assert.deepEqual(accentMarks("J'ai prefere", 'j’ai préféré'), { target: [7, 9, 11], given: [7, 9, 11] });
+  // Autre faute que les accents : rien à souligner.
+  assert.deepEqual(accentMarks('vous avez eu', 'vous avez été'), { target: [], given: [] });
 });

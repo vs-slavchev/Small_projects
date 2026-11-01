@@ -60,6 +60,27 @@ function diffChars(given, expected) {
 const similarity = (given, expected) => diffChars(given, expected).filter(p => p.type === 'same').reduce((n, p) => n + p.text.length, 0);
 
 /** Taille de police pour qu'un texte tienne sur une ligne de l'écran. */
+/**
+ * Lettres à accentuer : quand une réponse n'est fausse que par ses accents, les positions où elle diffère de la forme juste.
+ * La réponse peut omettre le sujet : elle est alignée sur la fin de la forme. Casse et apostrophes ne comptent pas.
+ * @param {string} given réponse du joueur @param {string} target forme juste affichée
+ * @returns {{ target: number[], given: number[] }} indices (en caractères) à souligner, vides si l'alignement échoue
+ */
+function accentMarks(given, target) {
+  const fold = text => text.toLowerCase().replace(/[’']/g, "'");
+  const bare = text => fold(text).normalize('NFD').replace(/\p{M}/gu, '');
+  const g = [...given.trim()];
+  const t = [...target];
+  const offset = t.length - g.length;
+  const none = { target: [], given: [] };
+  if (offset < 0 || bare(t.slice(offset).join('')) !== bare(g.join(''))) return none;
+  const marks = { target: [], given: [] };
+  g.forEach((ch, i) => {
+    if (fold(ch) !== fold(t[offset + i])) { marks.given.push(i); marks.target.push(offset + i); }
+  });
+  return marks;
+}
+
 const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
 
 /** @param {import('../domain/achievements.js').AchievementProgress} p */
@@ -87,5 +108,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(Conjugo, { escapeHtml, plural, percentOf, formatClock, formatSeconds, durationText, diffChars, similarity, fitFontSize, achievementStatus, unlockedLabel });
+Object.assign(Conjugo, { escapeHtml, plural, percentOf, formatClock, formatSeconds, durationText, diffChars, similarity, accentMarks, fitFontSize, achievementStatus, unlockedLabel });
 })(globalThis.Conjugo ??= {});

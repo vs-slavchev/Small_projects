@@ -10,7 +10,7 @@
 
 const {
   AppState, AppEvent, Destination, HomeState, frenchList,
-  escapeHtml: esc, plural, percentOf, formatSeconds, durationText, fitFontSize, diffChars, similarity,
+  escapeHtml: esc, plural, percentOf, formatSeconds, durationText, fitFontSize, diffChars, similarity, accentMarks,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
@@ -49,10 +49,20 @@ function topBar(session, freshIndex) {
 const segmented = segments => segments
   .map(s => (s.kind === 'space' ? ' ' : `<span class="sg sg-${s.kind}">${esc(s.text)}</span>`)).join('');
 
-/** Légende des couleurs de `segmented`. */
-const SEGMENT_LEGEND = `<div class="sg-legend" aria-hidden="true">
-  <span class="sg sg-stem">radical</span><span class="sg sg-ending">terminaison</span><span class="sg sg-aux">auxiliaire</span><span class="sg sg-agreement">accord</span>
-</div>`;
+/** Légende des couleurs de `segmented`, limitée aux morceaux présents dans la forme. */
+const LEGEND_KINDS = Object.freeze([['stem', 'radical'], ['ending', 'terminaison'], ['aux', 'auxiliaire'], ['participle', 'participe'], ['agreement', 'accord']]);
+function segmentLegend(segments) {
+  const present = new Set(segments.map(s => s.kind));
+  const items = LEGEND_KINDS.filter(([kind]) => present.has(kind));
+  return items.length > 1
+    ? `<div class="sg-legend" aria-hidden="true">${items.map(([kind, label]) => `<span class="sg sg-${kind}">${label}</span>`).join('')}</div>` : '';
+}
+
+/** Texte dont certaines lettres sont soulignées (lettres à accentuer). */
+const underlineAt = (text, indices) => {
+  const marks = new Set(indices);
+  return [...text].map((ch, i) => (marks.has(i) ? `<u class="acc">${esc(ch)}</u>` : esc(ch))).join('');
+};
 
 /** Bouton qui fait lire une forme à voix haute (masqué si le navigateur ne sait pas parler). */
 const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
@@ -552,64 +562,88 @@ function answerDiff(given, expected) {
   return { given: show('missing', 'df-extra'), target: show('extra', 'df-missing') };
 }
 
-/** Après une erreur : recopier la bonne forme pour pouvoir continuer. */
-function retypeBlock({ retyped, retypeTried }) {
-  const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
-  // Une fois la forme recopiée, le champ et son bouton ne servent plus : seul le message reste.
-  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
-    ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
+/** Après une erreur : recopier la bonne forme pour pouvoir continuer. Une fois recopiée, le champ devient une ligne verte. */
+function retypeBlock({ retyped, retypeTried, session }) {
+  if (retyped) {
+    return `<form class="retype done" data-event="${AppEvent.RETYPE}" aria-live="polite">
+      <div class="retype-done"><span class="ok-mark" aria-hidden="true">✓</span><span class="retype-form">${esc(session.lastAnswer.question.expected.display)}</span><span class="retype-status">Bien recopié</span></div>
+    </form>`;
+  }
+  return `<form class="retype${retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
+    <label class="retype-label" for="retype">${retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie-la pour la fixer'}</label>
     <div class="input-row">
       ${answerInput('retype')}
       <button class="submit press" type="submit">OK</button>
-    </div>`}
-    <div class="retype-status" aria-live="polite">${status}</div>
+    </div>
   </form>`;
+}
+
+const LOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h14v9H5zM8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+/** « Continuer » : verrouillé (pointillés, cadenas) tant que la forme n'est pas recopiée. */
+function nextButton({ session, retyped }) {
+  const answer = session.lastAnswer;
+  const label = session.isComplete ? 'Voir le résultat' : 'Continuer';
+  if (!answer.correct && !retyped) {
+    return `<button class="next-btn locked" data-event="${AppEvent.CONTINUE}" aria-disabled="true">${LOCK_ICON}Recopie pour continuer</button>`;
+  }
+  return `<button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}">${label}</button>`;
 }
 
 const feedback = {
   screen: 'feedback',
-  render({ context }, env) {
+  render({ context }) {
     const { session } = context;
     const { combo } = session;
     const answer = session.lastAnswer;
     const { question } = answer;
     const { verb, expected } = question;
-    let title, subtitle;
+    let kind, mark, title, subtitle;
     if (answer.correct) {
-      title = 'Exact.';
+      [kind, mark, title] = ['ok', `✓${sparks()}`, 'Exact.'];
       subtitle = [combo >= 2 && `${combo} d'affilée`, formatSeconds(answer.timeMs)].filter(Boolean).join(' · ');
     } else if (answer.accentsOnly) {
-      [title, subtitle] = ['Presque.', 'Attention aux accents.'];
+      [kind, mark, title, subtitle] = ['almost', '~', 'Presque.', 'Attention aux accents.'];
     } else {
-      [title, subtitle] = ['Pas cette fois.', 'Compare avec la bonne forme en haut.'];
+      [kind, mark, title, subtitle] = ['ko', '!', 'Pas cette fois.', 'Compare avec la bonne forme en haut.'];
     }
     const others = expected.others.length
       ? `<div class="also">Aussi accepté : ${expected.others.map(esc).join(', ')}</div>`
       : '';
-    const diff = answer.correct ? null : answerDiff(answer.given, expected);
+    let big = segmented(expected.segments);
+    let given = '';
+    if (answer.accentsOnly) {
+      // La forme affichée peut porter un accord facultatif (« allé(e) ») : on aligne sur l'écriture juste la plus proche.
+      const match = [expected.display, ...expected.forms]
+        .map(form => ({ form, marks: accentMarks(answer.given, form) })).find(m => m.marks.target.length);
+      if (match) {
+        big = underlineAt(expected.display.startsWith(match.form) ? expected.display : match.form, match.marks.target);
+        given = underlineAt(answer.given.trim(), match.marks.given);
+      } else {
+        given = esc(answer.given);
+      }
+    } else if (!answer.correct) {
+      given = answerDiff(answer.given, expected).given;
+    }
     const diagnosis = answer.diagnosis ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
     const alsoLike = verb.alsoLike.length
       ? `<div class="also-like">Se conjugue comme lui : ${verb.alsoLike.map(esc).join(', ')}.</div>`
       : '';
-    const locked = !context.retyped;
-    return `<div class="screen play fb">
+    return `<div class="screen play fb fb-${kind}">
       <div class="top-safe"></div>
       <div class="play-top">${topBar(session, session.position - 1)}</div>
       <div class="fb-word">
         <div class="ask">${questionLabel(question)}</div>
+        <div class="big" style="font-size:${fitFontSize(expected.display, 56, 640)}px">${big}</div>
         <div class="big-row">
-          <div class="big" style="font-size:${fitFontSize(expected.display, 44, 640)}px">${segmented(expected.segments)}</div>
           ${speakButton(expected.forms[0])}
+          ${given ? `<div class="you-said">Ta réponse : <span class="given">${given}</span></div>` : segmentLegend(expected.segments)}
         </div>
-        ${SEGMENT_LEGEND}
         ${others}
-        ${diff ? `<div class="you-said">Tu as répondu <span class="given">${diff.given}</span></div>
-          <div class="you-said">Il fallait <span class="target">${diff.target}</span></div>` : ''}
       </div>
-      <div class="grow"></div>
       <div class="sheet">
-        <div class="verdict${answer.correct ? ' ok' : ''}">
-          <div class="mark">${answer.correct ? `✓${sparks()}` : '!'}</div>
+        <div class="verdict ${kind}">
+          <div class="mark">${mark}</div>
           <div><div class="t1">${title}</div><div class="t2">${subtitle}</div></div>
         </div>
         ${diagnosis}
@@ -619,7 +653,7 @@ const feedback = {
           <div class="fun-text">${verb.note || verb.type.rule}</div>
           ${alsoLike}
         </div>
-        <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}"${locked ? ' aria-disabled="true"' : ''}>${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
+        ${nextButton(context)}
       </div>
     </div>`;
   },
@@ -632,14 +666,9 @@ const feedback = {
     const form = root.querySelector('.retype');
     if (!form) return;
     form.outerHTML = retypeBlock(context);
-    const next = root.querySelector('.next-btn');
-    if (context.retyped) {
-      next.removeAttribute('aria-disabled');
-      next.focus({ preventScroll: true });
-    } else {
-      const input = root.querySelector('#retype');
-      input.focus({ preventScroll: true });
-    }
+    root.querySelector('.next-btn').outerHTML = nextButton(context);
+    if (context.retyped) root.querySelector('.next-btn').focus({ preventScroll: true });
+    else root.querySelector('#retype').focus({ preventScroll: true });
   },
 };
 
