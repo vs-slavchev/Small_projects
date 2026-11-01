@@ -83,6 +83,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
   flex: none; display: grid; grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--line); background: var(--card);
   padding: 12px 0 calc(20px + var(--safe-bottom));
+  position: relative; z-index: 4; /* « Jouer » dépasse au-dessus du contenu qui défile */
 }
 .tab { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 48px; font-size: var(--fs-micro); font-weight: 700; color: var(--ink-3); padding: 0; }
 .tab .ico { display: grid; place-items: center; width: 56px; height: 30px; border-radius: 999px; transition: transform .2s, background .2s; }
@@ -474,31 +475,42 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 
 /* ---------- Succès ---------- */
 .ach-head { display: flex; justify-content: space-between; align-items: baseline; }
-.ach-head span { font-size: var(--fs-label); font-weight: 700; color: var(--muted); }
-.badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding-bottom: 8px; }
+.ach-head span { font-size: var(--fs-label); font-weight: 700; color: var(--ink-3); }
+.badges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-bottom: 8px; }
 .badge {
-  background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 14px 6px 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: 16px 8px 12px;
   display: flex; flex-direction: column; align-items: center; gap: 8px; animation: popIn .4s cubic-bezier(.3,1.5,.5,1) both;
   transition: transform .15s, border-color .15s; font: inherit; color: inherit;
 }
 .badge:active { transform: scale(.95); }
-.badge.sel { border: 2px solid var(--ink); padding: 13px 5px 11px; }
-.badge.off { opacity: .7; }
-.badge .em { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: var(--fs-title); }
+.badge.sel { border: 2px solid var(--ink); padding: 15px 7px 11px; }
+.badge .em { position: relative; overflow: hidden; width: 56px; height: 56px; border-radius: var(--radius-lg); display: grid; place-items: center; font-size: var(--fs-title); box-sizing: border-box; }
+/* Pas obtenu : un cadre pointillé vide, l'emoji en gris. */
+.tier-0 { border: 2px dashed var(--faint); background: transparent; }
 .badge.off .em { filter: grayscale(1); }
-.badge .n { font-size: var(--fs-micro); font-weight: 800; text-align: center; line-height: 1.2; }
-.ticks { display: flex; gap: 3px; width: 48px; }
+.badge.off .em { opacity: .7; }
+/* Nom sur deux lignes réservées : les traits s'alignent d'une carte à l'autre. */
+.badge .n { height: 2.5em; display: flex; align-items: center; font-size: var(--fs-micro); font-weight: 800; text-align: center; line-height: 1.25; }
+.badge.off .n { color: var(--ink-3); font-weight: 700; }
+.ticks { display: flex; gap: 4px; width: 48px; }
 .ticks i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
-.ticks i.on { background: var(--ink); }
+.t-1 .ticks i.on { background: var(--bronze); }
+.t-2 .ticks i.on { background: var(--silver); }
+.t-3 .ticks i.on { background: var(--gold); }
+/* Reflet sur l'or, de temps en temps. */
+.shine { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.8) 50%, transparent 65%); transform: translateX(-130%); animation: shine 7s ease-in-out infinite 1s; pointer-events: none; }
+@keyframes shine { 0%, 82% { transform: translateX(-130%); } 96%, 100% { transform: translateX(130%); } }
+@media (prefers-reduced-motion: reduce) { .shine { display: none; } }
 /* Place sous la grille pour que la fenêtre du badge ne masque pas la dernière rangée. */
 .pop-room { display: none; height: 220px; flex: none; }
 .pop-open .pop-room { display: block; }
 .pop {
-  position: absolute; left: 12px; right: 12px; bottom: calc(84px + var(--safe-bottom)); background: var(--night); color: #fff; border-radius: 22px; padding: 18px;
+  position: absolute; left: 12px; right: 12px; bottom: calc(124px + var(--safe-bottom)); background: var(--night); color: #fff; border-radius: 22px; padding: 18px;
   display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 40px -10px rgba(0,0,0,.4); animation: popUp .3s cubic-bezier(.2,1.2,.4,1) both; z-index: 5;
 }
 .pop-head { display: flex; align-items: center; gap: 12px; }
-.pop-head .em { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: var(--fs-word); flex: none; }
+.pop-head .em { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: var(--fs-word); flex: none; box-sizing: border-box; }
+.pop-head .em.tier-0 { border-color: var(--night-text); }
 .pop-head .n { font-weight: 800; font-size: var(--fs-action); }
 .pop-head .t { font-size: var(--fs-label); color: #C9CED8; }
 .pop-x { width: 32px; height: 32px; border-radius: 50%; background: var(--night-2); border: none; color: #fff; display: grid; place-items: center; font-size: var(--fs-body); padding: 0; flex: none; }
@@ -553,7 +565,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 @keyframes caretBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 @keyframes spark { from { transform: translate(0, 0) scale(1); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
 @keyframes unlock { from { opacity: 0; transform: translateY(14px) scale(.9); } to { opacity: 1; transform: none; } }
-@keyframes shine { to { transform: translateX(100%); } }
 @keyframes popUp { from { opacity: 0; transform: translateY(20px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes meter { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 

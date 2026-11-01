@@ -14,7 +14,8 @@ const {
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
-const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
+/** Palier affiché d'un succès : 0 pas obtenu, 1 bronze, 2 argent, 3 or (un succès sans palier, une fois obtenu, compte comme or). */
+const tierOf = p => (p.isSingleStep ? (p.reached ? 3 : 0) : p.tier);
 
 /* ---------- Éléments communs ---------- */
 
@@ -296,7 +297,7 @@ const unlockedCard = (list, { dark = false } = {}) => (list.length
   ? `<div class="unlocked${dark ? ' dark' : ''}">
       <span class="unlocked-title">${plural(list.length, 'Succès débloqué', 'Succès débloqués')}</span>
       ${list.map(p => `<div class="unlocked-row">
-        <span class="unlocked-em tier-${p.isSingleStep ? 3 : p.tier}" aria-hidden="true">${p.emoji}</span>
+        <span class="unlocked-em tier-${tierOf(p) || 3}" aria-hidden="true">${p.emoji}</span>
         <span class="unlocked-text"><b>${esc(unlockedLabel(p))}</b><span>${esc(p.description)}</span></span>
       </div>`).join('')}
     </div>`
@@ -818,10 +819,9 @@ const journey = {
 
 function popover(achievement) {
   const status = achievementStatus(achievement);
-  const [bg] = TIER_COLORS[achievement.tier];
   return `<div class="pop" role="dialog" aria-label="${esc(achievement.name)}">
     <div class="pop-head">
-      <div class="em" style="background:${bg}">${achievement.emoji}</div>
+      <div class="em tier-${tierOf(achievement)}">${achievement.emoji}</div>
       <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div class="n">${esc(achievement.name)}</div><div class="t">${status.tierLabel}</div></div>
       <button class="pop-x" data-event="${AppEvent.CLOSE_BADGE}" aria-label="Fermer">✕</button>
     </div>
@@ -847,10 +847,10 @@ const achievements = {
   render({ context }) {
     const { list, earned, total } = context.achievements;
     const grid = list.map((p, i) => {
-      const [bg, rim] = TIER_COLORS[p.tier];
+      const tier = tierOf(p);
       const ticks = p.thresholds.map((_, k) => `<i class="${p.reached > k ? 'on' : ''}"></i>`).join('');
-      return `<button class="badge${p.tier ? '' : ' off'}" data-event="${AppEvent.SELECT_BADGE}" data-index="${i}" style="animation-delay:${i * 35}ms" aria-label="${esc(p.name)}">
-        <div class="em" style="background:${bg};box-shadow:inset 0 -4px 0 ${rim}">${p.emoji}</div>
+      return `<button class="badge t-${tier}${tier ? '' : ' off'}" data-event="${AppEvent.SELECT_BADGE}" data-index="${i}" style="animation-delay:${i * 35}ms" aria-label="${esc(p.name)}">
+        <div class="em tier-${tier}">${tier === 3 ? '<span class="shine" aria-hidden="true"></span>' : ''}${p.emoji}</div>
         <div class="n">${esc(p.name)}</div>
         <div class="ticks">${ticks}</div>
       </button>`;
@@ -858,7 +858,7 @@ const achievements = {
     return `<div class="screen">
       <div class="top-safe"></div>
       <div class="page">
-        <div class="ach-head"><div class="page-title">Succès</div><span>${earned} / ${total}</span></div>
+        <div class="ach-head"><div class="page-title">Succès</div><span>${earned} ${plural(earned, 'obtenu', 'obtenus')} sur ${total}</span></div>
         <div class="badges">${grid}</div>
         <div class="pop-room"></div>
       </div>
