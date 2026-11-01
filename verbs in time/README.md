@@ -40,15 +40,21 @@ Une **forme** (verbe + temps + case de personne) est **acquise** quand sa derni�
   - **10 %** : une forme des niveaux précédents, hors de ces formes à revoir.
 
   Un panier vide renvoie au niveau en cours, puis aux niveaux précédents. Une même forme ne revient pas dans une partie.
-- La question est située par une expression de temps (« Hier, nous … », « L’année prochaine, je … ») : le temps se comprend par son usage, pas seulement par son nom.
+- La question est une phrase à trou, située par une expression de temps (« Hier, nous ___ ___. », « L’année prochaine, je ___. ») : le temps se comprend par son usage, pas seulement par son nom. Un trait par mot attendu. Tout est en français : aucune traduction.
 - Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »). La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ».
 - Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous, vous et on n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
 - Après chaque réponse, l'écran d'explication montre :
-  - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, accord), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
-  - après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, mauvaise terminaison, ou accents ; et l'**écart lettre à lettre** entre la réponse et la forme juste ;
+  - la forme attendue, **découpée en couleurs** (radical, terminaison, auxiliaire, participe, accord ; la légende ne montre que les morceaux présents), et un bouton 🔊 qui la lit (synthèse vocale du navigateur, masqué si absente) ;
+  - en bas, le **verdict** (« Exact. », « Pas cette fois. », « Presque. ») ; après une erreur, **ce qui ne va pas** : forme d'un autre temps, d'une autre personne, mauvais auxiliaire, accord oublié, mauvaise terminaison, ou accents ; et la réponse donnée, lettres en trop barrées. Pour « Presque », les lettres à accentuer sont soulignées dans la forme et dans la réponse ;
   - après une erreur, un champ pour **recopier la bonne forme** : « Continuer » ne se débloque qu'une fois la forme recopiée (les accents n'y sont pas exigés) ;
   - la particularité du verbe, et les verbes qui **se conjuguent comme lui**.
-- Le **bilan** met en avant les formes gagnées dans le niveau (« +3 formes », puis « 5 → 8 / 12 formes »), les formes devenues acquises et ce qu'apporterait une partie de plus.
+- Le **bilan** ne montre jamais « +0 » ni « −1 » :
+  - formes gagnées : « +3 », la barre du niveau et les réponses justes ;
+  - aucune forme gagnée : les formes acquises du niveau (« 8/12, rien de perdu ») et, en pointillés, celles qui ont avancé ;
+  - formes perdues (acquises avant la partie, plus après) : un segment « à revoir » et la liste de ces formes ;
+  - aucune réponse juste : « 5 formes recopiées — Recopier, c'est déjà progresser ».
+
+  Les succès débloqués y sont présentés sur une carte (palier en couleur, ce qui est récompensé), la même que sur l'écran de niveau terminé. Rien n'annonce le contenu de la prochaine partie : les questions sont tirées au hasard.
 
 ### Accueil et progrès
 
@@ -61,7 +67,9 @@ L'accueil ne montre jamais « +0 forme » : son accroche dépend du dernier jour
 | retour | 1 à 6 jours sans jouer | rien n'est perdu |
 | longue absence | une semaine ou plus | le chemin déjà parcouru |
 
-Il montre aussi les formes acquises en tout, le niveau en cours, et le nombre de parties restantes, estimé d'après les 5 dernières parties du niveau (2 formes par partie, faute d'historique). L'onglet **Progrès** montre le niveau en cours et les niveaux terminés.
+Il montre aussi la série, le niveau en cours sur un chemin (puis les deux derniers niveaux terminés et un lien vers les autres), les formes acquises aujourd'hui, et le nombre de parties restantes, estimé d'après les 5 dernières parties du niveau (2 formes par partie, faute d'historique).
+
+La barre d'onglets compte trois entrées : **Progrès**, **Jouer** (au centre : lance une partie depuis l'accueil, ramène à l'accueil depuis les autres onglets) et **Succès**. L'onglet **Progrès** montre le niveau en cours ; ses statistiques (formes acquises, temps de pratique, niveaux maîtrisés) s'ouvrent après 3 parties.
 
 ## Verbes
 
