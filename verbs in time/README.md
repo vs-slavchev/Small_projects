@@ -58,7 +58,7 @@ L'accueil ne montre jamais « +0 forme » : son accroche dépend du dernier jour
 |---|---|---|
 | joué aujourd'hui | une partie aujourd'hui | le gain du jour, en ambre sur la barre du niveau |
 | pas encore aujourd'hui | dernière partie hier (ou aucune) | ce qu'une partie rapporterait, en pointillé |
-| retour | 1 à 6 jours sans jouer | rien n'est perdu ; une nouvelle série commence |
+| retour | 1 à 6 jours sans jouer | rien n'est perdu |
 | longue absence | une semaine ou plus | le chemin déjà parcouru |
 
 Il montre aussi les formes acquises en tout, le niveau en cours, et le nombre de parties restantes, estimé d'après les 5 dernières parties du niveau (2 formes par partie, faute d'historique). L'onglet **Progrès** montre le niveau en cours et les niveaux terminés.
@@ -97,7 +97,7 @@ src/
 │   ├── playerProfile.js         PlayerProfile : joueur, niveau en cours, niveaux terminés
 │   ├── holidays.js              jours de fête (succès cachés)
 │   ├── achievements.js          succès et paliers Bronze / Argent / Or
-│   ├── homeOverview.js          homeOverview : état de l'accueil, gain du jour, rythme, semaine, parcours
+│   ├── homeOverview.js          homeOverview : état de l'accueil, gain du jour, rythme, parcours
 │   └── gameSummary.js           verdict et bilan de fin de partie (gain du niveau, formes acquises)
 ├── application/
 │   ├── stateMachine.js          moteur d'automate générique

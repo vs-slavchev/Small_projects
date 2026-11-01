@@ -96,11 +96,6 @@ test('série quotidienne : en cours jusqu’à hier, la plus longue est conserv�
   assert.equal(cal.currentStreak(day(18)), 2, 'pas encore joué aujourd’hui : la série tient');
   assert.equal(cal.currentStreak(day(19)), 0);
   assert.equal(cal.longestStreak(), 3);
-  const week = cal.week(day(18)); // dimanche 18 octobre 2026
-  assert.equal(week.length, 7);
-  assert.equal(week[0].date.getDay(), 1, 'la semaine commence lundi');
-  assert.ok(week[6].isToday);
-  assert.deepEqual(week.map(d => d.played), [true, false, false, false, true, true, false]);
 });
 
 test('verdict de fin de partie', () => {

@@ -15,7 +15,6 @@ const {
 } = Conjugo;
 
 const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
-const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 /* ---------- Éléments communs ---------- */
 
@@ -248,7 +247,6 @@ const levelUp = {
 /* ---------- Accueil ---------- */
 
 const ICON = Object.freeze({
-  flame: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 1.5 1 2.5 2 3 3 .5-2 0-5 0-7z"/></svg>',
   play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 4.5v15l12-7.5z"/></svg>',
   chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
   medal: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M9 13.5L8 21l4-2 4 2-1-7.5"/></svg>',
@@ -271,16 +269,11 @@ function soundButton(on) {
   return `<button class="icon-btn" id="sound" data-event="${AppEvent.TOGGLE_SOUND}" aria-label="${soundLabel(on)}">${on ? ICON.soundOn : ICON.soundOff}</button>`;
 }
 
-/** En-tête commun : logo, son, et la série (ou le record, quand la série est rompue). */
-function homeHeader(home, soundEnabled) {
-  const away = home.isReturning;
-  const value = away ? home.bestStreak : home.streak;
-  const pill = value
-    ? `<span class="pill${away ? ' muted' : ''}">${ICON.flame}${away ? 'Record ' : ''}${value} ${plural(value, 'jour')}</span>`
-    : '';
+/** En-tête commun : logo et son. */
+function homeHeader(soundEnabled) {
   return `<div class="home-head">
     <div class="logo">verbes <span>&amp;</span> temps</div>
-    <div class="head-right">${soundButton(soundEnabled)}${pill}</div>
+    ${soundButton(soundEnabled)}
   </div>`;
 }
 
@@ -394,51 +387,6 @@ function levelCard(home) {
   </div>`;
 }
 
-/** Gain le plus petit qui remplit une barre : une semaine de petits gains ne s'affiche pas en barres pleines. */
-const WEEK_BAR_MIN_PEAK = 4;
-
-/** Semaine en barres : formes gagnées chaque jour ; aujourd'hui en ambre (joué) ou en pointillé (à jouer). */
-function weekChart(home) {
-  const isPending = d => d.isToday && home.state !== HomeState.PLAYED_TODAY && home.nextGameForms > 0;
-  // Barres à l'échelle du meilleur jour de la semaine : les grosses journées restent distinctes.
-  // Un jour où un niveau est terminé a déjà sa barre pleine : il ne fixe pas l'échelle.
-  const peak = Math.max(WEEK_BAR_MIN_PEAK, ...home.week.filter(d => !d.completed.length)
-    .map(d => (isPending(d) ? home.nextGameForms : d.gain)));
-  // Part de la hauteur maximale ; la hauteur elle-même est fixée par la feuille de style (--wk-max).
-  const weekBarHeight = forms => Math.min(1, forms / peak).toFixed(3);
-  const bars = home.week.map((d, i) => {
-    const pending = isPending(d);
-    let cls = 'wk-bar';
-    let label = '';
-    let height = 0;
-    if (pending) {
-      cls += ' next';
-      label = `+${home.nextGameForms}&nbsp;?`;
-      height = weekBarHeight(home.nextGameForms);
-    } else if (d.isFuture) {
-      cls += ' future';
-    } else if (d.completed.length) {
-      // Coche par niveau terminé, puis le gain déjà fait dans le niveau suivant.
-      label = `${'✓'.repeat(d.completed.length)}${d.gain ? `&nbsp;+${d.gain}` : ''}`;
-      height = 1;
-      cls += d.isToday ? ' today' : ' gain';
-    } else {
-      label = d.gain ? `+${d.gain}` : '0';
-      height = weekBarHeight(d.gain);
-      cls += d.isToday ? ' today' : d.gain ? ' gain' : ' zero';
-    }
-    return `<div class="wk-day${d.isToday ? ' is-today' : ''}"><span class="wk-label">${label}</span><div class="${cls}" style="--h:${height}"></div><span class="wk-name">${WEEKDAYS[i]}</span></div>`;
-  }).join('');
-  const note = home.state === HomeState.BACK && home.bestStreak
-    ? `<span class="wk-note">Une nouvelle série commence aujourd'hui. Votre record&nbsp;: ${home.bestStreak} ${plural(home.bestStreak, 'jour')}.</span>`
-    : '';
-  return `<div class="week-chart">
-    <span class="section-label">Cette semaine</span>
-    <div class="wk-bars" role="img" aria-label="Formes acquises chaque jour de la semaine dans le niveau joué ; coche : niveau terminé ce jour-là">${bars}</div>
-    ${note}
-  </div>`;
-}
-
 /** Après une longue absence : les derniers niveaux terminés, puis le niveau en cours. */
 function journeyDots(home) {
   const done = home.journey.slice(0, 5).reverse();
@@ -446,7 +394,7 @@ function journeyDots(home) {
     ...done.map(h => `<span class="jd done" title="Niveau ${h.level.number}">${ICON.check}</span><span class="jd-link"></span>`),
     `<span class="jd current">${home.level.number}</span>`,
   ].join('');
-  return `<div class="week-chart">
+  return `<div class="journey-dots">
     <span class="section-label">Votre parcours</span>
     <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.level.combos.length)}`}">${dots}</div>
   </div>`;
@@ -460,11 +408,10 @@ const PLAY_CTA = Object.freeze({
   [HomeState.AWAY]: ['Reprendre', null],
 });
 
-/** Bouton de partie : libellé, précision éventuelle, et ce qu'une partie rapporte. */
-function playButton(label, sub, forms) {
+/** Bouton de partie : libellé et précision éventuelle. */
+function playButton(label, sub) {
   return `<button class="play-btn press" data-event="${AppEvent.START}">
     <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
-    ${forms > 0 ? `<span class="pb-tag">≈&nbsp;+${formsText(forms)}</span>` : ''}
   </button>`;
 }
 
@@ -477,13 +424,13 @@ const home = {
     return `<div class="screen home">
       <div class="top-safe"></div>
       <div class="home-body">
-        ${homeHeader(h, context.soundEnabled)}
+        ${homeHeader(context.soundEnabled)}
         <div class="headline">${homeHeadline(h)}</div>
         ${achievedCard(h)}
         ${levelCard(h)}
-        ${h.state === HomeState.AWAY ? journeyDots(h) : weekChart(h)}
+        ${h.state === HomeState.AWAY ? journeyDots(h) : ''}
         <div class="grow"></div>
-        ${playButton(label, sub ?? length, h.nextGameForms)}
+        ${playButton(label, sub ?? length)}
       </div>
       ${tabbar(Destination.HOME)}
     </div>`;
@@ -684,7 +631,7 @@ const results = {
           </div>
           <div class="re-progress">
             ${levelBar({ mastered: masteredAfter, total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${total}` })}
-            <div class="re-legend"><span>${masteredBefore} → <b>${masteredAfter}</b> / ${formsText(total)}</span><span>${s.gamesLeft ? `encore ≈ ${partiesText(s.gamesLeft)}` : ''}</span></div>
+            ${gain > 0 ? `<div class="re-legend"><b>${masteredAfter}</b> / ${formsText(total)}</div>` : ''}
           </div>
           <div class="re-card">
             <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
@@ -695,7 +642,7 @@ const results = {
           ${unlocked}
         </div>
         <div class="end-actions">
-          ${playButton('Encore une', '', s.nextGameForms)}
+          ${playButton('Encore une', '')}
           <button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>
         </div>
       </div>

@@ -176,7 +176,6 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   assert.equal(home.formsMastered, 4, 'seules les formes acquises en jouant : les niveaux validés par le test n’en apportent pas');
   assert.equal(home.gamesLeft, 2, '2 formes restantes, 4/3 de forme par partie');
   assert.equal(home.nextGameForms, 1, '4/3 de forme par partie, arrondi');
-  assert.equal(home.week.find(d => d.isToday).gain, 2);
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
 });
 
@@ -214,18 +213,13 @@ test('accueil : niveau terminé aujourd’hui, puis gain dans le suivant, sans a
   const home = homeOverview(profile, ladder, day(18, 20));
   assert.deepEqual(home.completedToday, [5]);
   assert.equal(home.todayGain, 2, 'gain du niveau 6 seulement');
-  const today = home.week.find(d => d.isToday);
-  assert.deepEqual([today.completed, today.gain], [[5], 2], 'une coche, puis le gain du niveau suivant');
-  assert.equal(home.week.find(d => d.date.getDate() === 17).gain, size5 - 3);
   const html = renderHome(home);
   assert.match(html, /vous avez terminé<\/span><h1><span class="hl">le niveau 5</);
   assert.match(html, /Et déjà \+2&nbsp;formes dans le niveau 6/);
-  assert.match(html, /✓&nbsp;\+2/);
 
   profile.completeLevel(day(18, 11), 22);
   const two = homeOverview(profile, ladder, day(18, 20));
   assert.match(renderHome(two), /les niveaux 5 et 6/);
-  assert.match(renderHome(two), /✓✓/);
 });
 
 test('rythme : seule l’estimation affichée est arrondie, pas les parties restantes', () => {
@@ -245,7 +239,6 @@ test('accueil : un jour joué dans deux niveaux sans en terminer ne montre que l
   profile.recordGame(gameIn(6, day(18, 10), 2, 3));
   const home = homeOverview(profile, ladder, day(18, 20));
   assert.equal(home.todayGain, 1, 'niveau en cours : une forme');
-  assert.equal(home.week.find(d => d.isToday).gain, 1, 'le titre et la semaine disent la même chose');
   assert.match(renderHome(home), /avancé de<\/span><h1><span class="hl">\+1&nbsp;forme</);
 });
 

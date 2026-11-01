@@ -21,12 +21,6 @@ const DEFAULT_PACE = 2;
 const isMeasured = (game, level) =>
   game.masteredGain !== null && game.masteredBefore <= level.combos.length && game.masteredAfter <= level.combos.length;
 
-/** Ajoute `value` à la liste de `key` dans `map`. */
-const groupInto = (map, key, value) => {
-  if (!map.has(key)) map.set(key, []);
-  map.get(key).push(value);
-};
-
 /** Formes gagnées par un ensemble de parties. */
 const sumGain = games => games.reduce((sum, g) => sum + g.masteredGain, 0);
 
@@ -64,38 +58,28 @@ function homeOverview(profile, ladder, now) {
     : daysOff === 1 ? HomeState.NOT_YET_TODAY
       : daysOff <= AWAY_AFTER_DAYS ? HomeState.BACK : HomeState.AWAY;
 
-  // Parties mesurées dans un niveau du parcours actuel, regroupées par jour en un seul passage.
-  const byDay = new Map();
-  for (const g of profile.games) {
-    if (ladder.has(g.level) && isMeasured(g, ladder.level(g.level))) groupInto(byDay, dayKey(g.endedAt), g);
-  }
-  const onDay = date => byDay.get(dayKey(date)) ?? [];
-  // Niveaux terminés en jouant, par jour : un tel jour se fête d'une coche.
-  const completedByDay = new Map();
-  for (const h of profile.levelHistory) {
-    if (h.via === LevelVia.PLAY) groupInto(completedByDay, dayKey(h.completedAt), h.level);
-  }
-  const completedOn = date => completedByDay.get(dayKey(date)) ?? [];
-  /**
-   * Gain d'une journée dans un seul niveau, en formes acquises : on n'additionne jamais
-   * les gains de niveaux différents. Un niveau terminé ce jour-là compte comme une coche, pas comme un gain.
-   */
-  const dayGain = (date, levelNumber) => {
-    if (levelNumber === undefined || completedOn(date).includes(levelNumber)) return 0;
-    return Math.max(0, sumGain(onDay(date).filter(g => g.level === levelNumber)));
-  };
+  const todayKey = dayKey(now);
+  const yesterdayKey = dayKey(addDays(now, -1));
+  // Parties d'aujourd'hui et d'hier, mesurées dans un niveau du parcours actuel.
+  const measuredOn = key => profile.games.filter(g =>
+    dayKey(g.endedAt) === key && ladder.has(g.level) && isMeasured(g, ladder.level(g.level)));
+  const today = measuredOn(todayKey);
+  // Niveaux terminés aujourd'hui en jouant, dans l'ordre.
+  const completedToday = profile.levelHistory
+    .filter(h => h.via === LevelVia.PLAY && dayKey(h.completedAt) === todayKey).map(h => h.level);
 
   // Formes réellement acquises en jouant : les niveaux validés par le test de placement n'en apportent aucune.
   const formsMastered = ladder.keys.filter(key => profile.practice.get(key).isMastered).length;
-  const today = onDay(now);
-  const todayGain = dayGain(now, level.number);
+  // Gain du jour dans le seul niveau en cours : on n'additionne jamais les gains de niveaux différents,
+  // et un niveau terminé aujourd'hui est annoncé comme tel, pas comme un gain.
+  const todayGain = completedToday.includes(level.number)
+    ? 0 : Math.max(0, sumGain(today.filter(g => g.level === level.number)));
 
   return Object.freeze({
     state,
-    /** Le joueur revient après au moins un jour sans jouer : la série est rompue, on montre le record. */
+    /** Le joueur revient après au moins un jour sans jouer. */
     isReturning: state === HomeState.BACK || state === HomeState.AWAY,
     streak: profile.calendar.currentStreak(now),
-    bestStreak: profile.calendar.longestStreak(),
     level,
     /** Formes acquises du niveau en cours (sur `level.combos.length`). */
     mastered,
@@ -103,20 +87,11 @@ function homeOverview(profile, ladder, now) {
     /** Formes gagnées aujourd'hui dans le niveau en cours (un niveau terminé aujourd'hui est dans `completedToday`, pas ici). */
     todayGain,
     /** Numéros des niveaux terminés aujourd'hui en jouant, dans l'ordre. */
-    completedToday: Object.freeze(completedOn(now)),
+    completedToday: Object.freeze(completedToday),
     formsMastered,
     formsToday: Math.max(0, sumGain(today)),
-    formsYesterday: Math.max(0, sumGain(onDay(addDays(now, -1)))),
+    formsYesterday: Math.max(0, sumGain(measuredOn(yesterdayKey))),
     ...levelPace(profile.games, level, mastered),
-    /**
-     * `completed` : niveaux terminés ce jour-là ; `gain` : formes gagnées dans le niveau joué en dernier ce jour-là
-     * (aujourd'hui : le niveau en cours, comme le titre de l'accueil).
-     */
-    week: Object.freeze(profile.calendar.week(now).map(d => Object.freeze({
-      ...d,
-      completed: Object.freeze(completedOn(d.date)),
-      gain: d.isToday ? todayGain : dayGain(d.date, onDay(d.date).at(-1)?.level),
-    }))),
     /** Nombre de niveaux terminés, niveau en cours compris s'il l'est déjà. */
     levelsCompleted: profile.levelHistory.length,
     /** Après le dernier niveau, le joueur y reste pour réviser : il est terminé tout en restant en cours. */

@@ -3,7 +3,7 @@
 
 const {
   GameSession, DEFAULT_GAME_LENGTH, QuestionPicker, PlacementTest, binarySearchPlacement, LevelLadder,
-  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, levelPace, LevelVia, DomainError,
+  AchievementFacts, evaluateAchievements, newlyUnlocked, earnedSteps, totalSteps, GameSummary, rateGame, homeOverview, LevelVia, DomainError,
 } = Conjugo;
 
 /**
@@ -80,7 +80,7 @@ function createUseCases({
       return currentLevel();
     },
 
-    /** Niveau en cours, gain du jour, rythme, semaine et parcours : pour l'accueil et l'écran Progrès. */
+    /** Niveau en cours, gain du jour, rythme et parcours : pour l'accueil et l'écran Progrès. */
     getHomeOverview() {
       return homeOverview(profile, ladder, today());
     },
@@ -132,7 +132,6 @@ function createUseCases({
       if (levelCompleted) profile.completeLevel(now, ladder.count);
       achievementsCache = null;
       profiles.save(profile);
-      const pace = levelPace(profile.games, level, after.mastered);
       return new GameSummary({
         record,
         verdict: rateGame(record, earlierGames),
@@ -144,8 +143,6 @@ function createUseCases({
         levelCompleted,
         levelsPlayed: profile.levelHistory.filter(h => h.via === LevelVia.PLAY).length,
         nextLevel: profile.level,
-        gamesLeft: pace.gamesLeft,
-        nextGameForms: pace.nextGameForms,
       });
     },
 

@@ -17,13 +17,6 @@ function addDays(date, days) {
   return d;
 }
 
-/** Lundi de la semaine de `date`, à minuit. */
-function startOfWeek(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return addDays(d, -((d.getDay() + 6) % 7));
-}
-
 function fromKey(key) {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -76,18 +69,7 @@ class ActivityCalendar {
     }
     return best;
   }
-
-  /** Les 7 jours de la semaine en cours, du lundi au dimanche. */
-  week(today) {
-    const todayKey = dayKey(today);
-    const monday = startOfWeek(today);
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = addDays(monday, i);
-      const key = dayKey(date);
-      return Object.freeze({ date, played: this.#days.has(key), isToday: key === todayKey, isFuture: key > todayKey });
-    });
-  }
 }
 
-Object.assign(Conjugo, { dayKey, addDays, startOfWeek, daysBetween, ActivityCalendar });
+Object.assign(Conjugo, { dayKey, addDays, daysBetween, ActivityCalendar });
 })(globalThis.Conjugo ??= {});
