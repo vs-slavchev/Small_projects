@@ -120,6 +120,11 @@ function createUseCases({
       const inLevel = new Set(level.combos.map(c => c.key));
       const newlyMastered = session.answers.map(a => a.question)
         .filter(q => inLevel.has(q.key) && !profile.practice.get(q.key).isMastered && projected.get(q.key).isMastered);
+      // Formes du niveau qui étaient acquises et ne le sont plus après cette partie (à revoir).
+      const newlyLost = session.answers.map(a => a.question)
+        .filter(q => inLevel.has(q.key) && profile.practice.get(q.key).isMastered && !projected.get(q.key).isMastered);
+      // Formes du niveau déjà travaillées mais pas encore acquises (« en chemin »).
+      const inProgress = level.combos.filter(c => { const s = projected.get(c.key); return s.seen > 0 && !s.isMastered; }).length;
       const before = level.progress(profile.practice);
       const after = level.progress(projected);
       const record = session.finish(clock.now(), { level: level.number, masteredBefore: before.mastered, masteredAfter: after.mastered });
@@ -140,6 +145,8 @@ function createUseCases({
         streak: profile.calendar.currentStreak(now),
         level,
         newlyMastered,
+        newlyLost,
+        inProgress,
         levelCompleted,
         levelsPlayed: profile.levelHistory.filter(h => h.via === LevelVia.PLAY).length,
         nextLevel: profile.level,

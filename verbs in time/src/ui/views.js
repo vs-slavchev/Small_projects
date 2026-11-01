@@ -285,8 +285,18 @@ const placementResult = {
 };
 
 /** Succès débloqués pendant la partie, en pastilles. */
-const unlockedChips = list => (list.length
-  ? `<div class="re-unlocked">${list.map(p => `<span>${p.emoji} ${esc(unlockedLabel(p))}</span>`).join('')}</div>`
+/**
+ * Succès débloqués : une seule carte, au bilan et à l'écran de niveau terminé (version nuit).
+ * L'emoji est posé sur la couleur du palier ; on dit ce qui est récompensé.
+ */
+const unlockedCard = (list, { dark = false } = {}) => (list.length
+  ? `<div class="unlocked${dark ? ' dark' : ''}">
+      <span class="unlocked-title">${plural(list.length, 'Succès débloqué', 'Succès débloqués')}</span>
+      ${list.map(p => `<div class="unlocked-row">
+        <span class="unlocked-em tier-${p.isSingleStep ? 3 : p.tier}" aria-hidden="true">${p.emoji}</span>
+        <span class="unlocked-text"><b>${esc(unlockedLabel(p))}</b><span>${esc(p.description)}</span></span>
+      </div>`).join('')}
+    </div>`
   : '');
 
 const NUMBER_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
@@ -306,7 +316,7 @@ const levelUp = {
       number: level.number, full: true, title,
       text: `De <i>${esc(from)}</i> à <i>${esc(to)}</i>.<br>Et ${count}&nbsp;!`,
       button: next > level.number ? `Jouer le niveau ${next}` : 'Rejouer',
-      extra: unlockedChips(unlocked),
+      extra: unlockedCard(unlocked, { dark: true }),
       home: true,
     });
   },
@@ -674,49 +684,73 @@ const feedback = {
 
 /* ---------- Bilan ---------- */
 
+/**
+ * Barre du niveau au bilan : acquises avant la partie, gain de la partie (ambre), formes en chemin (pointillés ambre),
+ * formes à revoir (pointillés rouges).
+ */
+function resultsBar({ mastered, total, gain, inProgress, lost }) {
+  const w = n => percentOf(n, total);
+  const gained = Math.max(0, gain);
+  const parts = [
+    [mastered - gained, 'done'], [gained, 'today'], [lost, 'lost'], [inProgress, 'way'],
+  ].filter(([n]) => n > 0).map(([n, cls]) => `<div class="rb-${cls}" style="width:${w(n)}%"></div>`).join('');
+  return `<div class="results-bar" role="img" aria-label="${masteredText(mastered, total)}">${parts}</div>`;
+}
+
 const results = {
   screen: 'results',
   render({ context }) {
     const s = context.summary;
     const { record, level } = s;
-    const { masteredBefore, masteredAfter, masteredGain: gain } = record;
+    const { masteredAfter: after, masteredGain: gain } = record;
     const total = level.combos.length;
-    const hero = gain > 0
-      ? `<span class="re-hero">+${gain}</span>`
-      : `<span class="re-hero">${masteredAfter}<small>/${total}</small></span>`;
-    const sub = gain > 0
-      ? `${plural(gain, 'forme')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`
-      : `${plural(masteredAfter, 'forme acquise', 'formes acquises')} du niveau. ${VERDICT_TEXT[s.verdict]}`;
+    const lost = s.newlyLost;
     const dots = record.answers.map(a => `<i class="${a.correct ? 'ok' : 'ko'}"></i>`).join('');
-    const mastered = s.newlyMastered;
-    const masteredRow = mastered.length
-      ? `<div class="re-sep"></div>
-        <div class="re-new">
-          <span class="re-star">${ICON.star}</span>
-          <span><small>${mastered.length > 1 ? 'Nouvelles formes maîtrisées' : 'Nouvelle forme maîtrisée'}</small>
-          <b>${mastered.map(q => esc(q.expected.display)).join(', ')}</b></span>
-        </div>`
-      : '';
-    const unlocked = unlockedChips(s.unlocked);
+    const scoreCard = `<div class="re-card">
+      <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
+        <span class="re-dots" role="img" aria-label="${record.answers.map(a => (a.correct ? 'juste' : 'fausse')).join(', ')}">${dots}</span>
+      </div>
+    </div>`;
+    const unlocked = unlockedCard(s.unlocked);
+    let head, body;
+    if (record.correctCount === 0) {
+      // Aucune réponse juste : chaque forme a été recopiée, et c'est déjà un progrès.
+      head = `<span class="re-hero">${record.total}</span><span class="re-sub strong">${plural(record.total, 'forme recopiée', 'formes recopiées')}</span>`;
+      const tile = (value, label, dark = false) => `<div class="re-tile${dark ? ' dark' : ''}"><b>${value}</b><span>${label}</span></div>`;
+      body = `<div class="re-card">
+          <h2 class="re-encourage">Recopier, c'est déjà progresser.</h2>
+          <p class="re-encourage-text">Chaque forme recopiée, vous l'avez écrite juste une première fois. C'est comme ça qu'elle commence à se fixer.</p>
+        </div>
+        <div class="re-tiles">${tile(`${Math.max(1, Math.round(record.durationMs / 60_000))} min`, 'de pratique')}${tile(`Jour ${s.streak}`, s.streak > 1 ? 'série en cours' : 'série lancée', true)}</div>`;
+    } else {
+      const inProgress = gain > 0 ? 0 : s.inProgress;
+      head = gain > 0
+        ? `<span class="re-hero">+${gain}</span><span class="re-sub">${plural(gain, 'forme acquise', 'formes acquises')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}</span>`
+        : `<span class="re-hero">${after}<small>/${total}</small></span><span class="re-sub">${plural(after, 'forme acquise', 'formes acquises')}${lost.length
+          ? `. ${lost.length > 1 ? `${lost.length} formes sont à revoir.` : 'Une forme est à revoir.'}` : ', rien de perdu.'}</span>`;
+      const legend = gain > 0
+        ? `<b>${after}</b> / ${formsText(total)}`
+        : [`<b>${after}</b> ${plural(after, 'acquise', 'acquises')}`, inProgress && `<b>${inProgress}</b> en chemin`, lost.length && `<b class="lost">${lost.length}</b> à revoir`].filter(Boolean).join(' · ');
+      const lostCard = lost.length ? `<div class="re-card re-lost">
+          <span class="re-card-title">À revoir</span>
+          ${lost.map(q => `<div class="re-lost-row"><span class="re-redo" aria-hidden="true">↻</span><span><b>${esc(q.expected.display)}</b><span>Une bonne réponse peut suffire à la récupérer.</span></span></div>`).join('')}
+        </div>` : '';
+      body = `<div class="re-progress">
+          ${resultsBar({ mastered: after, total, gain, inProgress, lost: lost.length })}
+          <div class="re-legend">${legend}</div>
+        </div>
+        ${scoreCard}
+        ${lostCard}`;
+    }
     return `<div class="screen end">
       <div class="top-safe"></div>
       <div class="end-body">
         <div class="center-col">
           <div class="re-head">
             <span class="re-level">Niveau ${level.number} · ${esc(level.title)}</span>
-            ${hero}
-            <span class="re-sub">${sub}</span>
+            ${head}
           </div>
-          <div class="re-progress">
-            ${levelBar({ mastered: masteredAfter, total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${total}` })}
-            ${gain > 0 ? `<div class="re-legend"><b>${masteredAfter}</b> / ${formsText(total)}</div>` : ''}
-          </div>
-          <div class="re-card">
-            <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
-              <span class="re-dots" role="img" aria-label="${record.answers.map(a => (a.correct ? 'juste' : 'fausse')).join(', ')}">${dots}</span>
-            </div>
-            ${masteredRow}
-          </div>
+          ${body}
           ${unlocked}
         </div>
         <div class="end-actions">

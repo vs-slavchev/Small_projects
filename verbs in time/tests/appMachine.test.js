@@ -119,9 +119,23 @@ test('déroulé complet d’une partie jusqu’au bilan', () => {
   assert.equal(summary.newlyMastered.length, 3, 'chaque forme juste du niveau est acquise');
   assert.deepEqual([summary.record.masteredBefore, summary.record.masteredAfter, summary.level.combos.length], [0, 3, 12], '3 formes sur 12');
   assert.equal(summary.record.masteredGain, 3);
+  assert.equal(summary.newlyLost.length, 0);
+  assert.equal(summary.inProgress, 2, 'les deux formes ratées sont en chemin');
   const saved = env.profiles.load();
   assert.equal(saved.gameCount, 1, 'partie archivée');
   assert.deepEqual([saved.games[0].level, saved.games[0].masteredBefore, saved.games[0].masteredAfter], [1, 0, 3]);
+});
+
+test('bilan : formes acquises perdues après une partie ratée', () => {
+  const env = setup();
+  playGame(env);
+  env.machine.send(AppEvent.NAVIGATE, { to: Destination.HOME });
+  playGame(env, Array(DEFAULT_GAME_LENGTH).fill(false));
+  const { summary } = env.machine.context;
+  const { masteredBefore, masteredAfter } = summary.record;
+  assert.ok(masteredBefore > masteredAfter, 'la partie ratée fait perdre des formes');
+  assert.equal(summary.newlyLost.length, masteredBefore - masteredAfter, 'chaque forme perdue est nommée');
+  assert.ok(summary.newlyLost.every(q => summary.level.combos.some(c => c.key === q.key)));
 });
 
 test('niveau terminé : écran de fête, puis le niveau suivant', () => {
