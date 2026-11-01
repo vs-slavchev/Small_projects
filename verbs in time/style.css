@@ -72,7 +72,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
 .screen.enter { animation: screenIn .32s cubic-bezier(.2,.8,.2,1) both; }
 .top-safe { height: var(--safe-top); flex: none; }
-.grow { flex: 1; }
 
 /* Boutons « autocollants » : ombre portée pleine qui s'écrase à l'appui */
 .press { border: none; transition: transform .08s ease, box-shadow .08s ease, filter .15s; }
@@ -487,8 +486,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .badge .em { position: relative; overflow: hidden; width: 56px; height: 56px; border-radius: var(--radius-lg); display: grid; place-items: center; font-size: var(--fs-title); box-sizing: border-box; }
 /* Pas obtenu : un cadre pointillé vide, l'emoji en gris. */
 .tier-0 { border: 2px dashed var(--faint); background: transparent; }
-.badge.off .em { filter: grayscale(1); }
-.badge.off .em { opacity: .7; }
+.badge.off .em { filter: grayscale(1); opacity: .7; }
 /* Nom sur deux lignes réservées : les traits s'alignent d'une carte à l'autre. */
 .badge .n { height: 2.5em; display: flex; align-items: center; font-size: var(--fs-micro); font-weight: 800; text-align: center; line-height: 1.25; }
 .badge.off .n { color: var(--ink-3); font-weight: 700; }

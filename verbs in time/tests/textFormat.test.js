@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Conjugo } from './game.js';
 
-const { diffChars, similarity, durationText, accentMarks } = Conjugo;
+const { diffChars, similarity, durationText, minutesText, accentMarks } = Conjugo;
 
 test('durée en toutes lettres : secondes, puis minutes et secondes', () => {
   assert.equal(durationText(45_000), '45 secondes');
@@ -36,4 +36,9 @@ test('lettres à accentuer : positions dans la forme juste et dans la réponse',
   assert.deepEqual(accentMarks("J'ai prefere", 'j’ai préféré'), { target: [7, 9, 11], given: [7, 9, 11] });
   // Autre faute que les accents : rien à souligner.
   assert.deepEqual(accentMarks('vous avez eu', 'vous avez été'), { target: [], given: [] });
+});
+
+test('minutes arrondies, au moins une', () => {
+  assert.equal(minutesText(4_000), '1 min');
+  assert.equal(minutesText(18 * 60_000 + 20_000), '18 min');
 });

@@ -14,12 +14,6 @@ const plural = (n, singular, pluralForm = `${singular}s`) => (Math.abs(n) > 1 ? 
 /** Part entière en pourcentage, pour la largeur d'une barre : 2 sur 6 → 33. */
 const percentOf = (part, total) => Math.round((part / total) * 100);
 
-/** 41 000 ms → « 0:41 » */
-function formatClock(ms) {
-  const s = Math.floor(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
 /** 9 000 ms → « 9 s », 12 340 ms → « 12,3 s » */
 const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
 
@@ -60,6 +54,9 @@ function diffChars(given, expected) {
 const similarity = (given, expected) => diffChars(given, expected).filter(p => p.type === 'same').reduce((n, p) => n + p.text.length, 0);
 
 /** Taille de police pour qu'un texte tienne sur une ligne de l'écran. */
+/** Durée arrondie à la minute, jamais moins d'une : « 18 min ». */
+const minutesText = ms => `${Math.max(1, Math.round(ms / 60_000))} min`;
+
 /**
  * Lettres à accentuer : quand une réponse n'est fausse que par ses accents, les positions où elle diffère de la forme juste.
  * La réponse peut omettre le sujet : elle est alignée sur la fin de la forme. Casse et apostrophes ne comptent pas.
@@ -108,5 +105,5 @@ function achievementStatus(p) {
 /** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
-Object.assign(Conjugo, { escapeHtml, plural, percentOf, formatClock, formatSeconds, durationText, diffChars, similarity, accentMarks, fitFontSize, achievementStatus, unlockedLabel });
+Object.assign(Conjugo, { escapeHtml, plural, percentOf, formatSeconds, durationText, minutesText, diffChars, similarity, accentMarks, fitFontSize, achievementStatus, unlockedLabel });
 })(globalThis.Conjugo ??= {});

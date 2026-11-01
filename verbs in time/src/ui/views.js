@@ -10,7 +10,7 @@
 
 const {
   AppState, AppEvent, Destination, HomeState, PROGRESS_UNLOCK_GAMES, frenchList,
-  escapeHtml: esc, plural, percentOf, formatSeconds, durationText, fitFontSize, diffChars, similarity, accentMarks,
+  escapeHtml: esc, plural, percentOf, formatSeconds, durationText, minutesText, fitFontSize, diffChars, similarity, accentMarks,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
@@ -90,6 +90,9 @@ const DEMO_QUESTIONS = Object.freeze([
 ]);
 const DEMO_TICK_MS = 130;
 const DEMO_PHASES = Object.freeze({ idle: 6, hold: 5, press: 3, ok: 14 });
+/** Durée de chaque question de la démo, en pas, et du cycle complet. */
+const DEMO_SPANS = DEMO_QUESTIONS.map(q => DEMO_PHASES.idle + q.answer.length + DEMO_PHASES.hold + DEMO_PHASES.press + DEMO_PHASES.ok);
+const DEMO_CYCLE = DEMO_SPANS.reduce((a, b) => a + b, 0);
 
 /** Une case par mot attendu, à la largeur du mot : quand la réponse arrive, rien ne se décale. */
 const demoSentence = ({ marker, subject, answer }, filled) => `${esc(marker)} <span class="demo-subj">${esc(subject)}</span> <span class="demo-slots">${
@@ -97,11 +100,10 @@ const demoSentence = ({ marker, subject, answer }, filled) => `${esc(marker)} <s
 
 /** Image de la démo à l'instant `tick` : question affichée, lettres tapées, bouton enfoncé, réponse validée. */
 function demoFrame(tick) {
-  const { idle, hold, press, ok } = DEMO_PHASES;
-  const spans = DEMO_QUESTIONS.map(q => idle + q.answer.length + hold + press + ok);
-  let t = tick % spans.reduce((a, b) => a + b, 0);
+  const { idle, hold, press } = DEMO_PHASES;
+  let t = tick % DEMO_CYCLE;
   let index = 0;
-  while (t >= spans[index]) t -= spans[index++];
+  while (t >= DEMO_SPANS[index]) t -= DEMO_SPANS[index++];
   const q = DEMO_QUESTIONS[index];
   const typed = q.answer.slice(0, Math.max(0, Math.min(q.answer.length, t - idle + 1)));
   const afterTyping = t - idle - q.answer.length - hold;
@@ -191,7 +193,7 @@ function answerWordCount(expected) {
  * Le français seulement : aucune traduction.
  */
 function questionBlock({ verb, tense, person, marker, expected }, extraClass = '') {
-  const subject = marker ? esc(person.subject) : esc(person.subject.charAt(0).toUpperCase() + person.subject.slice(1));
+  const subject = esc(marker ? person.subject : capitalize(person.subject));
   const blanks = '<span class="q-blank"></span>'.repeat(answerWordCount(expected));
   return `<div class="q-block${extraClass}">
     <div class="q-head"><span class="chip tense pill">${esc(tense.label)}</span><span class="q-verb">${esc(verb.label)}</span></div>
@@ -297,7 +299,7 @@ const unlockedCard = (list, { dark = false } = {}) => (list.length
   ? `<div class="unlocked${dark ? ' dark' : ''}">
       <span class="unlocked-title">${plural(list.length, 'Succès débloqué', 'Succès débloqués')}</span>
       ${list.map(p => `<div class="unlocked-row">
-        <span class="unlocked-em tier-${tierOf(p) || 3}" aria-hidden="true">${p.emoji}</span>
+        <span class="unlocked-em tier-${tierOf(p)}" aria-hidden="true">${p.emoji}</span>
         <span class="unlocked-text"><b>${esc(unlockedLabel(p))}</b><span>${esc(p.description)}</span></span>
       </div>`).join('')}
     </div>`
@@ -329,11 +331,9 @@ const levelUp = {
 /* ---------- Accueil ---------- */
 
 const ICON = Object.freeze({
-  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 4.5v15l12-7.5z"/></svg>',
   chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
   medal: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M9 13.5L8 21l4-2 4 2-1-7.5"/></svg>',
   check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
-  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
   soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
   soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   flame: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg>',
@@ -491,12 +491,8 @@ function learnedCard(home) {
   </div>`;
 }
 
-/** Bouton de partie : libellé et précision éventuelle (bilan). */
-function playButton(label, sub) {
-  return `<button class="play-btn press" data-event="${AppEvent.START}">
-    <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
-  </button>`;
-}
+/** Bouton de partie (bilan). */
+const playButton = label => `<button class="play-btn press" data-event="${AppEvent.START}"><span class="pb-text"><b>${label}</b></span></button>`;
 
 const home = {
   screen: 'home',
@@ -560,16 +556,11 @@ function sparks(count = 10, radius = 34) {
   }).join('');
 }
 
-/**
- * Réponse comparée lettre à lettre à la forme juste la plus proche (avec ou sans sujet) :
- * lettres en trop barrées dans la réponse, lettres manquantes soulignées dans la forme juste.
- */
-function answerDiff(given, expected) {
+/** Réponse comparée lettre à lettre à la forme juste la plus proche (avec ou sans sujet) : lettres en trop barrées. */
+function givenDiff(given, expected) {
   const target = expected.accepted.reduce((best, form) => (similarity(given, form) > similarity(given, best) ? form : best));
-  const parts = diffChars(given, target);
-  const show = (skip, cls) => parts.filter(p => p.type !== skip)
-    .map(p => (p.type === 'same' ? esc(p.text) : `<span class="${cls}">${esc(p.text)}</span>`)).join('');
-  return { given: show('missing', 'df-extra'), target: show('extra', 'df-missing') };
+  return diffChars(given, target).filter(p => p.type !== 'missing')
+    .map(p => (p.type === 'same' ? esc(p.text) : `<span class="df-extra">${esc(p.text)}</span>`)).join('');
 }
 
 /** Après une erreur : recopier la bonne forme pour pouvoir continuer. Une fois recopiée, le champ devient une ligne verte. */
@@ -624,8 +615,11 @@ const feedback = {
     let given = '';
     if (answer.accentsOnly) {
       // La forme affichée peut porter un accord facultatif (« allé(e) ») : on aligne sur l'écriture juste la plus proche.
-      const match = [expected.display, ...expected.forms]
-        .map(form => ({ form, marks: accentMarks(answer.given, form) })).find(m => m.marks.target.length);
+      let match = null;
+      for (const form of [expected.display, ...expected.forms]) {
+        const marks = accentMarks(answer.given, form);
+        if (marks.target.length) { match = { form, marks }; break; }
+      }
       if (match) {
         big = underlineAt(expected.display.startsWith(match.form) ? expected.display : match.form, match.marks.target);
         given = underlineAt(answer.given.trim(), match.marks.given);
@@ -633,7 +627,7 @@ const feedback = {
         given = esc(answer.given);
       }
     } else if (!answer.correct) {
-      given = answerDiff(answer.given, expected).given;
+      given = givenDiff(answer.given, expected);
     }
     const diagnosis = answer.diagnosis ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
     const alsoLike = verb.alsoLike.length
@@ -721,7 +715,7 @@ const results = {
           <h2 class="re-encourage">Recopier, c'est déjà progresser.</h2>
           <p class="re-encourage-text">Chaque forme recopiée, vous l'avez écrite juste une première fois. C'est comme ça qu'elle commence à se fixer.</p>
         </div>
-        <div class="re-tiles">${tile(`${Math.max(1, Math.round(record.durationMs / 60_000))} min`, 'de pratique')}${tile(`Jour ${s.streak}`, s.streak > 1 ? 'série en cours' : 'série lancée', true)}</div>`;
+        <div class="re-tiles">${tile(minutesText(record.durationMs), 'de pratique')}${tile(`Jour ${s.streak}`, s.streak > 1 ? 'série en cours' : 'série lancée', true)}</div>`;
     } else {
       const inProgress = gain > 0 ? 0 : s.inProgress;
       head = gain > 0
@@ -754,7 +748,7 @@ const results = {
           ${unlocked}
         </div>
         <div class="end-actions">
-          ${playButton('Encore une', '')}
+          ${playButton('Encore une')}
           <button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>
         </div>
       </div>
@@ -790,7 +784,6 @@ const journey = {
           <p>Formes acquises, temps de pratique, niveaux maîtrisés : tout se remplit au fil des parties.</p>
         </div>`;
     } else {
-      const minutes = Math.max(1, Math.round(h.practiceMs / 60_000));
       const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
           <span class="jr-check">${ICON.check}</span>
           <span class="jr-text"><b>${esc(entry.level.title)}</b><span>${esc(capitalize(entry.level.tense.label))} · ${esc(entry.level.label)}</span></span>
@@ -798,7 +791,7 @@ const journey = {
         </div>`).join('');
       body = `<div class="jr-tiles">
           <div class="jr-tile"><b>${h.formsMastered}</b><span>${plural(h.formsMastered, 'forme acquise', 'formes acquises')}</span></div>
-          <div class="jr-tile"><b>${minutes} min</b><span>de pratique</span></div>
+          <div class="jr-tile"><b>${minutesText(h.practiceMs)}</b><span>de pratique</span></div>
         </div>
         <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
         ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}`;
