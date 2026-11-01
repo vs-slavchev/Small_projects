@@ -59,35 +59,52 @@ const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
 
 /* ---------- Premier lancement ---------- */
 
-/** Aperçu animé du jeu : « parlons » s'écrit lettre à lettre puis s'efface, en boucle. */
-const DEMO_WORD = 'parlons';
+/**
+ * Aperçu animé du jeu : la forme se tape, « Valider » s'enfonce, la réponse prend la place des traits
+ * dans la phrase, puis la question suivante. En boucle.
+ */
+const DEMO_QUESTIONS = Object.freeze([
+  { tense: 'présent', verb: 'parler', marker: 'Tous les jours,', subject: 'nous', answer: 'parlons' },
+  { tense: 'passé composé', verb: 'finir', marker: 'Hier,', subject: 'vous', answer: 'avez fini' },
+  { tense: 'futur simple', verb: 'être', marker: 'L’année prochaine,', subject: 'je', answer: 'serai' },
+]);
 const DEMO_TICK_MS = 130;
-const demoFrames = (() => {
-  const frames = [['', 6]];
-  for (let i = 1; i <= DEMO_WORD.length; i++) frames.push([DEMO_WORD.slice(0, i), 1]);
-  frames.push([DEMO_WORD, 14]);
-  for (let i = DEMO_WORD.length - 1; i >= 0; i--) frames.push([DEMO_WORD.slice(0, i), 1]);
-  return frames;
-})();
+const DEMO_PHASES = Object.freeze({ idle: 6, hold: 5, press: 3, ok: 14 });
+
+/** Une case par mot attendu, à la largeur du mot : quand la réponse arrive, rien ne se décale. */
+const demoSentence = ({ marker, subject, answer }, filled) => `${esc(marker)} <span class="demo-subj">${esc(subject)}</span> <span class="demo-slots">${
+  answer.split(' ').map(w => `<span class="demo-slot" style="width:${Math.max(2.4, w.length * 0.58 + 0.4).toFixed(2)}em">${filled ? esc(w) : ''}</span>`).join('')}</span>.`;
+
+/** Image de la démo à l'instant `tick` : question affichée, lettres tapées, bouton enfoncé, réponse validée. */
+function demoFrame(tick) {
+  const { idle, hold, press, ok } = DEMO_PHASES;
+  const spans = DEMO_QUESTIONS.map(q => idle + q.answer.length + hold + press + ok);
+  let t = tick % spans.reduce((a, b) => a + b, 0);
+  let index = 0;
+  while (t >= spans[index]) t -= spans[index++];
+  const q = DEMO_QUESTIONS[index];
+  const typed = q.answer.slice(0, Math.max(0, Math.min(q.answer.length, t - idle + 1)));
+  const afterTyping = t - idle - q.answer.length - hold;
+  return { index, typed, pressed: afterTyping >= 0 && afterTyping < press, ok: afterTyping >= press };
+}
 
 const onboarding = {
   screen: 'onboarding',
   render() {
+    const q = DEMO_QUESTIONS[0];
     return `<div class="screen onb">
       <div class="top-safe"></div>
       <div class="onb-body">
         <div class="logo">verbes <span>&amp;</span> temps</div>
         <div class="center-col">
-          <div class="demo" role="img" aria-label="Aperçu du jeu : on tape la forme conjuguée d’un verbe">
+          <div class="demo" id="demo" role="img" aria-label="Aperçu du jeu : on tape la forme conjuguée qui complète la phrase">
             <div class="demo-card" aria-hidden="true">
-              <span class="chip tense pill">présent</span>
-              <span class="person">nous …</span>
-              <span class="demo-word">parler</span>
-              <span class="en">to speak</span>
+              <div class="demo-head"><span class="chip tense pill" id="demo-tense">${q.tense}</span><span class="demo-verb" id="demo-verb">${q.verb}</span></div>
+              <p class="demo-sentence" id="demo-sentence">${demoSentence(q, false)}</p>
             </div>
             <div class="demo-row" aria-hidden="true">
-              <div class="demo-input"><span class="demo-subject">nous&nbsp;</span><span id="demo-typed"></span><span class="caret"></span></div>
-              <span class="demo-submit">Valider</span>
+              <div class="demo-input"><span class="demo-subject" id="demo-subject">${q.subject}&nbsp;</span><span id="demo-typed"></span><span class="caret"></span></div>
+              <span class="demo-submit" id="demo-submit">Valider</span>
             </div>
           </div>
           <div class="onb-copy">
@@ -103,16 +120,36 @@ const onboarding = {
     </div>`;
   },
   mounted(root) {
-    const el = root.querySelector('#demo-typed');
-    if (!el) return undefined;
-    let frame = 0;
-    let hold = 0;
-    const id = setInterval(() => {
-      if (++hold < demoFrames[frame][1]) return;
-      frame = (frame + 1) % demoFrames.length;
-      hold = 0;
-      el.textContent = demoFrames[frame][0];
-    }, DEMO_TICK_MS);
+    const demo = root.querySelector('#demo');
+    if (!demo) return undefined;
+    const el = id => root.querySelector(`#demo-${id}`);
+    let shown = -1;
+    let wasOk = null;
+    const paint = tick => {
+      const { index, typed, pressed, ok } = demoFrame(tick);
+      const q = DEMO_QUESTIONS[index];
+      if (index !== shown || ok !== wasOk) {
+        el('tense').textContent = q.tense;
+        el('verb').textContent = q.verb;
+        el('subject').textContent = `${q.subject} `;
+        el('sentence').innerHTML = demoSentence(q, ok);
+        el('submit').textContent = ok ? '✓ Juste' : 'Valider';
+        demo.classList.toggle('ok', ok);
+        shown = index;
+        wasOk = ok;
+      }
+      el('typed').textContent = typed;
+      el('submit').classList.toggle('pressed', pressed);
+    };
+    // Mouvement réduit : la première question, déjà réussie, sans animation.
+    if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      const { idle, hold, press } = DEMO_PHASES;
+      paint(idle + DEMO_QUESTIONS[0].answer.length + hold + press);
+      return undefined;
+    }
+    let tick = 0;
+    paint(tick);
+    const id = setInterval(() => paint(++tick), DEMO_TICK_MS);
     return () => clearInterval(id);
   },
 };
