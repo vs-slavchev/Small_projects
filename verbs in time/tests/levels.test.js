@@ -177,10 +177,33 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   assert.equal(home.gamesLeft, 2, '2 formes restantes, 4/3 de forme par partie');
   assert.equal(home.nextGameForms, 1, '4/3 de forme par partie, arrondi');
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
-  assert.deepEqual(home.learnedToday, ['je finis'], 'la forme posée aujourd’hui, acquise maintenant, une seule fois');
+  assert.deepEqual(home.learnedToday, [], 'parties sans formes devenues acquises : rien à montrer');
   assert.equal(home.gamesPlayed, 3);
   assert.deepEqual(home.firstScores, [{ correct: 1, total: 1 }, { correct: 1, total: 1 }, { correct: 1, total: 1 }]);
   assert.equal(home.practiceMs, 3);
+});
+
+test('accueil : « Vous savez désormais dire » ne montre que les formes acquises par les parties du jour', () => {
+  const profile = profileWith({ mastered: 2 });
+  const level = ladder.level(6);
+  const [first, second] = level.combos;
+  const answer = { verb: level.verbs[0].infinitive, tense: level.tense.id, given: 'x', correct: true, timeMs: 1 };
+  // Hier : « je finis » devient acquise. Aujourd'hui : elle est revue, et « tu finis » devient acquise.
+  profile.recordGame(new GameRecord({ endedAt: day(17), durationMs: 1, maxCombo: 0, level: 6, masteredBefore: 0, masteredAfter: 1,
+    masteredKeys: [first.key], answers: [{ ...answer, person: 'je' }] }));
+  profile.recordGame(new GameRecord({ endedAt: day(18), durationMs: 1, maxCombo: 0, level: 6, masteredBefore: 1, masteredAfter: 2,
+    masteredKeys: [second.key], answers: [{ ...answer, person: 'je' }, { ...answer, person: 'tu' }] }));
+  const home = homeOverview(profile, ladder, day(18, 20));
+  assert.deepEqual(home.learnedToday, ['tu finis']);
+});
+
+test('partie archivée : les formes devenues acquises sont gardées, et une ancienne sauvegarde se relit sans elles', () => {
+  const answers = [{ verb: 'finir', tense: 'present', person: 'je', given: 'x', correct: true, timeMs: 1 }];
+  const record = new GameRecord({ endedAt: day(18), durationMs: 1, maxCombo: 0, answers, level: 6, masteredBefore: 0, masteredAfter: 1, masteredKeys: ['finir|present|0'] });
+  assert.deepEqual(GameRecord.fromSnapshot(record.toSnapshot()).masteredKeys, ['finir|present|0']);
+  const old = record.toSnapshot();
+  delete old.masteredKeys;
+  assert.deepEqual(GameRecord.fromSnapshot(old).masteredKeys, []);
 });
 
 test('accueil : après le dernier niveau, il est terminé sans réapparaître dans le parcours', () => {

@@ -19,9 +19,11 @@ class GameRecord {
    * @param {{ endedAt: Date, durationMs: number, maxCombo: number,
    *           answers: { verb: string, tense: string, person: string, given: string, correct: boolean,
    *                      timeMs: number }[],
-   *           level?: number | null, masteredBefore?: number | null, masteredAfter?: number | null }} props
+   *           level?: number | null, masteredBefore?: number | null, masteredAfter?: number | null,
+   *           masteredKeys?: string[] }} props
+   *   `masteredKeys` : clés des formes devenues acquises pendant la partie (vide pour les anciennes parties).
    */
-  constructor({ endedAt, durationMs, maxCombo, answers, level = null, masteredBefore = null, masteredAfter = null }) {
+  constructor({ endedAt, durationMs, maxCombo, answers, level = null, masteredBefore = null, masteredAfter = null, masteredKeys = [] }) {
     const date = new Date(endedAt);
     if (Number.isNaN(date.getTime())) throw new DomainError('Date de fin de partie invalide.');
     if (!Array.isArray(answers) || !answers.length) throw new DomainError('Une partie terminée doit contenir des réponses.');
@@ -40,6 +42,7 @@ class GameRecord {
       });
     }));
     this.correctCount = this.answers.filter(a => a.correct).length;
+    this.masteredKeys = Object.freeze(Array.isArray(masteredKeys) ? masteredKeys.map(String) : []);
     this.level = Number.isInteger(level) && level >= 1 ? level : null;
     const before = nonNegativeInt(masteredBefore, null);
     const after = nonNegativeInt(masteredAfter, null);
@@ -79,6 +82,7 @@ class GameRecord {
       maxCombo: this.maxCombo,
       answers: this.answers.map(a => ({ ...a })),
       ...(this.level === null ? {} : { level: this.level, masteredBefore: this.masteredBefore, masteredAfter: this.masteredAfter }),
+      ...(this.masteredKeys.length ? { masteredKeys: [...this.masteredKeys] } : {}),
     };
   }
 

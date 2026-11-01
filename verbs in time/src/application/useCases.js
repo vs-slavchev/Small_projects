@@ -127,7 +127,9 @@ function createUseCases({
       const inProgress = level.combos.filter(c => { const s = projected.get(c.key); return s.seen > 0 && !s.isMastered; }).length;
       const before = level.progress(profile.practice);
       const after = level.progress(projected);
-      const record = session.finish(clock.now(), { level: level.number, masteredBefore: before.mastered, masteredAfter: after.mastered });
+      const record = session.finish(clock.now(), {
+        level: level.number, masteredBefore: before.mastered, masteredAfter: after.mastered, masteredKeys: newlyMastered.map(q => q.key),
+      });
       const missed = session.answers.filter(a => !a.correct).map(({ question, given }) => ({ question, given }));
       const earlierGames = profile.games;
       const achievementsBefore = achievements();

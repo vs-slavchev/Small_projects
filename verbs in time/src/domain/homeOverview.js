@@ -1,7 +1,7 @@
 (function (Conjugo) {
 'use strict';
 
-const { dayKey, addDays, daysBetween, LevelVia, Person, comboKey } = Conjugo;
+const { dayKey, addDays, daysBetween, LevelVia, Person, GameRecord } = Conjugo;
 
 /** Parties à jouer avant d'ouvrir les statistiques de l'onglet Progrès. */
 const PROGRESS_UNLOCK_GAMES = 3;
@@ -78,20 +78,12 @@ function homeOverview(profile, ladder, now) {
   const todayGain = completedToday.includes(level.number)
     ? 0 : Math.max(0, sumGain(today.filter(g => g.level === level.number)));
 
-  // Formes du niveau en cours posées aujourd'hui et acquises maintenant, dans l'ordre où elles ont été posées.
-  const learnedToday = [];
-  const seen = new Set();
-  for (const game of today.filter(g => g.level === level.number)) {
-    for (const a of game.answers) {
-      const person = Person.of(a.person);
-      if (!person || a.tense !== level.tense.id) continue;
-      const key = comboKey(a.verb, a.tense, person.index);
-      const verb = level.verbs.find(v => v.infinitive === a.verb);
-      if (!verb || seen.has(key) || !profile.practice.get(key).isMastered) continue;
-      seen.add(key);
-      learnedToday.push(verb.conjugate(level.tense, person).display);
-    }
-  }
+  // Formes du niveau en cours devenues acquises pendant les parties du jour, et toujours acquises (ordre du niveau).
+  const todayKeys = new Set(today.filter(g => g.level === level.number).flatMap(g => g.masteredKeys));
+  const learnedToday = level.combos
+    .filter(c => todayKeys.has(c.key) && profile.practice.get(c.key).isMastered)
+    .map(c => { const shown = today.flatMap(g => g.answers).find(a => GameRecord.practiceKeyOf(a) === c.key);
+      return c.verb.conjugate(c.tense, (shown && Person.of(shown.person)) || Person.SLOTS[c.slot][0]).display; });
 
   return Object.freeze({
     state,
