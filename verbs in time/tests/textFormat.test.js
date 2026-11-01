@@ -29,13 +29,16 @@ test('similarité : nombre de lettres communes dans l’ordre', () => {
 });
 
 test('lettres à accentuer : positions dans la forme juste et dans la réponse', () => {
-  assert.deepEqual(accentMarks('vous avez ete', 'vous avez été'), { target: [10, 12], given: [10, 12] });
+  const marks = (given, target) => { const { target: t, given: g } = accentMarks(given, target); return { target: t, given: g }; };
+  assert.deepEqual(marks('vous avez ete', 'vous avez été'), { target: [10, 12], given: [10, 12] });
   // Sujet omis : la réponse est alignée sur la fin de la forme.
-  assert.deepEqual(accentMarks('avez ete', 'vous avez été'), { target: [10, 12], given: [5, 7] });
+  assert.deepEqual(marks('avez ete', 'vous avez été'), { target: [10, 12], given: [5, 7] });
   // Casse et apostrophe ne comptent pas.
-  assert.deepEqual(accentMarks("J'ai prefere", 'j’ai préféré'), { target: [7, 9, 11], given: [7, 9, 11] });
+  assert.deepEqual(marks("J'ai prefere", 'j’ai préféré'), { target: [7, 9, 11], given: [7, 9, 11] });
+  // Espaces en trop ignorés : la réponse est alignée sans eux.
+  assert.deepEqual(accentMarks(' vous  avez ete ', 'vous avez été'), { target: [10, 12], given: [10, 12], givenText: 'vous avez ete' });
   // Autre faute que les accents : rien à souligner.
-  assert.deepEqual(accentMarks('vous avez eu', 'vous avez été'), { target: [], given: [] });
+  assert.deepEqual(marks('vous avez eu', 'vous avez été'), { target: [], given: [] });
 });
 
 test('minutes arrondies, au moins une', () => {

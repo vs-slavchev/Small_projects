@@ -622,14 +622,15 @@ const feedback = {
       }
       if (match) {
         big = underlineAt(expected.display.startsWith(match.form) ? expected.display : match.form, match.marks.target);
-        given = underlineAt(answer.given.trim(), match.marks.given);
+        given = underlineAt(match.marks.givenText, match.marks.given);
       } else {
         given = esc(answer.given);
       }
     } else if (!answer.correct) {
       given = givenDiff(answer.given, expected);
     }
-    const diagnosis = answer.diagnosis ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
+    // « Presque » : le verdict dit déjà « Attention aux accents », pas de second encadré.
+    const diagnosis = answer.diagnosis && !answer.accentsOnly ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
     const alsoLike = verb.alsoLike.length
       ? `<div class="also-like">Se conjugue comme lui : ${verb.alsoLike.map(esc).join(', ')}.</div>`
       : '';
@@ -682,14 +683,22 @@ const feedback = {
  * Barre du niveau au bilan : acquises avant la partie, gain de la partie (ambre), formes en chemin (pointillés ambre),
  * formes à revoir (pointillés rouges).
  */
-function resultsBar({ mastered, total, gain, inProgress, lost }) {
+function resultsBar({ mastered, total, gained = 0, inProgress = 0, lost = 0 }) {
   const w = n => percentOf(n, total);
-  const gained = Math.max(0, gain);
   const parts = [
     [mastered - gained, 'done'], [gained, 'today'], [lost, 'lost'], [inProgress, 'way'],
   ].filter(([n]) => n > 0).map(([n, cls]) => `<div class="rb-${cls}" style="width:${w(n)}%"></div>`).join('');
-  return `<div class="results-bar" role="img" aria-label="${masteredText(mastered, total)}">${parts}</div>`;
+  // Le libellé lu à voix haute décrit les mêmes segments que la barre.
+  const label = [masteredText(mastered, total), gained && `dont ${gained} pendant cette partie`, lost && `${lost} à revoir`, inProgress && `${inProgress} en chemin`]
+    .filter(Boolean).join(', ');
+  return `<div class="results-bar" role="img" aria-label="${label}">${parts}</div>`;
 }
+
+/** Formes repassées « à revoir » pendant la partie : chacune est nommée. */
+const lostCard = lost => (lost.length ? `<div class="re-card re-lost">
+    <span class="re-card-title">À revoir</span>
+    ${lost.map(q => `<div class="re-lost-row"><span class="re-redo" aria-hidden="true">↻</span><span><b>${esc(q.expected.display)}</b><span>Une bonne réponse peut suffire à la récupérer.</span></span></div>`).join('')}
+  </div>` : '');
 
 const results = {
   screen: 'results',
@@ -711,30 +720,38 @@ const results = {
       // Aucune réponse juste : chaque forme a été recopiée, et c'est déjà un progrès.
       head = `<span class="re-hero">${record.total}</span><span class="re-sub strong">${plural(record.total, 'forme recopiée', 'formes recopiées')}</span>`;
       const tile = (value, label, dark = false) => `<div class="re-tile${dark ? ' dark' : ''}"><b>${value}</b><span>${label}</span></div>`;
-      body = `<div class="re-card">
+      // Formes perdues : la barre du niveau revient, pour expliquer la baisse qu'on verra à l'accueil.
+      const lostBar = lost.length ? `<div class="re-progress">
+          ${resultsBar({ mastered: after, total, lost: lost.length })}
+          <div class="re-legend"><b>${after}</b> ${plural(after, 'acquise', 'acquises')} · <b class="lost">${lost.length}</b> à revoir</div>
+        </div>` : '';
+      body = `${lostBar}<div class="re-card">
           <h2 class="re-encourage">Recopier, c'est déjà progresser.</h2>
           <p class="re-encourage-text">Chaque forme recopiée, vous l'avez écrite juste une première fois. C'est comme ça qu'elle commence à se fixer.</p>
         </div>
         <div class="re-tiles">${tile(minutesText(record.durationMs), 'de pratique')}${tile(`Jour ${s.streak}`, s.streak > 1 ? 'série en cours' : 'série lancée', true)}</div>`;
     } else {
+      // `gain` est le solde de la partie : formes devenues acquises moins formes repassées à revoir.
+      const gained = s.newlyMastered.length;
       const inProgress = gain > 0 ? 0 : s.inProgress;
+      const subGain = lost.length
+        ? `${gained} ${plural(gained, 'forme acquise', 'formes acquises')}, ${lost.length} à revoir, en ${durationText(record.durationMs)}.`
+        : `${plural(gain, 'forme acquise', 'formes acquises')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`;
       head = gain > 0
-        ? `<span class="re-hero">+${gain}</span><span class="re-sub">${plural(gain, 'forme acquise', 'formes acquises')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}</span>`
+        ? `<span class="re-hero">+${gain}</span><span class="re-sub">${subGain}</span>`
         : `<span class="re-hero">${after}<small>/${total}</small></span><span class="re-sub">${plural(after, 'forme acquise', 'formes acquises')}${lost.length
           ? `. ${lost.length > 1 ? `${lost.length} formes sont à revoir.` : 'Une forme est à revoir.'}` : ', rien de perdu.'}</span>`;
-      const legend = gain > 0
-        ? `<b>${after}</b> / ${formsText(total)}`
-        : [`<b>${after}</b> ${plural(after, 'acquise', 'acquises')}`, inProgress && `<b>${inProgress}</b> en chemin`, lost.length && `<b class="lost">${lost.length}</b> à revoir`].filter(Boolean).join(' · ');
-      const lostCard = lost.length ? `<div class="re-card re-lost">
-          <span class="re-card-title">À revoir</span>
-          ${lost.map(q => `<div class="re-lost-row"><span class="re-redo" aria-hidden="true">↻</span><span><b>${esc(q.expected.display)}</b><span>Une bonne réponse peut suffire à la récupérer.</span></span></div>`).join('')}
-        </div>` : '';
+      const legend = [
+        gain > 0 ? `<b>${after}</b> / ${formsText(total)}` : `<b>${after}</b> ${plural(after, 'acquise', 'acquises')}`,
+        inProgress && `<b>${inProgress}</b> en chemin`,
+        lost.length && `<b class="lost">${lost.length}</b> à revoir`,
+      ].filter(Boolean).join(' · ');
       body = `<div class="re-progress">
-          ${resultsBar({ mastered: after, total, gain, inProgress, lost: lost.length })}
+          ${resultsBar({ mastered: after, total, gained: Math.min(gained, after), inProgress, lost: lost.length })}
           <div class="re-legend">${legend}</div>
         </div>
         ${scoreCard}
-        ${lostCard}`;
+        ${lostCard(lost)}`;
     }
     return `<div class="screen end">
       <div class="top-safe"></div>

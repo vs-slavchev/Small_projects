@@ -323,7 +323,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 
 /* ---------- Retour sur réponse ---------- */
 .fb { overflow-y: auto; }
-.fb-word { flex: 1; min-height: 0; padding: 16px 20px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+.fb-word { flex: 1 0 auto; padding: 16px 20px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
 .fb-word .big { font-family: var(--serif); line-height: 1.1; text-wrap: balance; animation: popIn .45s cubic-bezier(.3,1.6,.5,1) both; }
 .fb-word .ask { font-size: var(--fs-label); font-weight: 700; color: var(--ink-3); }
 .big-row { display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -360,6 +360,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 
 /* Clavier ouvert pour recopier : seuls la forme et le champ restent ; le verdict, juste au-dessus du champ, se réduit avec la place. */
 .fb:has(#retype:focus) { overflow: hidden; }
+.fb:has(#retype:focus) .fb-word { flex: 1 1 auto; min-height: 0; }
 .fb:has(#retype:focus) .fun, .fb:has(#retype:focus) .next-btn, .fb:has(#retype:focus) .diag, .fb:has(#retype:focus) .also { display: none; }
 .fb:has(#retype:focus) .sheet { box-shadow: none; background: transparent; padding: 0 20px 12px; gap: 12px; margin-top: 12px; animation: none; }
 @container app (max-height: 420px) {
