@@ -51,7 +51,8 @@ class GameSession {
   /**
    * @param {{ length?: number, difficulty: Difficulty,
    *           drawWord: (req: { excluded: Set<string>, difficulty: Difficulty }) => import('./wordBank.js').Word,
-   *           random?: () => number }} props   random : tire l'anecdote affichée, dans [0, 1)
+   *           random?: () => number }} props
+   * `random` (dans [0, 1)) tire l'anecdote affichée à chaque réponse.
    */
   constructor({ length = DEFAULT_GAME_LENGTH, difficulty, drawWord, random = Math.random }) {
     if (!Number.isInteger(length) || length < 1) throw new DomainError(`Longueur de partie invalide : ${length}.`);
@@ -96,9 +97,8 @@ class GameSession {
     if (!(gender instanceof Gender)) throw new DomainError('Réponse invalide.');
     if (!this.isAwaitingAnswer) throw new DomainError('Aucun mot n’attend de réponse.');
     const timeMs = Math.max(0, now - this.#presentedAt);
-    const { anecdotes } = this.currentWord;
-    const anecdote = anecdotes.length ? anecdotes[Math.min(anecdotes.length - 1, Math.floor(this.#random() * anecdotes.length))] : null;
-    const answer = new Answer({ word: this.currentWord, chosen: gender, timeMs, anecdote });
+    const word = this.currentWord;
+    const answer = new Answer({ word, chosen: gender, timeMs, anecdote: word.pickAnecdote(this.#random) });
     this.#answers.push(answer);
     this.#thinkingMs += timeMs;
     this.#answeredAt = now;

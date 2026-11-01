@@ -1,7 +1,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { DomainError } = LeOuLa;
+const { DomainError, pickRandom } = LeOuLa;
 
 const SelectionStrategy = Object.freeze({
   RANDOM: 'random',
@@ -60,7 +60,7 @@ class WordSelectionPolicy {
   }
 
   #choose(list) {
-    return list[Math.min(list.length - 1, Math.floor(this.#random() * list.length))];
+    return pickRandom(list, this.#random);
   }
 }
 

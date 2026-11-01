@@ -101,7 +101,7 @@ test('fun : absent, un texte ou un tableau de textes', () => {
   assert.deepEqual(bank.word('assiette').anecdotes, ['Une.']);
   assert.deepEqual(bank.word('recette').anecdotes, ['Une.', 'Deux.']);
   assert.ok(bank.word('recette').hasAnecdote);
-  for (const fun of [[], [''], ['Une.', 42]]) {
+  for (const fun of [[''], ['Une.', 42], 42]) {
     assert.throws(() => WordBank.fromData({ groups, words: [{ w: 'baguette', g: 'f', grp: 'ette', fun }] }), DomainError);
   }
 });

@@ -1,7 +1,7 @@
 (function (LeOuLa) {
 'use strict';
 
-const { DomainError, Gender } = LeOuLa;
+const { DomainError, Gender, pickRandom } = LeOuLa;
 
 /** Article élidé : « l’école », « l’horizon ». */
 const ELIDED_ARTICLE = 'l\u2019';
@@ -75,6 +75,9 @@ class Word {
 
   get hasAnecdote() { return this.anecdotes.length > 0; }
 
+  /** @param {() => number} random @returns {string | null} une anecdote au hasard, ou null */
+  pickAnecdote(random) { return pickRandom(this.anecdotes, random); }
+
   /** Vrai pour un mot régulier de son groupe ; faux pour une exception ou un mot sans règle. */
   get followsRule() {
     return this.group !== null && !this.isException;
@@ -117,14 +120,6 @@ class Word {
 }
 
 /** Catalogue immuable des groupes et des mots du jeu. */
-/** `fun` : absent, un texte, ou un tableau de textes non vide. */
-function toAnecdotes(w) {
-  if (w.fun === undefined || w.fun === null) return [];
-  if (typeof w.fun === 'string') return [w.fun];
-  if (Array.isArray(w.fun) && w.fun.length) return w.fun;
-  throw new DomainError(`« ${w.w} » : fun doit être un texte ou un tableau de textes non vide.`);
-}
-
 class WordBank {
   #groups;
   #words;
@@ -159,7 +154,7 @@ class WordBank {
       const group = w.grp ? byId.get(w.grp) : null;
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
-        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdotes: toAnecdotes(w),
+        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdotes: w.fun == null ? [] : [].concat(w.fun),
       });
     });
     return new WordBank(groupList, wordList);
