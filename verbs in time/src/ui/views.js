@@ -10,7 +10,7 @@
 
 const {
   AppState, AppEvent, Destination, HomeState, frenchList,
-  escapeHtml: esc, plural, percentOf, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
+  escapeHtml: esc, plural, percentOf, formatSeconds, durationText, fitFontSize, diffChars, similarity,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
@@ -24,7 +24,11 @@ function tabbar(active) {
   return `<nav class="tabbar">${tab(Destination.HOME, ICON.play, 'Jouer')}${tab(Destination.JOURNEY, ICON.chart, 'Progrès')}${tab(Destination.ACHIEVEMENTS, ICON.medal, 'Succès')}</nav>`;
 }
 
-function topBar(session, now, freshIndex) {
+/**
+ * Suivi de partie : quitter, un segment par tour, combo. Une seule structure ; en peu de hauteur
+ * (clavier ouvert, petit écran), la feuille de style la passe en version compacte.
+ */
+function topBar(session, freshIndex) {
   const answers = session.answers;
   let segments = '';
   for (let i = 0; i < session.length; i++) {
@@ -32,10 +36,12 @@ function topBar(session, now, freshIndex) {
     const cls = a ? (a.correct ? 'ok' : 'ko') : i === session.position - 1 ? 'cur' : '';
     segments += `<div class="seg ${cls}${i === freshIndex ? ' fresh' : ''}"></div>`;
   }
+  const combo = session.combo >= 2
+    ? `<span class="combo${session.combo >= 5 ? ' hot' : ''}" role="img" aria-label="Combo × ${session.combo}"><span class="fl" aria-hidden="true">🔥</span>×${session.combo}</span>` : '';
   return `<div class="bar-row">
     <button class="close" data-event="${AppEvent.QUIT}" aria-label="Quitter la partie">✕</button>
     <div class="segs" style="grid-template-columns:repeat(${session.length},1fr)">${segments}</div>
-    <div class="timer" id="timer">${formatClock(session.thinkingTime(now))}</div>
+    ${combo}
   </div>`;
 }
 
@@ -156,13 +162,26 @@ const onboarding = {
 
 /* ---------- Test de placement ---------- */
 
-/** Carte d'une question : temps, sujet (et expression de temps), verbe à conjuguer. */
-function questionCard({ verb, tense, person, marker }, extraClass = '') {
-  return `<div class="card${extraClass}">
-    <div class="chip tense pill">${esc(tense.label)}</div>
-    <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
-    <div class="word" style="--word-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
-    <div class="en">${esc(verb.translation)}</div>
+/** Mots à taper pour la forme attendue, sujet non compris : un trait par mot (« avons parlé » : deux). */
+function answerWordCount(expected) {
+  const words = [[]];
+  for (const seg of expected.segments) {
+    if (seg.kind === 'space') words.push([]);
+    else words.at(-1).push(seg.kind);
+  }
+  return Math.max(1, words.filter(kinds => kinds.some(k => k !== 'subject')).length);
+}
+
+/**
+ * La question : temps et verbe, puis la phrase à trou, centrée (« Hier, nous ____ ____. »).
+ * Le français seulement : aucune traduction.
+ */
+function questionBlock({ verb, tense, person, marker, expected }, extraClass = '') {
+  const subject = marker ? esc(person.subject) : esc(person.subject.charAt(0).toUpperCase() + person.subject.slice(1));
+  const blanks = '<span class="q-blank"></span>'.repeat(answerWordCount(expected));
+  return `<div class="q-block${extraClass}">
+    <div class="q-head"><span class="chip tense pill">${esc(tense.label)}</span><span class="q-verb">${esc(verb.label)}</span></div>
+    <p class="q-sentence">${marker ? `${esc(marker)} ` : ''}<span class="q-subj">${subject}</span> <span class="q-blanks">${blanks}</span>.</p>
   </div>`;
 }
 
@@ -185,11 +204,13 @@ const placement = {
       <div class="play-top">
         <div class="bar-row">
           <button class="close" data-event="${AppEvent.QUIT}" aria-label="Quitter le test">✕</button>
-          <div class="segs neutral" style="grid-template-columns:repeat(${length},1fr)" aria-hidden="true">${segments}</div>
+          <div class="segs-col">
+            <span class="segs-label">Test de niveau · question ${test.position} sur ${length} au plus</span>
+            <div class="segs neutral" style="grid-template-columns:repeat(${length},1fr)" aria-hidden="true">${segments}</div>
+          </div>
         </div>
-        <div class="sub-row"><span class="count">Test de placement · question ${test.position}</span></div>
       </div>
-      <div class="card-wrap">${questionCard(q)}</div>
+      <div class="q-center">${questionBlock(q)}</div>
       <form class="answer-form" autocomplete="off" data-event="${AppEvent.PLACEMENT_ANSWER}">
         <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(q.person.subject)} »</label>
         <div class="input-row">
@@ -482,32 +503,23 @@ const home = {
 
 const question = {
   screen: 'question',
-  /** Le chrono tourne tant que la question attend sa réponse ; le champ de saisie prend le focus. */
-  mounted(root, { state, context }, env) {
+  /** Le champ de saisie prend le focus (le temps de réflexion est mesuré par la session, sans chrono affiché). */
+  mounted(root, { state }) {
     if (state !== AppState.QUESTION) return undefined;
     root.querySelector('#answer')?.focus();
-    const el = root.querySelector('#timer');
-    const id = setInterval(() => { el.textContent = formatClock(context.session.thinkingTime(env.now())); }, 250);
-    return () => clearInterval(id);
+    return undefined;
   },
-  render({ state, context }, env) {
+  render({ state, context }) {
     const { session } = context;
     const answer = session.lastAnswer;
     const { verb, tense, person } = session.currentQuestion;
     const revealing = state === AppState.REVEALING;
-    const combo = session.combo;
     const result = revealing ? (answer.correct ? ' good' : ' bad') : '';
 
     return `<div class="screen play">
       <div class="top-safe"></div>
-      <div class="play-top">
-        ${topBar(session, env.now(), -1)}
-        <div class="sub-row">
-          <span class="count">Tour ${session.position} / ${session.length}</span>
-          <div class="combo${combo >= 2 ? ' bump' : ' hidden'}${combo >= 5 ? ' hot' : ''}"><span class="fl">🔥</span>Combo × ${combo}</div>
-        </div>
-      </div>
-      <div class="card-wrap">${questionCard(session.currentQuestion, result)}</div>
+      <div class="play-top">${topBar(session, -1)}</div>
+      <div class="q-center">${questionBlock(session.currentQuestion, result)}</div>
       <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off" data-event="${AppEvent.ANSWER}">
         <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
         <div class="input-row">
@@ -582,7 +594,7 @@ const feedback = {
     const locked = !context.retyped;
     return `<div class="screen play fb">
       <div class="top-safe"></div>
-      <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
+      <div class="play-top">${topBar(session, session.position - 1)}</div>
       <div class="fb-word">
         <div class="ask">${questionLabel(question)}</div>
         <div class="big-row">
