@@ -1,7 +1,10 @@
 (function (Conjugo) {
 'use strict';
 
-const { dayKey, addDays, daysBetween, LevelVia } = Conjugo;
+const { dayKey, addDays, daysBetween, LevelVia, Person, GameRecord } = Conjugo;
+
+/** Parties à jouer avant d'ouvrir les statistiques de l'onglet Progrès. */
+const PROGRESS_UNLOCK_GAMES = 3;
 
 /** Ce que l'accueil met en avant, selon le dernier jour joué. */
 const HomeState = Object.freeze({
@@ -75,6 +78,13 @@ function homeOverview(profile, ladder, now) {
   const todayGain = completedToday.includes(level.number)
     ? 0 : Math.max(0, sumGain(today.filter(g => g.level === level.number)));
 
+  // Formes du niveau en cours devenues acquises pendant les parties du jour, et toujours acquises (ordre du niveau).
+  const todayKeys = new Set(today.filter(g => g.level === level.number).flatMap(g => g.masteredKeys));
+  const learnedToday = level.combos
+    .filter(c => todayKeys.has(c.key) && profile.practice.get(c.key).isMastered)
+    .map(c => { const shown = today.flatMap(g => g.answers).find(a => GameRecord.practiceKeyOf(a) === c.key);
+      return c.verb.conjugate(c.tense, (shown && Person.of(shown.person)) || Person.SLOTS[c.slot][0]).display; });
+
   return Object.freeze({
     state,
     /** Le joueur revient après au moins un jour sans jouer. */
@@ -96,11 +106,19 @@ function homeOverview(profile, ladder, now) {
     levelsCompleted: profile.levelHistory.length,
     /** Après le dernier niveau, le joueur y reste pour réviser : il est terminé tout en restant en cours. */
     levelAlreadyCompleted: profile.hasCompleted(level.number),
+    /** Formes du niveau en cours acquises grâce aux parties du jour (« Vous savez désormais dire »). */
+    learnedToday: Object.freeze(learnedToday),
+    /** Parties jouées en tout ; l'onglet Progrès montre ses statistiques à partir de PROGRESS_UNLOCK_GAMES. */
+    gamesPlayed: profile.games.length,
+    /** Réponses justes et total des premières parties, pour l'onglet Progrès encore verrouillé. */
+    firstScores: Object.freeze(profile.games.slice(0, PROGRESS_UNLOCK_GAMES).map(g => Object.freeze({ correct: g.correctCount, total: g.total }))),
+    /** Temps passé à jouer, toutes parties confondues. */
+    practiceMs: profile.games.reduce((sum, g) => sum + g.durationMs, 0),
     /** Niveaux terminés autres que le niveau en cours, du plus récent au plus ancien. */
     journey: Object.freeze([...profile.levelHistory].reverse().filter(h => h.level !== level.number)
       .map(h => Object.freeze({ ...h, level: ladder.level(h.level) }))),
   });
 }
 
-Object.assign(Conjugo, { HomeState, AWAY_AFTER_DAYS, levelPace, homeOverview });
+Object.assign(Conjugo, { HomeState, AWAY_AFTER_DAYS, PROGRESS_UNLOCK_GAMES, levelPace, homeOverview });
 })(globalThis.Conjugo ??= {});

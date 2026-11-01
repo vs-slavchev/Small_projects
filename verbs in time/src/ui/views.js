@@ -9,22 +9,30 @@
 'use strict';
 
 const {
-  AppState, AppEvent, Destination, HomeState, frenchList,
-  escapeHtml: esc, plural, percentOf, formatClock, formatSeconds, durationText, fitFontSize, diffChars, similarity,
+  AppState, AppEvent, Destination, HomeState, PROGRESS_UNLOCK_GAMES, frenchList,
+  escapeHtml: esc, plural, percentOf, formatSeconds, durationText, minutesText, fitFontSize, diffChars, similarity, accentMarks,
   VERDICT_TEXT, diagnosisText, achievementStatus, unlockedLabel,
 } = Conjugo;
 
-const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#C9946C'], 2: ['#E3E6EA', '#A9B0BA'], 3: ['#F3E1B8', '#D9B86A'] });
+/** Palier affiché d'un succès : 0 pas obtenu, 1 bronze, 2 argent, 3 or (un succès sans palier, une fois obtenu, compte comme or). */
+const tierOf = p => (p.isSingleStep ? (p.reached ? 3 : 0) : p.tier);
 
 /* ---------- Éléments communs ---------- */
 
+/**
+ * Barre d'onglets : Progrès · Jouer · Succès. « Jouer » est au centre, toujours libellé ainsi :
+ * sur l'accueil il lance une partie, ailleurs il ramène à l'accueil.
+ */
 function tabbar(active) {
   const tab = (to, icon, label) =>
     `<button class="tab${active === to ? ' on' : ''}" data-event="${AppEvent.NAVIGATE}" data-to="${to}"${active === to ? ' aria-current="page"' : ''}><span class="ico">${icon}</span>${label}</button>`;
-  return `<nav class="tabbar">${tab(Destination.HOME, ICON.play, 'Jouer')}${tab(Destination.JOURNEY, ICON.chart, 'Progrès')}${tab(Destination.ACHIEVEMENTS, ICON.medal, 'Succès')}</nav>`;
+  const play = active === Destination.HOME
+    ? `<button class="tab-play press" data-event="${AppEvent.START}">Jouer</button>`
+    : `<button class="tab-play press" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Jouer</button>`;
+  return `<nav class="tabbar">${tab(Destination.JOURNEY, ICON.chart, 'Progrès')}<div class="tab-center">${play}</div>${tab(Destination.ACHIEVEMENTS, ICON.medal, 'Succès')}</nav>`;
 }
 
-function topBar(session, now, freshIndex) {
+function topBar(session, freshIndex) {
   const answers = session.answers;
   let segments = '';
   for (let i = 0; i < session.length; i++) {
@@ -32,10 +40,12 @@ function topBar(session, now, freshIndex) {
     const cls = a ? (a.correct ? 'ok' : 'ko') : i === session.position - 1 ? 'cur' : '';
     segments += `<div class="seg ${cls}${i === freshIndex ? ' fresh' : ''}"></div>`;
   }
+  const combo = session.combo >= 2
+    ? `<span class="combo${session.combo >= 5 ? ' hot' : ''}" role="img" aria-label="Combo × ${session.combo}"><span class="fl" aria-hidden="true">🔥</span>×${session.combo}</span>` : '';
   return `<div class="bar-row">
     <button class="close" data-event="${AppEvent.QUIT}" aria-label="Quitter la partie">✕</button>
     <div class="segs" style="grid-template-columns:repeat(${session.length},1fr)">${segments}</div>
-    <div class="timer" id="timer">${formatClock(session.thinkingTime(now))}</div>
+    ${combo}
   </div>`;
 }
 
@@ -43,10 +53,20 @@ function topBar(session, now, freshIndex) {
 const segmented = segments => segments
   .map(s => (s.kind === 'space' ? ' ' : `<span class="sg sg-${s.kind}">${esc(s.text)}</span>`)).join('');
 
-/** Légende des couleurs de `segmented`. */
-const SEGMENT_LEGEND = `<div class="sg-legend" aria-hidden="true">
-  <span class="sg sg-stem">radical</span><span class="sg sg-ending">terminaison</span><span class="sg sg-aux">auxiliaire</span><span class="sg sg-agreement">accord</span>
-</div>`;
+/** Légende des couleurs de `segmented`, limitée aux morceaux présents dans la forme. */
+const LEGEND_KINDS = Object.freeze([['stem', 'radical'], ['ending', 'terminaison'], ['aux', 'auxiliaire'], ['participle', 'participe'], ['agreement', 'accord']]);
+function segmentLegend(segments) {
+  const present = new Set(segments.map(s => s.kind));
+  const items = LEGEND_KINDS.filter(([kind]) => present.has(kind));
+  return items.length > 1
+    ? `<div class="sg-legend" aria-hidden="true">${items.map(([kind, label]) => `<span class="sg sg-${kind}">${label}</span>`).join('')}</div>` : '';
+}
+
+/** Texte dont certaines lettres sont soulignées (lettres à accentuer). */
+const underlineAt = (text, indices) => {
+  const marks = new Set(indices);
+  return [...text].map((ch, i) => (marks.has(i) ? `<u class="acc">${esc(ch)}</u>` : esc(ch))).join('');
+};
 
 /** Bouton qui fait lire une forme à voix haute (masqué si le navigateur ne sait pas parler). */
 const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
@@ -59,35 +79,54 @@ const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
 
 /* ---------- Premier lancement ---------- */
 
-/** Aperçu animé du jeu : « parlons » s'écrit lettre à lettre puis s'efface, en boucle. */
-const DEMO_WORD = 'parlons';
+/**
+ * Aperçu animé du jeu : la forme se tape, « Valider » s'enfonce, la réponse prend la place des traits
+ * dans la phrase, puis la question suivante. En boucle.
+ */
+const DEMO_QUESTIONS = Object.freeze([
+  { tense: 'présent', verb: 'parler', marker: 'Tous les jours,', subject: 'nous', answer: 'parlons' },
+  { tense: 'passé composé', verb: 'finir', marker: 'Hier,', subject: 'vous', answer: 'avez fini' },
+  { tense: 'futur simple', verb: 'être', marker: 'L’année prochaine,', subject: 'je', answer: 'serai' },
+]);
 const DEMO_TICK_MS = 130;
-const demoFrames = (() => {
-  const frames = [['', 6]];
-  for (let i = 1; i <= DEMO_WORD.length; i++) frames.push([DEMO_WORD.slice(0, i), 1]);
-  frames.push([DEMO_WORD, 14]);
-  for (let i = DEMO_WORD.length - 1; i >= 0; i--) frames.push([DEMO_WORD.slice(0, i), 1]);
-  return frames;
-})();
+const DEMO_PHASES = Object.freeze({ idle: 6, hold: 5, press: 3, ok: 14 });
+/** Durée de chaque question de la démo, en pas, et du cycle complet. */
+const DEMO_SPANS = DEMO_QUESTIONS.map(q => DEMO_PHASES.idle + q.answer.length + DEMO_PHASES.hold + DEMO_PHASES.press + DEMO_PHASES.ok);
+const DEMO_CYCLE = DEMO_SPANS.reduce((a, b) => a + b, 0);
+
+/** Une case par mot attendu, à la largeur du mot : quand la réponse arrive, rien ne se décale. */
+const demoSentence = ({ marker, subject, answer }, filled) => `${esc(marker)} <span class="demo-subj">${esc(subject)}</span> <span class="demo-slots">${
+  answer.split(' ').map(w => `<span class="demo-slot" style="width:${Math.max(2.4, w.length * 0.58 + 0.4).toFixed(2)}em">${filled ? esc(w) : ''}</span>`).join('')}</span>.`;
+
+/** Image de la démo à l'instant `tick` : question affichée, lettres tapées, bouton enfoncé, réponse validée. */
+function demoFrame(tick) {
+  const { idle, hold, press } = DEMO_PHASES;
+  let t = tick % DEMO_CYCLE;
+  let index = 0;
+  while (t >= DEMO_SPANS[index]) t -= DEMO_SPANS[index++];
+  const q = DEMO_QUESTIONS[index];
+  const typed = q.answer.slice(0, Math.max(0, Math.min(q.answer.length, t - idle + 1)));
+  const afterTyping = t - idle - q.answer.length - hold;
+  return { index, typed, pressed: afterTyping >= 0 && afterTyping < press, ok: afterTyping >= press };
+}
 
 const onboarding = {
   screen: 'onboarding',
   render() {
+    const q = DEMO_QUESTIONS[0];
     return `<div class="screen onb">
       <div class="top-safe"></div>
       <div class="onb-body">
         <div class="logo">verbes <span>&amp;</span> temps</div>
         <div class="center-col">
-          <div class="demo" role="img" aria-label="Aperçu du jeu : on tape la forme conjuguée d’un verbe">
+          <div class="demo" id="demo" role="img" aria-label="Aperçu du jeu : on tape la forme conjuguée qui complète la phrase">
             <div class="demo-card" aria-hidden="true">
-              <span class="chip tense pill">présent</span>
-              <span class="person">nous …</span>
-              <span class="demo-word">parler</span>
-              <span class="en">to speak</span>
+              <div class="demo-head"><span class="chip tense pill" id="demo-tense">${q.tense}</span><span class="demo-verb" id="demo-verb">${q.verb}</span></div>
+              <p class="demo-sentence" id="demo-sentence">${demoSentence(q, false)}</p>
             </div>
             <div class="demo-row" aria-hidden="true">
-              <div class="demo-input"><span class="demo-subject">nous&nbsp;</span><span id="demo-typed"></span><span class="caret"></span></div>
-              <span class="demo-submit">Valider</span>
+              <div class="demo-input"><span class="demo-subject" id="demo-subject">${q.subject}&nbsp;</span><span id="demo-typed"></span><span class="caret"></span></div>
+              <span class="demo-submit" id="demo-submit">Valider</span>
             </div>
           </div>
           <div class="onb-copy">
@@ -103,29 +142,62 @@ const onboarding = {
     </div>`;
   },
   mounted(root) {
-    const el = root.querySelector('#demo-typed');
-    if (!el) return undefined;
-    let frame = 0;
-    let hold = 0;
-    const id = setInterval(() => {
-      if (++hold < demoFrames[frame][1]) return;
-      frame = (frame + 1) % demoFrames.length;
-      hold = 0;
-      el.textContent = demoFrames[frame][0];
-    }, DEMO_TICK_MS);
+    const demo = root.querySelector('#demo');
+    if (!demo) return undefined;
+    const el = id => root.querySelector(`#demo-${id}`);
+    let shown = -1;
+    let wasOk = null;
+    const paint = tick => {
+      const { index, typed, pressed, ok } = demoFrame(tick);
+      const q = DEMO_QUESTIONS[index];
+      if (index !== shown || ok !== wasOk) {
+        el('tense').textContent = q.tense;
+        el('verb').textContent = q.verb;
+        el('subject').textContent = `${q.subject} `;
+        el('sentence').innerHTML = demoSentence(q, ok);
+        el('submit').textContent = ok ? '✓ Juste' : 'Valider';
+        demo.classList.toggle('ok', ok);
+        shown = index;
+        wasOk = ok;
+      }
+      el('typed').textContent = typed;
+      el('submit').classList.toggle('pressed', pressed);
+    };
+    // Mouvement réduit : la première question, déjà réussie, sans animation.
+    if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      const { idle, hold, press } = DEMO_PHASES;
+      paint(idle + DEMO_QUESTIONS[0].answer.length + hold + press);
+      return undefined;
+    }
+    let tick = 0;
+    paint(tick);
+    const id = setInterval(() => paint(++tick), DEMO_TICK_MS);
     return () => clearInterval(id);
   },
 };
 
 /* ---------- Test de placement ---------- */
 
-/** Carte d'une question : temps, sujet (et expression de temps), verbe à conjuguer. */
-function questionCard({ verb, tense, person, marker }, extraClass = '') {
-  return `<div class="card${extraClass}">
-    <div class="chip tense pill">${esc(tense.label)}</div>
-    <div class="person">${marker ? `<span class="marker">${esc(marker)}</span> ` : ''}${esc(person.subject)} …</div>
-    <div class="word" style="--word-size:${fitFontSize(verb.label, 52, 520)}px">${esc(verb.label)}</div>
-    <div class="en">${esc(verb.translation)}</div>
+/** Mots à taper pour la forme attendue, sujet non compris : un trait par mot (« avons parlé » : deux). */
+function answerWordCount(expected) {
+  const words = [[]];
+  for (const seg of expected.segments) {
+    if (seg.kind === 'space') words.push([]);
+    else words.at(-1).push(seg.kind);
+  }
+  return Math.max(1, words.filter(kinds => kinds.some(k => k !== 'subject')).length);
+}
+
+/**
+ * La question : temps et verbe, puis la phrase à trou, centrée (« Hier, nous ____ ____. »).
+ * Le français seulement : aucune traduction.
+ */
+function questionBlock({ verb, tense, person, marker, expected }, extraClass = '') {
+  const subject = esc(marker ? person.subject : capitalize(person.subject));
+  const blanks = '<span class="q-blank"></span>'.repeat(answerWordCount(expected));
+  return `<div class="q-block${extraClass}">
+    <div class="q-head"><span class="chip tense pill">${esc(tense.label)}</span><span class="q-verb">${esc(verb.label)}</span></div>
+    <p class="q-sentence">${marker ? `${esc(marker)} ` : ''}<span class="q-subj">${subject}</span> <span class="q-blanks">${blanks}</span>.</p>
   </div>`;
 }
 
@@ -148,11 +220,13 @@ const placement = {
       <div class="play-top">
         <div class="bar-row">
           <button class="close" data-event="${AppEvent.QUIT}" aria-label="Quitter le test">✕</button>
-          <div class="segs neutral" style="grid-template-columns:repeat(${length},1fr)" aria-hidden="true">${segments}</div>
+          <div class="segs-col">
+            <span class="segs-label">Test de niveau · question ${test.position} sur ${length} au plus</span>
+            <div class="segs neutral" style="grid-template-columns:repeat(${length},1fr)" aria-hidden="true">${segments}</div>
+          </div>
         </div>
-        <div class="sub-row"><span class="count">Test de placement · question ${test.position}</span></div>
       </div>
-      <div class="card-wrap">${questionCard(q)}</div>
+      <div class="q-center">${questionBlock(q)}</div>
       <form class="answer-form" autocomplete="off" data-event="${AppEvent.PLACEMENT_ANSWER}">
         <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(q.person.subject)} »</label>
         <div class="input-row">
@@ -217,8 +291,18 @@ const placementResult = {
 };
 
 /** Succès débloqués pendant la partie, en pastilles. */
-const unlockedChips = list => (list.length
-  ? `<div class="re-unlocked">${list.map(p => `<span>${p.emoji} ${esc(unlockedLabel(p))}</span>`).join('')}</div>`
+/**
+ * Succès débloqués : une seule carte, au bilan et à l'écran de niveau terminé (version nuit).
+ * L'emoji est posé sur la couleur du palier ; on dit ce qui est récompensé.
+ */
+const unlockedCard = (list, { dark = false } = {}) => (list.length
+  ? `<div class="unlocked${dark ? ' dark' : ''}">
+      <span class="unlocked-title">${plural(list.length, 'Succès débloqué', 'Succès débloqués')}</span>
+      ${list.map(p => `<div class="unlocked-row">
+        <span class="unlocked-em tier-${tierOf(p)}" aria-hidden="true">${p.emoji}</span>
+        <span class="unlocked-text"><b>${esc(unlockedLabel(p))}</b><span>${esc(p.description)}</span></span>
+      </div>`).join('')}
+    </div>`
   : '');
 
 const NUMBER_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
@@ -238,7 +322,7 @@ const levelUp = {
       number: level.number, full: true, title,
       text: `De <i>${esc(from)}</i> à <i>${esc(to)}</i>.<br>Et ${count}&nbsp;!`,
       button: next > level.number ? `Jouer le niveau ${next}` : 'Rejouer',
-      extra: unlockedChips(unlocked),
+      extra: unlockedCard(unlocked, { dark: true }),
       home: true,
     });
   },
@@ -247,13 +331,14 @@ const levelUp = {
 /* ---------- Accueil ---------- */
 
 const ICON = Object.freeze({
-  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 4.5v15l12-7.5z"/></svg>',
   chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
   medal: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M9 13.5L8 21l4-2 4 2-1-7.5"/></svg>',
   check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
-  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
   soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
   soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h12l-3 4 3 4H5"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
 });
 
 const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
@@ -270,10 +355,14 @@ function soundButton(on) {
 }
 
 /** En-tête commun : logo et son. */
-function homeHeader(soundEnabled) {
+/** En-tête de l'accueil : logo, série (pointillée tant qu'elle reste à prolonger aujourd'hui), son. */
+function homeHeader(soundEnabled, home) {
+  const secured = home.state === HomeState.PLAYED_TODAY;
+  const streak = home.streak
+    ? `<span class="streak${secured ? '' : ' at-risk'}" role="img" aria-label="Série de ${home.streak} ${plural(home.streak, 'jour')}${secured ? ', assurée aujourd’hui' : ', à prolonger aujourd’hui'}">${ICON.flame}${home.streak}</span>` : '';
   return `<div class="home-head">
     <div class="logo">verbes <span>&amp;</span> temps</div>
-    ${soundButton(soundEnabled)}
+    <div class="home-head-right">${streak}${soundButton(soundEnabled)}</div>
   </div>`;
 }
 
@@ -291,7 +380,7 @@ function homeHeadline(home) {
         return `<span class="eyebrow">Aujourd'hui, vous avez terminé</span><h1>${amber(what)}</h1>${more}`;
       }
       return home.todayGain > 0
-        ? `<span class="eyebrow">Aujourd'hui, vous avez avancé de</span><h1>${amber(`+${formsText(home.todayGain)}`)}</h1>`
+        ? `<span class="eyebrow">Aujourd'hui</span><h1>${amber(`+${formsText(home.todayGain)}`)} ${plural(home.todayGain, 'acquise', 'acquises')}</h1>`
         : `<span class="eyebrow">Vous avez joué aujourd'hui.</span><h1>Chaque partie compte.</h1>`;
     }
     case HomeState.NOT_YET_TODAY: {
@@ -310,25 +399,6 @@ function homeHeadline(home) {
     default:
       return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
   }
-}
-
-/** Carte sombre : les formes déjà acquises (masquée tant qu'il n'y en a aucune). */
-function achievedCard(home) {
-  if (!home.formsMastered) return '';
-  const done = home.levelsCompleted;
-  const sub = {
-    [HomeState.PLAYED_TODAY]: home.formsToday ? `+${home.formsToday} aujourd'hui` : '',
-    [HomeState.NOT_YET_TODAY]: home.formsYesterday ? `+${home.formsYesterday} hier` : '',
-    [HomeState.BACK]: plural(home.formsMastered, 'intacte', 'intactes'),
-    [HomeState.AWAY]: done ? `${done} ${plural(done, 'niveau terminé', 'niveaux terminés')}` : '',
-  }[home.state];
-  return `<div class="achieved">
-    <span class="eyebrow">Vous savez ${home.isReturning ? 'toujours' : 'déjà'} conjuguer</span>
-    <div class="achieved-row">
-      <span class="achieved-num">${home.formsMastered}</span>
-      <span class="achieved-unit"><b>${plural(home.formsMastered, 'forme')}</b>${sub ? `<em>${sub}</em>` : ''}</span>
-    </div>
-  </div>`;
 }
 
 /**
@@ -367,70 +437,74 @@ function homeBarParts(home) {
   };
 }
 
-function levelCard(home) {
+/** Le niveau en cours, sur le chemin : anneau d'avancement, carte avec la barre qui mène au drapeau d'arrivée. */
+function levelNode(home) {
   const { level } = home;
+  const total = level.combos.length;
+  const parts = homeBarParts(home);
+  const done = percentOf(parts.mastered - parts.today, total);
+  const today = percentOf(parts.mastered, total) - done;
+  const remaining = total - home.mastered;
   const parties = partiesText(home.gamesLeft);
-  const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
-  const next = `≈&nbsp;+${formsText(home.nextGameForms)}`;
-  const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
-    [HomeState.PLAYED_TODAY]: home.todayGain > 0
-      ? `${badge(`+${formsText(home.todayGain)} aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
-      : `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
-    [HomeState.NOT_YET_TODAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">≈ ${parties} et il est à vous</span>`,
-    [HomeState.BACK]: badge(`Une partie suffit pour repartir&nbsp;: ${next}`, true),
-    [HomeState.AWAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
-  }[home.state];
-  return `<div class="level-card">
-    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.mastered)}
-    ${levelBar(homeBarParts(home))}
-    <div class="lc-foot">${footer}</div>
+  const note = home.isLevelComplete ? 'Niveau terminé : les parties gardent les formes en mémoire.'
+    : home.state === HomeState.PLAYED_TODAY && home.todayGain > 0
+      ? `Plus que <b>${formsText(remaining)}</b>${home.gamesLeft <= 1 ? ' : une partie peut suffire.' : ` · encore ≈ ${parties}.`}`
+      : `Encore <b>≈ ${parties}</b> et il est à vous.`;
+  return `<div class="path-node current">
+    <span class="path-ring" style="--done:${done}%;--today:${done + today}%"><span>${level.number}</span></span>
+    <div class="level-card">
+      ${levelHead(`${home.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · ${esc(capitalize(level.tense.label))}`, level, home.mastered)}
+      <div class="lc-bar-row">${levelBar(parts)}<span class="lc-flag" role="img" aria-label="Niveau terminé">${ICON.flag}</span></div>
+      <p class="lc-note">${note}</p>
+    </div>
   </div>`;
 }
 
-/** Après une longue absence : les derniers niveaux terminés, puis le niveau en cours. */
-function journeyDots(home) {
-  const done = home.journey.slice(0, 5).reverse();
-  const dots = [
-    ...done.map(h => `<span class="jd done" title="Niveau ${h.level.number}">${ICON.check}</span><span class="jd-link"></span>`),
-    `<span class="jd current">${home.level.number}</span>`,
-  ].join('');
-  return `<div class="journey-dots">
-    <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.level.combos.length)}`}">${dots}</div>
+/** Niveau terminé, sur le chemin. */
+const doneNode = entry => `<div class="path-node">
+    <span class="path-check">${ICON.check}</span>
+    <span class="path-text"><b>Niveau ${entry.level.number} · ${esc(entry.level.title)}</b><span>${esc(capitalize(entry.level.tense.label))}</span></span>
+  </div>`;
+
+/** Chemin de l'accueil : le niveau en cours, puis les deux derniers niveaux terminés ; au-delà, un lien vers le parcours. */
+function homePath(home) {
+  const shown = home.journey.slice(0, 2);
+  const more = home.journey.length - shown.length;
+  return `<div class="path">
+    ${levelNode(home)}
+    ${shown.map(doneNode).join('')}
+    ${more > 0 ? `<button class="path-more" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.JOURNEY}">
+      <span class="path-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="path-more-text">Et ${more} ${plural(more, 'autre niveau', 'autres niveaux')}</span>
+      <span class="path-more-link">Parcours ${ICON.chevron}</span>
+    </button>` : ''}
   </div>`;
 }
 
-/** Bouton de l'accueil selon son état : libellé, et précision (`null` : la longueur de la partie). */
-const PLAY_CTA = Object.freeze({
-  [HomeState.PLAYED_TODAY]: ['Encore une', null],
-  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', null],
-  [HomeState.BACK]: ['Reprendre', null],
-  [HomeState.AWAY]: ['Reprendre', null],
-});
-
-/** Bouton de partie : libellé et précision éventuelle. */
-function playButton(label, sub) {
-  return `<button class="play-btn press" data-event="${AppEvent.START}">
-    <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
-  </button>`;
+/** Déjà joué aujourd'hui : les formes devenues acquises, sur une carte de nuit. */
+function learnedCard(home) {
+  if (home.state !== HomeState.PLAYED_TODAY || !home.learnedToday.length) return '';
+  return `<div class="learned">
+    <span class="learned-title">Vous savez désormais dire</span>
+    <div class="learned-forms">${home.learnedToday.slice(0, 6).map(f => `<span>${esc(f)}</span>`).join('')}</div>
+    ${home.streak ? `<span class="learned-streak">${ICON.check}Série de ${home.streak} ${plural(home.streak, 'jour')} assurée</span>` : ''}
+  </div>`;
 }
+
+/** Bouton de partie (bilan). */
+const playButton = label => `<button class="play-btn press" data-event="${AppEvent.START}"><span class="pb-text"><b>${label}</b></span></button>`;
 
 const home = {
   screen: 'home',
   render({ context }) {
     const h = context.home;
-    const [label, sub] = PLAY_CTA[h.state];
-    const length = `${context.gameLength} questions · ≈ 2 min`;
     return `<div class="screen home">
       <div class="top-safe"></div>
       <div class="home-body">
-        ${homeHeader(context.soundEnabled)}
+        ${homeHeader(context.soundEnabled, h)}
         <div class="headline">${homeHeadline(h)}</div>
-        ${achievedCard(h)}
-        ${levelCard(h)}
-        ${h.state === HomeState.AWAY ? journeyDots(h) : ''}
-        <div class="grow"></div>
-        ${playButton(label, sub ?? length)}
+        ${learnedCard(h)}
+        ${homePath(h)}
       </div>
       ${tabbar(Destination.HOME)}
     </div>`;
@@ -445,32 +519,23 @@ const home = {
 
 const question = {
   screen: 'question',
-  /** Le chrono tourne tant que la question attend sa réponse ; le champ de saisie prend le focus. */
-  mounted(root, { state, context }, env) {
+  /** Le champ de saisie prend le focus (le temps de réflexion est mesuré par la session, sans chrono affiché). */
+  mounted(root, { state }) {
     if (state !== AppState.QUESTION) return undefined;
     root.querySelector('#answer')?.focus();
-    const el = root.querySelector('#timer');
-    const id = setInterval(() => { el.textContent = formatClock(context.session.thinkingTime(env.now())); }, 250);
-    return () => clearInterval(id);
+    return undefined;
   },
-  render({ state, context }, env) {
+  render({ state, context }) {
     const { session } = context;
     const answer = session.lastAnswer;
     const { verb, tense, person } = session.currentQuestion;
     const revealing = state === AppState.REVEALING;
-    const combo = session.combo;
     const result = revealing ? (answer.correct ? ' good' : ' bad') : '';
 
     return `<div class="screen play">
       <div class="top-safe"></div>
-      <div class="play-top">
-        ${topBar(session, env.now(), -1)}
-        <div class="sub-row">
-          <span class="count">Tour ${session.position} / ${session.length}</span>
-          <div class="combo${combo >= 2 ? ' bump' : ' hidden'}${combo >= 5 ? ' hot' : ''}"><span class="fl">🔥</span>Combo × ${combo}</div>
-        </div>
-      </div>
-      <div class="card-wrap">${questionCard(session.currentQuestion, result)}</div>
+      <div class="play-top">${topBar(session, -1)}</div>
+      <div class="q-center">${questionBlock(session.currentQuestion, result)}</div>
       <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off" data-event="${AppEvent.ANSWER}">
         <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
         <div class="input-row">
@@ -491,76 +556,99 @@ function sparks(count = 10, radius = 34) {
   }).join('');
 }
 
-/**
- * Réponse comparée lettre à lettre à la forme juste la plus proche (avec ou sans sujet) :
- * lettres en trop barrées dans la réponse, lettres manquantes soulignées dans la forme juste.
- */
-function answerDiff(given, expected) {
+/** Réponse comparée lettre à lettre à la forme juste la plus proche (avec ou sans sujet) : lettres en trop barrées. */
+function givenDiff(given, expected) {
   const target = expected.accepted.reduce((best, form) => (similarity(given, form) > similarity(given, best) ? form : best));
-  const parts = diffChars(given, target);
-  const show = (skip, cls) => parts.filter(p => p.type !== skip)
-    .map(p => (p.type === 'same' ? esc(p.text) : `<span class="${cls}">${esc(p.text)}</span>`)).join('');
-  return { given: show('missing', 'df-extra'), target: show('extra', 'df-missing') };
+  return diffChars(given, target).filter(p => p.type !== 'missing')
+    .map(p => (p.type === 'same' ? esc(p.text) : `<span class="df-extra">${esc(p.text)}</span>`)).join('');
 }
 
-/** Après une erreur : recopier la bonne forme pour pouvoir continuer. */
-function retypeBlock({ retyped, retypeTried }) {
-  const status = retyped ? '✓ Bien recopié.' : retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie la bonne forme pour la fixer.';
-  // Une fois la forme recopiée, le champ et son bouton ne servent plus : seul le message reste.
-  return `<form class="retype${retyped ? ' done' : retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
-    ${retyped ? '' : `<label class="lbl" for="retype">À toi</label>
+/** Après une erreur : recopier la bonne forme pour pouvoir continuer. Une fois recopiée, le champ devient une ligne verte. */
+function retypeBlock({ retyped, retypeTried, session }) {
+  if (retyped) {
+    return `<form class="retype done" data-event="${AppEvent.RETYPE}" aria-live="polite">
+      <div class="retype-done"><span class="ok-mark" aria-hidden="true">✓</span><span class="retype-form">${esc(session.lastAnswer.question.expected.display)}</span><span class="retype-status">Bien recopié</span></div>
+    </form>`;
+  }
+  return `<form class="retype${retypeTried ? ' again' : ''}" autocomplete="off" data-event="${AppEvent.RETYPE}">
+    <label class="retype-label" for="retype">${retypeTried ? 'Pas tout à fait : compare avec la forme en haut.' : 'Recopie-la pour la fixer'}</label>
     <div class="input-row">
       ${answerInput('retype')}
       <button class="submit press" type="submit">OK</button>
-    </div>`}
-    <div class="retype-status" aria-live="polite">${status}</div>
+    </div>
   </form>`;
+}
+
+const LOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h14v9H5zM8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+/** « Continuer » : verrouillé (pointillés, cadenas) tant que la forme n'est pas recopiée. */
+function nextButton({ session, retyped }) {
+  const answer = session.lastAnswer;
+  const label = session.isComplete ? 'Voir le résultat' : 'Continuer';
+  if (!answer.correct && !retyped) {
+    return `<button class="next-btn locked" data-event="${AppEvent.CONTINUE}" aria-disabled="true">${LOCK_ICON}Recopie pour continuer</button>`;
+  }
+  return `<button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}">${label}</button>`;
 }
 
 const feedback = {
   screen: 'feedback',
-  render({ context }, env) {
+  render({ context }) {
     const { session } = context;
     const { combo } = session;
     const answer = session.lastAnswer;
     const { question } = answer;
     const { verb, expected } = question;
-    let title, subtitle;
+    let kind, mark, title, subtitle;
     if (answer.correct) {
-      title = 'Exact.';
+      [kind, mark, title] = ['ok', `✓${sparks()}`, 'Exact.'];
       subtitle = [combo >= 2 && `${combo} d'affilée`, formatSeconds(answer.timeMs)].filter(Boolean).join(' · ');
     } else if (answer.accentsOnly) {
-      [title, subtitle] = ['Presque.', 'Attention aux accents.'];
+      [kind, mark, title, subtitle] = ['almost', '~', 'Presque.', 'Attention aux accents.'];
     } else {
-      [title, subtitle] = ['Pas cette fois.', 'Compare avec la bonne forme en haut.'];
+      [kind, mark, title, subtitle] = ['ko', '!', 'Pas cette fois.', 'Compare avec la bonne forme en haut.'];
     }
     const others = expected.others.length
       ? `<div class="also">Aussi accepté : ${expected.others.map(esc).join(', ')}</div>`
       : '';
-    const diff = answer.correct ? null : answerDiff(answer.given, expected);
-    const diagnosis = answer.diagnosis ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
+    let big = segmented(expected.segments);
+    let given = '';
+    if (answer.accentsOnly) {
+      // La forme affichée peut porter un accord facultatif (« allé(e) ») : on aligne sur l'écriture juste la plus proche.
+      let match = null;
+      for (const form of [expected.display, ...expected.forms]) {
+        const marks = accentMarks(answer.given, form);
+        if (marks.target.length) { match = { form, marks }; break; }
+      }
+      if (match) {
+        big = underlineAt(expected.display.startsWith(match.form) ? expected.display : match.form, match.marks.target);
+        given = underlineAt(match.marks.givenText, match.marks.given);
+      } else {
+        given = esc(answer.given);
+      }
+    } else if (!answer.correct) {
+      given = givenDiff(answer.given, expected);
+    }
+    // « Presque » : le verdict dit déjà « Attention aux accents », pas de second encadré.
+    const diagnosis = answer.diagnosis && !answer.accentsOnly ? `<div class="diag">${diagnosisText(answer.diagnosis, question)}</div>` : '';
     const alsoLike = verb.alsoLike.length
       ? `<div class="also-like">Se conjugue comme lui : ${verb.alsoLike.map(esc).join(', ')}.</div>`
       : '';
-    const locked = !context.retyped;
-    return `<div class="screen play fb">
+    return `<div class="screen play fb fb-${kind}">
       <div class="top-safe"></div>
-      <div class="play-top">${topBar(session, env.now(), session.position - 1)}</div>
+      <div class="play-top">${topBar(session, session.position - 1)}</div>
       <div class="fb-word">
         <div class="ask">${questionLabel(question)}</div>
+        <div class="big" style="font-size:${fitFontSize(expected.display, 56, 640)}px">${big}</div>
         <div class="big-row">
-          <div class="big" style="font-size:${fitFontSize(expected.display, 44, 640)}px">${segmented(expected.segments)}</div>
           ${speakButton(expected.forms[0])}
+          ${given ? `<div class="you-said">Ta réponse : <span class="given">${given}</span></div>` : segmentLegend(expected.segments)}
         </div>
-        ${SEGMENT_LEGEND}
         ${others}
-        ${diff ? `<div class="you-said">Tu as répondu <span class="given">${diff.given}</span></div>
-          <div class="you-said">Il fallait <span class="target">${diff.target}</span></div>` : ''}
       </div>
-      <div class="grow"></div>
       <div class="sheet">
-        <div class="verdict${answer.correct ? ' ok' : ''}">
-          <div class="mark">${answer.correct ? `✓${sparks()}` : '!'}</div>
+        <div class="verdict ${kind}">
+          <div class="mark">${mark}</div>
           <div><div class="t1">${title}</div><div class="t2">${subtitle}</div></div>
         </div>
         ${diagnosis}
@@ -570,7 +658,7 @@ const feedback = {
           <div class="fun-text">${verb.note || verb.type.rule}</div>
           ${alsoLike}
         </div>
-        <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}"${locked ? ' aria-disabled="true"' : ''}>${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
+        ${nextButton(context)}
       </div>
     </div>`;
   },
@@ -583,66 +671,101 @@ const feedback = {
     const form = root.querySelector('.retype');
     if (!form) return;
     form.outerHTML = retypeBlock(context);
-    const next = root.querySelector('.next-btn');
-    if (context.retyped) {
-      next.removeAttribute('aria-disabled');
-      next.focus({ preventScroll: true });
-    } else {
-      const input = root.querySelector('#retype');
-      input.focus({ preventScroll: true });
-    }
+    root.querySelector('.next-btn').outerHTML = nextButton(context);
+    if (context.retyped) root.querySelector('.next-btn').focus({ preventScroll: true });
+    else root.querySelector('#retype').focus({ preventScroll: true });
   },
 };
 
 /* ---------- Bilan ---------- */
+
+/**
+ * Barre du niveau au bilan : acquises avant la partie, gain de la partie (ambre), formes en chemin (pointillés ambre),
+ * formes à revoir (pointillés rouges).
+ */
+function resultsBar({ mastered, total, gained = 0, inProgress = 0, lost = 0 }) {
+  const w = n => percentOf(n, total);
+  const parts = [
+    [mastered - gained, 'done'], [gained, 'today'], [lost, 'lost'], [inProgress, 'way'],
+  ].filter(([n]) => n > 0).map(([n, cls]) => `<div class="rb-${cls}" style="width:${w(n)}%"></div>`).join('');
+  // Le libellé lu à voix haute décrit les mêmes segments que la barre.
+  const label = [masteredText(mastered, total), gained && `dont ${gained} pendant cette partie`, lost && `${lost} à revoir`, inProgress && `${inProgress} en chemin`]
+    .filter(Boolean).join(', ');
+  return `<div class="results-bar" role="img" aria-label="${label}">${parts}</div>`;
+}
+
+/** Formes repassées « à revoir » pendant la partie : chacune est nommée. */
+const lostCard = lost => (lost.length ? `<div class="re-card re-lost">
+    <span class="re-card-title">À revoir</span>
+    ${lost.map(q => `<div class="re-lost-row"><span class="re-redo" aria-hidden="true">↻</span><span><b>${esc(q.expected.display)}</b><span>Une bonne réponse peut suffire à la récupérer.</span></span></div>`).join('')}
+  </div>` : '');
 
 const results = {
   screen: 'results',
   render({ context }) {
     const s = context.summary;
     const { record, level } = s;
-    const { masteredBefore, masteredAfter, masteredGain: gain } = record;
+    const { masteredAfter: after, masteredGain: gain } = record;
     const total = level.combos.length;
-    const hero = gain > 0
-      ? `<span class="re-hero">+${gain}</span>`
-      : `<span class="re-hero">${masteredAfter}<small>/${total}</small></span>`;
-    const sub = gain > 0
-      ? `${plural(gain, 'forme')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`
-      : `${plural(masteredAfter, 'forme acquise', 'formes acquises')} du niveau. ${VERDICT_TEXT[s.verdict]}`;
+    const lost = s.newlyLost;
     const dots = record.answers.map(a => `<i class="${a.correct ? 'ok' : 'ko'}"></i>`).join('');
-    const mastered = s.newlyMastered;
-    const masteredRow = mastered.length
-      ? `<div class="re-sep"></div>
-        <div class="re-new">
-          <span class="re-star">${ICON.star}</span>
-          <span><small>${mastered.length > 1 ? 'Nouvelles formes maîtrisées' : 'Nouvelle forme maîtrisée'}</small>
-          <b>${mastered.map(q => esc(q.expected.display)).join(', ')}</b></span>
-        </div>`
-      : '';
-    const unlocked = unlockedChips(s.unlocked);
+    const scoreCard = `<div class="re-card">
+      <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
+        <span class="re-dots" role="img" aria-label="${record.answers.map(a => (a.correct ? 'juste' : 'fausse')).join(', ')}">${dots}</span>
+      </div>
+    </div>`;
+    const unlocked = unlockedCard(s.unlocked);
+    let head, body;
+    if (record.correctCount === 0) {
+      // Aucune réponse juste : chaque forme a été recopiée, et c'est déjà un progrès.
+      head = `<span class="re-hero">${record.total}</span><span class="re-sub strong">${plural(record.total, 'forme recopiée', 'formes recopiées')}</span>`;
+      const tile = (value, label, dark = false) => `<div class="re-tile${dark ? ' dark' : ''}"><b>${value}</b><span>${label}</span></div>`;
+      // Formes perdues : la barre du niveau revient, pour expliquer la baisse qu'on verra à l'accueil.
+      const lostBar = lost.length ? `<div class="re-progress">
+          ${resultsBar({ mastered: after, total, lost: lost.length })}
+          <div class="re-legend"><b>${after}</b> ${plural(after, 'acquise', 'acquises')} · <b class="lost">${lost.length}</b> à revoir</div>
+        </div>` : '';
+      body = `${lostBar}<div class="re-card">
+          <h2 class="re-encourage">Recopier, c'est déjà progresser.</h2>
+          <p class="re-encourage-text">Chaque forme recopiée, vous l'avez écrite juste une première fois. C'est comme ça qu'elle commence à se fixer.</p>
+        </div>
+        <div class="re-tiles">${tile(minutesText(record.durationMs), 'de pratique')}${tile(`Jour ${s.streak}`, s.streak > 1 ? 'série en cours' : 'série lancée', true)}</div>`;
+    } else {
+      // `gain` est le solde de la partie : formes devenues acquises moins formes repassées à revoir.
+      const gained = s.newlyMastered.length;
+      const inProgress = gain > 0 ? 0 : s.inProgress;
+      const subGain = lost.length
+        ? `${gained} ${plural(gained, 'forme acquise', 'formes acquises')}, ${lost.length} à revoir, en ${durationText(record.durationMs)}.`
+        : `${plural(gain, 'forme acquise', 'formes acquises')} en ${durationText(record.durationMs)}. ${VERDICT_TEXT[s.verdict]}`;
+      head = gain > 0
+        ? `<span class="re-hero">+${gain}</span><span class="re-sub">${subGain}</span>`
+        : `<span class="re-hero">${after}<small>/${total}</small></span><span class="re-sub">${plural(after, 'forme acquise', 'formes acquises')}${lost.length
+          ? `. ${lost.length > 1 ? `${lost.length} formes sont à revoir.` : 'Une forme est à revoir.'}` : ', rien de perdu.'}</span>`;
+      const legend = [
+        gain > 0 ? `<b>${after}</b> / ${formsText(total)}` : `<b>${after}</b> ${plural(after, 'acquise', 'acquises')}`,
+        inProgress && `<b>${inProgress}</b> en chemin`,
+        lost.length && `<b class="lost">${lost.length}</b> à revoir`,
+      ].filter(Boolean).join(' · ');
+      body = `<div class="re-progress">
+          ${resultsBar({ mastered: after, total, gained: Math.min(gained, after), inProgress, lost: lost.length })}
+          <div class="re-legend">${legend}</div>
+        </div>
+        ${scoreCard}
+        ${lostCard(lost)}`;
+    }
     return `<div class="screen end">
       <div class="top-safe"></div>
       <div class="end-body">
         <div class="center-col">
           <div class="re-head">
             <span class="re-level">Niveau ${level.number} · ${esc(level.title)}</span>
-            ${hero}
-            <span class="re-sub">${sub}</span>
+            ${head}
           </div>
-          <div class="re-progress">
-            ${levelBar({ mastered: masteredAfter, total, today: gain }, { big: true, label: `Formes acquises du niveau : de ${masteredBefore} à ${masteredAfter} sur ${total}` })}
-            ${gain > 0 ? `<div class="re-legend"><b>${masteredAfter}</b> / ${formsText(total)}</div>` : ''}
-          </div>
-          <div class="re-card">
-            <div class="re-score"><b>${record.correctCount} / ${record.total} justes</b>
-              <span class="re-dots" role="img" aria-label="${record.answers.map(a => (a.correct ? 'juste' : 'fausse')).join(', ')}">${dots}</span>
-            </div>
-            ${masteredRow}
-          </div>
+          ${body}
           ${unlocked}
         </div>
         <div class="end-actions">
-          ${playButton('Encore une', '')}
+          ${playButton('Encore une')}
           <button class="link-btn" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Accueil</button>
         </div>
       </div>
@@ -657,24 +780,45 @@ const journey = {
   render({ context }) {
     const h = context.home;
     const { level } = h;
-    const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
-        <span class="jr-check">${ICON.check}</span>
-        <span class="jr-text"><b>${esc(entry.level.label)}</b><span>${esc(entry.level.title)}</span></span>
-        <span class="jr-num">Niveau ${entry.level.number}</span>
-      </div>`).join('');
     const bar = { ...homeBarParts(h), next: 0 };
-    const left = h.isLevelComplete ? 'Niveau terminé.' : `Encore ≈ ${partiesText(h.gamesLeft)} et une nouvelle étape s'ouvre.`;
+    const left = h.isLevelComplete ? 'Niveau terminé.' : `Encore ≈ ${partiesText(h.gamesLeft)} et il est à vous.`;
+    const current = `<div class="jr-current">
+        ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
+        ${levelBar(bar, { dark: true })}
+        <p>${bar.today ? `<b>+${formsText(bar.today)} aujourd'hui.</b> ` : ''}${left}</p>
+      </div>`;
+    let body;
+    if (h.gamesPlayed < PROGRESS_UNLOCK_GAMES) {
+      // Statistiques verrouillées : une case par partie à jouer, remplie avec son score.
+      const slots = Array.from({ length: PROGRESS_UNLOCK_GAMES }, (_, i) => {
+        const g = h.firstScores[i];
+        return g ? `<div class="slot full" style="animation-delay:${i * 80}ms">${g.correct}/${g.total}</div>` : '<div class="slot"></div>';
+      }).join('');
+      const left = PROGRESS_UNLOCK_GAMES - h.gamesPlayed;
+      body = `<div class="locked-card">
+          <div class="slots" role="img" aria-label="${h.gamesPlayed} ${plural(h.gamesPlayed, 'partie jouée', 'parties jouées')} sur ${PROGRESS_UNLOCK_GAMES}">${slots}</div>
+          <h2>${h.gamesPlayed === 0 ? `Jouez ${PROGRESS_UNLOCK_GAMES} parties pour voir vos statistiques.` : `Encore ${left} ${plural(left, 'partie')} pour voir vos statistiques.`}</h2>
+          <p>Formes acquises, temps de pratique, niveaux maîtrisés : tout se remplit au fil des parties.</p>
+        </div>`;
+    } else {
+      const rows = h.journey.map((entry, i) => `<div class="jr-row" style="animation-delay:${i * 40}ms">
+          <span class="jr-check">${ICON.check}</span>
+          <span class="jr-text"><b>${esc(entry.level.title)}</b><span>${esc(capitalize(entry.level.tense.label))} · ${esc(entry.level.label)}</span></span>
+          <span class="jr-num">Niveau ${entry.level.number}</span>
+        </div>`).join('');
+      body = `<div class="jr-tiles">
+          <div class="jr-tile"><b>${h.formsMastered}</b><span>${plural(h.formsMastered, 'forme acquise', 'formes acquises')}</span></div>
+          <div class="jr-tile"><b>${minutesText(h.practiceMs)}</b><span>de pratique</span></div>
+        </div>
+        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
+        ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}`;
+    }
     return `<div class="screen">
       <div class="top-safe"></div>
       <div class="page journey">
         <div class="page-title">Mon parcours</div>
-        <div class="jr-current">
-          ${levelHead(`${h.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · Niveau ${level.number}`, level, h.mastered, `<span class="jr-sub">${esc(capitalize(level.tense.label))} · ${esc(level.label)}</span>`)}
-          ${levelBar(bar, { dark: true })}
-          <p>${bar.today ? `<b>+${formsText(bar.today)} aujourd'hui.</b> ` : ''}${left}</p>
-        </div>
-        <div class="jr-head"><h2>Déjà maîtrisé</h2><span>${h.levelsCompleted} ${plural(h.levelsCompleted, 'niveau')}</span></div>
-        ${rows ? `<div class="jr-list">${rows}</div>` : '<p class="jr-empty">Vos niveaux terminés s’afficheront ici.</p>'}
+        ${current}
+        ${body}
       </div>
       ${tabbar(Destination.JOURNEY)}
     </div>`;
@@ -685,10 +829,9 @@ const journey = {
 
 function popover(achievement) {
   const status = achievementStatus(achievement);
-  const [bg] = TIER_COLORS[achievement.tier];
   return `<div class="pop" role="dialog" aria-label="${esc(achievement.name)}">
     <div class="pop-head">
-      <div class="em" style="background:${bg}">${achievement.emoji}</div>
+      <div class="em tier-${tierOf(achievement)}">${achievement.emoji}</div>
       <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div class="n">${esc(achievement.name)}</div><div class="t">${status.tierLabel}</div></div>
       <button class="pop-x" data-event="${AppEvent.CLOSE_BADGE}" aria-label="Fermer">✕</button>
     </div>
@@ -714,10 +857,10 @@ const achievements = {
   render({ context }) {
     const { list, earned, total } = context.achievements;
     const grid = list.map((p, i) => {
-      const [bg, rim] = TIER_COLORS[p.tier];
+      const tier = tierOf(p);
       const ticks = p.thresholds.map((_, k) => `<i class="${p.reached > k ? 'on' : ''}"></i>`).join('');
-      return `<button class="badge${p.tier ? '' : ' off'}" data-event="${AppEvent.SELECT_BADGE}" data-index="${i}" style="animation-delay:${i * 35}ms" aria-label="${esc(p.name)}">
-        <div class="em" style="background:${bg};box-shadow:inset 0 -4px 0 ${rim}">${p.emoji}</div>
+      return `<button class="badge t-${tier}${tier ? '' : ' off'}" data-event="${AppEvent.SELECT_BADGE}" data-index="${i}" style="animation-delay:${i * 35}ms" aria-label="${esc(p.name)}">
+        <div class="em tier-${tier}">${tier === 3 ? '<span class="shine" aria-hidden="true"></span>' : ''}${p.emoji}</div>
         <div class="n">${esc(p.name)}</div>
         <div class="ticks">${ticks}</div>
       </button>`;
@@ -725,7 +868,7 @@ const achievements = {
     return `<div class="screen">
       <div class="top-safe"></div>
       <div class="page">
-        <div class="ach-head"><div class="page-title">Succès</div><span>${earned} / ${total}</span></div>
+        <div class="ach-head"><div class="page-title">Succès</div><span>${earned} ${plural(earned, 'obtenu', 'obtenus')} sur ${total}</span></div>
         <div class="badges">${grid}</div>
         <div class="pop-room"></div>
       </div>
