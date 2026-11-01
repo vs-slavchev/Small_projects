@@ -242,7 +242,7 @@ const feedback = {
           <div class="rule-tags"><span class="lbl">${group ? 'Groupe' : 'Genre'}</span>${tags}</div>
           <div class="rule-text">${rule}</div>
         </div>
-        ${word.anecdote ? `<div class="fun"><div class="lbl">💡 Anecdote</div><div class="fun-text">${word.anecdote}</div></div>` : ''}
+        ${answer.anecdote ? `<div class="fun"><div class="lbl">💡 Anecdote</div><div class="fun-text">${answer.anecdote}</div></div>` : ''}
         <button class="next-btn press${answer.correct ? ' ok' : ''}" data-event="${AppEvent.CONTINUE}">${session.isComplete ? 'Voir le résultat' : 'Continuer'}</button>
       </div>
     </div>`;

@@ -47,6 +47,7 @@ function createUseCases({ bank, profiles, preferences, clock, random = Math.rand
         length: gameLength,
         difficulty: profile.difficulty,
         drawWord: request => policy.pick(request).word,
+        random,
         now: clock.now(),
       });
     },

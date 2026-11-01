@@ -55,7 +55,7 @@ class PlayerProfile {
   recordGame(record, bank) {
     for (const a of record.answers) {
       if (a.correct && this.#wordStats.get(a.word).lastCorrect === false) this.#recoveries++;
-      if (bank.word(a.word)?.anecdote) this.#anecdotesRead++;
+      if (bank.word(a.word)?.hasAnecdote) this.#anecdotesRead++;
       this.#wordStats.record(a.word, a.correct);
     }
     this.#games.push(record);

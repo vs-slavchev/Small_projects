@@ -88,3 +88,25 @@ test('un mot sans règle ne suit pas la règle d’un groupe à terminaison', ()
     assert.equal(group, undefined, `« ${w.text} » est ${w.gender.label} et finit par ${group?.suffix} : il suit la règle de ce groupe`);
   }
 });
+
+test('fun : absent, un texte ou un tableau de textes', () => {
+  const groups = [{ id: 'ette', label: '-ette', g: 'f', rule: '' }];
+  const bank = WordBank.fromData({ groups, words: [
+    { w: 'baguette', g: 'f', grp: 'ette' },
+    { w: 'assiette', g: 'f', grp: 'ette', fun: 'Une.' },
+    { w: 'recette', g: 'f', grp: 'ette', fun: ['Une.', 'Deux.'] },
+  ] });
+  assert.deepEqual(bank.word('baguette').anecdotes, []);
+  assert.equal(bank.word('baguette').hasAnecdote, false);
+  assert.deepEqual(bank.word('assiette').anecdotes, ['Une.']);
+  assert.deepEqual(bank.word('recette').anecdotes, ['Une.', 'Deux.']);
+  assert.ok(bank.word('recette').hasAnecdote);
+  for (const fun of [[], [''], ['Une.', 42]]) {
+    assert.throws(() => WordBank.fromData({ groups, words: [{ w: 'baguette', g: 'f', grp: 'ette', fun }] }), DomainError);
+  }
+});
+
+test('chaque mot de la banque réelle a au moins une anecdote', () => {
+  const missing = realBank().words.filter(w => !w.hasAnecdote).map(w => w.text);
+  assert.deepEqual(missing, []);
+});

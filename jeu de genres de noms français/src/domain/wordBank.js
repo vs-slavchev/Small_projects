@@ -40,9 +40,9 @@ class WordGroup {
 class Word {
   /**
    * @param {{ text: string, gender: Gender, group: WordGroup | null, isException?: boolean,
-   *           aspiratedH?: boolean, translation?: string, anecdote?: string | null }} props
+   *           aspiratedH?: boolean, translation?: string, anecdotes?: string[] }} props
    */
-  constructor({ text, gender, group = null, isException = false, aspiratedH, translation = '', anecdote = null }) {
+  constructor({ text, gender, group = null, isException = false, aspiratedH, translation = '', anecdotes = [] }) {
     if (!text) throw new DomainError('Un mot doit avoir un texte.');
     if (!(gender instanceof Gender)) throw new DomainError(`« ${text} » : genre invalide.`);
     if (group === null) {
@@ -65,9 +65,15 @@ class Word {
     this.isException = isException;
     this.aspiratedH = aspiratedH === true;
     this.translation = translation;
-    this.anecdote = anecdote || null;
+    if (!Array.isArray(anecdotes) || anecdotes.some(a => typeof a !== 'string' || !a.trim())) {
+      throw new DomainError(`« ${text} » : chaque anecdote doit être un texte non vide.`);
+    }
+    /** Anecdotes possibles ; une seule est tirée au hasard à chaque réponse. */
+    this.anecdotes = Object.freeze([...anecdotes]);
     Object.freeze(this);
   }
+
+  get hasAnecdote() { return this.anecdotes.length > 0; }
 
   /** Vrai pour un mot régulier de son groupe ; faux pour une exception ou un mot sans règle. */
   get followsRule() {
@@ -111,6 +117,14 @@ class Word {
 }
 
 /** Catalogue immuable des groupes et des mots du jeu. */
+/** `fun` : absent, un texte, ou un tableau de textes non vide. */
+function toAnecdotes(w) {
+  if (w.fun === undefined || w.fun === null) return [];
+  if (typeof w.fun === 'string') return [w.fun];
+  if (Array.isArray(w.fun) && w.fun.length) return w.fun;
+  throw new DomainError(`« ${w.w} » : fun doit être un texte ou un tableau de textes non vide.`);
+}
+
 class WordBank {
   #groups;
   #words;
@@ -145,7 +159,7 @@ class WordBank {
       const group = w.grp ? byId.get(w.grp) : null;
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
-        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdote: w.fun,
+        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdotes: toAnecdotes(w),
       });
     });
     return new WordBank(groupList, wordList);
