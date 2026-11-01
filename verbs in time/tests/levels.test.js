@@ -177,6 +177,10 @@ test('accueil : gain du jour, rythme et parties restantes', () => {
   assert.equal(home.gamesLeft, 2, '2 formes restantes, 4/3 de forme par partie');
   assert.equal(home.nextGameForms, 1, '4/3 de forme par partie, arrondi');
   assert.deepEqual(home.journey.map(h => h.level.number), [5, 4, 3, 2, 1], 'du plus récent au plus ancien');
+  assert.deepEqual(home.learnedToday, ['je finis'], 'la forme posée aujourd’hui, acquise maintenant, une seule fois');
+  assert.equal(home.gamesPlayed, 3);
+  assert.deepEqual(home.firstScores, [{ correct: 1, total: 1 }, { correct: 1, total: 1 }, { correct: 1, total: 1 }]);
+  assert.equal(home.practiceMs, 3);
 });
 
 test('accueil : après le dernier niveau, il est terminé sans réapparaître dans le parcours', () => {

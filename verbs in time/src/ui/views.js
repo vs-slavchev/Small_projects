@@ -18,16 +18,19 @@ const TIER_COLORS = Object.freeze({ 0: ['#ECE5D8', '#D6CDBC'], 1: ['#F1D7C2', '#
 
 /* ---------- Éléments communs ---------- */
 
+/**
+ * Barre d'onglets : Progrès · Jouer · Succès. « Jouer » est au centre, toujours libellé ainsi :
+ * sur l'accueil il lance une partie, ailleurs il ramène à l'accueil.
+ */
 function tabbar(active) {
   const tab = (to, icon, label) =>
     `<button class="tab${active === to ? ' on' : ''}" data-event="${AppEvent.NAVIGATE}" data-to="${to}"${active === to ? ' aria-current="page"' : ''}><span class="ico">${icon}</span>${label}</button>`;
-  return `<nav class="tabbar">${tab(Destination.HOME, ICON.play, 'Jouer')}${tab(Destination.JOURNEY, ICON.chart, 'Progrès')}${tab(Destination.ACHIEVEMENTS, ICON.medal, 'Succès')}</nav>`;
+  const play = active === Destination.HOME
+    ? `<button class="tab-play press" data-event="${AppEvent.START}">Jouer</button>`
+    : `<button class="tab-play press" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.HOME}">Jouer</button>`;
+  return `<nav class="tabbar">${tab(Destination.JOURNEY, ICON.chart, 'Progrès')}<div class="tab-center">${play}</div>${tab(Destination.ACHIEVEMENTS, ICON.medal, 'Succès')}</nav>`;
 }
 
-/**
- * Suivi de partie : quitter, un segment par tour, combo. Une seule structure ; en peu de hauteur
- * (clavier ouvert, petit écran), la feuille de style la passe en version compacte.
- */
 function topBar(session, freshIndex) {
   const answers = session.answers;
   let segments = '';
@@ -332,6 +335,9 @@ const ICON = Object.freeze({
   star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
   soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
   soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h12l-3 4 3 4H5"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
 });
 
 const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
@@ -348,10 +354,14 @@ function soundButton(on) {
 }
 
 /** En-tête commun : logo et son. */
-function homeHeader(soundEnabled) {
+/** En-tête de l'accueil : logo, série (pointillée tant qu'elle reste à prolonger aujourd'hui), son. */
+function homeHeader(soundEnabled, home) {
+  const secured = home.state === HomeState.PLAYED_TODAY;
+  const streak = home.streak
+    ? `<span class="streak${secured ? '' : ' at-risk'}" role="img" aria-label="Série de ${home.streak} ${plural(home.streak, 'jour')}${secured ? ', assurée aujourd’hui' : ', à prolonger aujourd’hui'}">${ICON.flame}${home.streak}</span>` : '';
   return `<div class="home-head">
     <div class="logo">verbes <span>&amp;</span> temps</div>
-    ${soundButton(soundEnabled)}
+    <div class="home-head-right">${streak}${soundButton(soundEnabled)}</div>
   </div>`;
 }
 
@@ -369,7 +379,7 @@ function homeHeadline(home) {
         return `<span class="eyebrow">Aujourd'hui, vous avez terminé</span><h1>${amber(what)}</h1>${more}`;
       }
       return home.todayGain > 0
-        ? `<span class="eyebrow">Aujourd'hui, vous avez avancé de</span><h1>${amber(`+${formsText(home.todayGain)}`)}</h1>`
+        ? `<span class="eyebrow">Aujourd'hui</span><h1>${amber(`+${formsText(home.todayGain)}`)} ${plural(home.todayGain, 'acquise', 'acquises')}</h1>`
         : `<span class="eyebrow">Vous avez joué aujourd'hui.</span><h1>Chaque partie compte.</h1>`;
     }
     case HomeState.NOT_YET_TODAY: {
@@ -388,25 +398,6 @@ function homeHeadline(home) {
     default:
       return `<h1>Bon retour&nbsp;!</h1><p>Regardez le chemin déjà parcouru&nbsp;:</p>`;
   }
-}
-
-/** Carte sombre : les formes déjà acquises (masquée tant qu'il n'y en a aucune). */
-function achievedCard(home) {
-  if (!home.formsMastered) return '';
-  const done = home.levelsCompleted;
-  const sub = {
-    [HomeState.PLAYED_TODAY]: home.formsToday ? `+${home.formsToday} aujourd'hui` : '',
-    [HomeState.NOT_YET_TODAY]: home.formsYesterday ? `+${home.formsYesterday} hier` : '',
-    [HomeState.BACK]: plural(home.formsMastered, 'intacte', 'intactes'),
-    [HomeState.AWAY]: done ? `${done} ${plural(done, 'niveau terminé', 'niveaux terminés')}` : '',
-  }[home.state];
-  return `<div class="achieved">
-    <span class="eyebrow">Vous savez ${home.isReturning ? 'toujours' : 'déjà'} conjuguer</span>
-    <div class="achieved-row">
-      <span class="achieved-num">${home.formsMastered}</span>
-      <span class="achieved-unit"><b>${plural(home.formsMastered, 'forme')}</b>${sub ? `<em>${sub}</em>` : ''}</span>
-    </div>
-  </div>`;
 }
 
 /**
@@ -445,48 +436,61 @@ function homeBarParts(home) {
   };
 }
 
-function levelCard(home) {
+/** Le niveau en cours, sur le chemin : anneau d'avancement, carte avec la barre qui mène au drapeau d'arrivée. */
+function levelNode(home) {
   const { level } = home;
+  const total = level.combos.length;
+  const parts = homeBarParts(home);
+  const done = percentOf(parts.mastered - parts.today, total);
+  const today = percentOf(parts.mastered, total) - done;
+  const remaining = total - home.mastered;
   const parties = partiesText(home.gamesLeft);
-  const badge = (text, dashed) => `<span class="badge-pill${dashed ? ' dashed' : ''}">${dashed ? '' : '<i></i>'}${text}</span>`;
-  const next = `≈&nbsp;+${formsText(home.nextGameForms)}`;
-  const footer = home.isLevelComplete ? '<span class="lc-note">Niveau terminé</span>' : {
-    [HomeState.PLAYED_TODAY]: home.todayGain > 0
-      ? `${badge(`+${formsText(home.todayGain)} aujourd'hui`)}<span class="lc-note">à ce rythme, ≈ ${parties}</span>`
-      : `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
-    [HomeState.NOT_YET_TODAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">≈ ${parties} et il est à vous</span>`,
-    [HomeState.BACK]: badge(`Une partie suffit pour repartir&nbsp;: ${next}`, true),
-    [HomeState.AWAY]: `${badge(`Une partie ${next}`, true)}<span class="lc-note">encore ≈ ${parties}</span>`,
-  }[home.state];
-  return `<div class="level-card">
-    ${levelHead(`Niveau ${level.number} · ${esc(capitalize(level.tense.label))}`, level, home.mastered)}
-    ${levelBar(homeBarParts(home))}
-    <div class="lc-foot">${footer}</div>
+  const note = home.isLevelComplete ? 'Niveau terminé : les parties gardent les formes en mémoire.'
+    : home.state === HomeState.PLAYED_TODAY && home.todayGain > 0
+      ? `Plus que <b>${formsText(remaining)}</b>${home.gamesLeft <= 1 ? ' : une partie peut suffire.' : ` · encore ≈ ${parties}.`}`
+      : `Encore <b>≈ ${parties}</b> et il est à vous.`;
+  return `<div class="path-node current">
+    <span class="path-ring" style="--done:${done}%;--today:${done + today}%"><span>${level.number}</span></span>
+    <div class="level-card">
+      ${levelHead(`${home.levelAlreadyCompleted ? 'Terminé' : 'En cours'} · ${esc(capitalize(level.tense.label))}`, level, home.mastered)}
+      <div class="lc-bar-row">${levelBar(parts)}<span class="lc-flag" role="img" aria-label="Niveau terminé">${ICON.flag}</span></div>
+      <p class="lc-note">${note}</p>
+    </div>
   </div>`;
 }
 
-/** Après une longue absence : les derniers niveaux terminés, puis le niveau en cours. */
-function journeyDots(home) {
-  const done = home.journey.slice(0, 5).reverse();
-  const dots = [
-    ...done.map(h => `<span class="jd done" title="Niveau ${h.level.number}">${ICON.check}</span><span class="jd-link"></span>`),
-    `<span class="jd current">${home.level.number}</span>`,
-  ].join('');
-  return `<div class="journey-dots">
-    <span class="section-label">Votre parcours</span>
-    <div class="jd-row" role="img" aria-label="${home.levelsCompleted ? `${home.levelsCompleted} ${plural(home.levelsCompleted, 'niveau terminé', 'niveaux terminés')}, ` : ''}niveau ${home.level.number} ${home.levelAlreadyCompleted ? 'terminé, en révision' : `en cours, ${masteredText(home.mastered, home.level.combos.length)}`}">${dots}</div>
+/** Niveau terminé, sur le chemin. */
+const doneNode = entry => `<div class="path-node">
+    <span class="path-check">${ICON.check}</span>
+    <span class="path-text"><b>Niveau ${entry.level.number} · ${esc(entry.level.title)}</b><span>${esc(capitalize(entry.level.tense.label))}</span></span>
+  </div>`;
+
+/** Chemin de l'accueil : le niveau en cours, puis les deux derniers niveaux terminés ; au-delà, un lien vers le parcours. */
+function homePath(home) {
+  const shown = home.journey.slice(0, 2);
+  const more = home.journey.length - shown.length;
+  return `<div class="path">
+    ${levelNode(home)}
+    ${shown.map(doneNode).join('')}
+    ${more > 0 ? `<button class="path-more" data-event="${AppEvent.NAVIGATE}" data-to="${Destination.JOURNEY}">
+      <span class="path-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="path-more-text">Et ${more} ${plural(more, 'autre niveau', 'autres niveaux')}</span>
+      <span class="path-more-link">Parcours ${ICON.chevron}</span>
+    </button>` : ''}
   </div>`;
 }
 
-/** Bouton de l'accueil selon son état : libellé, et précision (`null` : la longueur de la partie). */
-const PLAY_CTA = Object.freeze({
-  [HomeState.PLAYED_TODAY]: ['Encore une', null],
-  [HomeState.NOT_YET_TODAY]: ['Nouvelle partie', null],
-  [HomeState.BACK]: ['Reprendre', null],
-  [HomeState.AWAY]: ['Reprendre', null],
-});
+/** Déjà joué aujourd'hui : les formes devenues acquises, sur une carte de nuit. */
+function learnedCard(home) {
+  if (home.state !== HomeState.PLAYED_TODAY || !home.learnedToday.length) return '';
+  return `<div class="learned">
+    <span class="learned-title">Vous savez désormais dire</span>
+    <div class="learned-forms">${home.learnedToday.slice(0, 6).map(f => `<span>${esc(f)}</span>`).join('')}</div>
+    ${home.streak ? `<span class="learned-streak">${ICON.check}Série de ${home.streak} ${plural(home.streak, 'jour')} assurée</span>` : ''}
+  </div>`;
+}
 
-/** Bouton de partie : libellé et précision éventuelle. */
+/** Bouton de partie : libellé et précision éventuelle (bilan). */
 function playButton(label, sub) {
   return `<button class="play-btn press" data-event="${AppEvent.START}">
     <span class="pb-text"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span>
@@ -497,18 +501,13 @@ const home = {
   screen: 'home',
   render({ context }) {
     const h = context.home;
-    const [label, sub] = PLAY_CTA[h.state];
-    const length = `${context.gameLength} questions · ≈ 2 min`;
     return `<div class="screen home">
       <div class="top-safe"></div>
       <div class="home-body">
-        ${homeHeader(context.soundEnabled)}
+        ${homeHeader(context.soundEnabled, h)}
         <div class="headline">${homeHeadline(h)}</div>
-        ${achievedCard(h)}
-        ${levelCard(h)}
-        ${h.state === HomeState.AWAY ? journeyDots(h) : ''}
-        <div class="grow"></div>
-        ${playButton(label, sub ?? length)}
+        ${learnedCard(h)}
+        ${homePath(h)}
       </div>
       ${tabbar(Destination.HOME)}
     </div>`;
