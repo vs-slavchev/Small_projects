@@ -92,7 +92,7 @@ const WORDS = Object.freeze([
   ] },
   { w: 'liberté', g: 'f', grp: 'te', en: 'freedom', fun: [
     "C’est le premier mot de la devise de la France : « Liberté, Égalité, Fraternité ».",
-    "La statue de la Liberté, à New York, est un cadeau de la France aux États-Unis. Elle est arrivée en 1886.",
+    "La statue de la Liberté, à New York, est un cadeau de la France aux États-Unis. Elle a été inaugurée en 1886.",
   ] },
   { w: 'beauté', g: 'f', grp: 'te', en: 'beauty', fun: [
     "« Beau » + <b>-té</b> donne « beauté », comme « bon » + <b>-té</b> donne « bonté ».",
@@ -131,7 +131,7 @@ const WORDS = Object.freeze([
   { w: 'confiance', g: 'f', grp: 'ance', en: 'trust', fun: "De « confier » : avoir confiance, c’est pouvoir confier une chose précieuse à quelqu’un." },
   { w: 'ambulance', g: 'f', grp: 'ance', en: 'ambulance', fun: [
     "Au départ, c’est un « hôpital ambulant », un hôpital qui suivait l’armée.",
-    "Dans les armées de Napoléon, le médecin Dominique-Jean Larrey a créé des voitures rapides pour aller chercher les blessés pendant la bataille.",
+    "Pendant la Révolution, le médecin Dominique-Jean Larrey a créé des voitures rapides pour aller chercher les blessés pendant la bataille. Ensuite, il a suivi Napoléon dans ses guerres.",
   ] },
   { w: 'enfance', g: 'f', grp: 'ance', en: 'childhood', fun: "Du latin <i>infans</i>, « celui qui ne parle pas » : un enfant, c’est d’abord un bébé qui ne parle pas encore." },
   { w: 'naissance', g: 'f', grp: 'ance', en: 'birth', fun: [
@@ -233,7 +233,7 @@ const WORDS = Object.freeze([
   { w: 'pare-brise', g: 'm', grp: 'ise', exc: true, en: 'windscreen', fun: "Comme « parapluie », c’est un verbe + un nom : il « pare » (arrête) la « brise », le vent. Ces mots-là sont masculins." },
   { w: 'église', g: 'f', grp: 'ise', en: 'church', fun: "Du grec <i>ekklêsia</i>, « assemblée » : l’église, ce sont d’abord les gens réunis, puis le bâtiment." },
   { w: 'chemise', g: 'f', grp: 'ise', en: 'shirt', fun: [
-    "Du latin <i>camisia</i>, qui a aussi donné « camisole ».",
+    "Du latin <i>camisia</i>, comme l’espagnol <i>camisa</i>.",
     "En 1347, six bourgeois de Calais sont allés devant le roi d’Angleterre en chemise, une corde au cou, pour sauver leur ville. Rodin les a sculptés.",
   ] },
   { w: 'surprise', g: 'f', grp: 'ise', en: 'surprise', fun: "Le participe passé féminin du verbe « surprendre », devenu un nom." },
@@ -317,7 +317,7 @@ const WORDS = Object.freeze([
   // -ier
   { w: 'cahier', g: 'm', grp: 'ier', en: 'notebook', fun: [
     "Du latin <i>quaterni</i>, « par quatre » : un cahier, c’était des feuilles pliées en quatre.",
-    "En 1789, avant la Révolution, les Français ont écrit leurs problèmes et leurs demandes au roi dans des « cahiers de doléances ».",
+    "En 1789, avant la Révolution, les Français ont écrit leurs problèmes et leurs demandes au roi dans des cahiers.",
   ] },
   { w: 'panier', g: 'm', grp: 'ier', en: 'basket', fun: "Du latin <i>panarium</i>, « corbeille à pain » : on retrouve « pain » dans « panier »." },
   { w: 'escalier', g: 'm', grp: 'ier', en: 'staircase', fun: [
@@ -333,7 +333,7 @@ const WORDS = Object.freeze([
   { w: 'projet', g: 'm', grp: 'et', en: 'project', fun: "Du verbe « projeter », « jeter en avant » : un projet, c’est une idée lancée vers l’avenir." },
   { w: 'jouet', g: 'm', grp: 'et', en: 'toy', fun: "De « jouer », du latin <i>jocari</i>, « plaisanter ». L’anglais <i>joke</i> vient de la même famille." },
   { w: 'billet', g: 'm', grp: 'et', en: 'ticket', fun: [
-    "De l’ancien mot « bullette », un petit document avec un sceau.",
+    "De l’ancien mot « bullette », un petit papier fermé avec de la cire.",
     "Les premiers billets de banque en France arrivent en 1716, avec l’Écossais John Law. Avant, on payait avec des pièces.",
   ] },
   { w: 'objet', g: 'm', grp: 'et', en: 'object', fun: "Du latin <i>objectum</i>, « ce qui est placé devant » : un objet, c’est ce qu’on a devant les yeux." },
@@ -498,7 +498,7 @@ const WORDS = Object.freeze([
   { w: 'aspirateur', g: 'm', grp: 'teur', en: 'vacuum cleaner', fun: "Du verbe « aspirer », « tirer l’air vers soi ». On « passe l’aspirateur » pour nettoyer le sol." },
   { w: 'hauteur', g: 'f', grp: 'teur', exc: true, asp: true, en: 'height', fun: "De l’adjectif « haut » : c’est une mesure, une qualité, d’où le féminin : « la hauteur d’un mur ». Le h est aspiré : on ne dit jamais « l’hauteur »." },
   // pays en -e
-  { w: 'France', g: 'f', grp: 'paysF', en: 'France', fun: "Du latin <i>Francia</i>, « le pays des Francs », un peuple germanique installé en Gaule. Leur roi Clovis est un des premiers rois de France." },
+  { w: 'France', g: 'f', grp: 'paysF', en: 'France', fun: "Du latin <i>Francia</i>, « le pays des Francs », un peuple germanique installé en Gaule. Leur roi Clovis est souvent appelé le premier roi des Francs." },
   { w: 'Italie', g: 'f', grp: 'paysF', en: 'Italy', fun: "Du latin <i>Italia</i>. Au départ, ce nom désignait seulement le sud du pays actuel. L’accord montre le féminin : « l’Italie est belle »." },
   { w: 'Espagne', g: 'f', grp: 'paysF', en: 'Spain', fun: "Du latin <i>Hispania</i>, le nom romain de l’Espagne et du Portugal ensemble. L’accord montre le féminin : « l’Espagne entière »." },
   { w: 'Belgique', g: 'f', grp: 'paysF', en: 'Belgium', fun: [
@@ -558,7 +558,7 @@ const WORDS = Object.freeze([
     "Avant le mètre, le « pied » était aussi une mesure de longueur, environ 32 cm en France.",
   ] },
   { w: 'sel', g: 'm', en: 'salt', fun: "Du latin <i>sal</i>, qui a donné « salaire » : on dit que les soldats romains recevaient de l’argent pour acheter du sel." },
-  { w: 'livre', g: 'm', en: 'book', fun: "Du latin <i>liber</i>, « écorce » : on écrivait sur l’écorce des arbres. Attention : « le livre » se lit, « la livre » (500 g) se pèse." },
+  { w: 'livre', g: 'm', en: 'book', fun: "Du latin <i>liber</i> : c’était la peau intérieure des arbres, et on écrivait dessus. Attention : « le livre » se lit, « la livre » (500 g) se pèse." },
   { w: 'dos', g: 'm', en: 'back', fun: "Du latin <i>dorsum</i>, devenu masculin en français. Le s ne se prononce pas : « le dos », « un sac à dos »." },
   { w: 'lait', g: 'm', en: 'milk', fun: [
     "Du latin <i>lac, lactis</i>, qu’on retrouve dans « lactose ». « Un verre de lait ».",

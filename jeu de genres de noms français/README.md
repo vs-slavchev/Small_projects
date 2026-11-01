@@ -17,6 +17,7 @@ src/
 ├── data/words.js              Données brutes : 34 groupes, 214 mots (dont 18 sans règle)
 ├── domain/                    Règles du jeu, sans DOM ni stockage
 │   ├── gender.js              Gender           objet valeur (le / la)
+│   ├── random.js              pickRandom       tirage au hasard partagé
 │   ├── wordBank.js            WordGroup, Word, WordBank   invariant régulier / exception
 │   ├── difficulty.js          Difficulty       0 → 100, +2 / −6 par réponse
 │   ├── wordStats.js           WordStat, WordStatsBook     taux de réussite par mot
@@ -100,4 +101,4 @@ stateDiagram-v2
 
 ## Ajouter des mots
 
-Ajouter une entrée dans `src/data/words.js` (un mot en h doit préciser `asp: true` pour un h aspiré ou `asp: false` pour un h muet). Au chargement, `WordBank.fromData` vérifie les doublons, les groupes inconnus et la cohérence régulier / exception, et le test `wordBank.test.js` vérifie que chaque groupe garde au moins deux mots réguliers et au plus une exception.
+Ajouter une entrée dans `src/data/words.js` (un mot en h doit préciser `asp: true` pour un h aspiré ou `asp: false` pour un h muet). `fun` est un texte ou un tableau de textes : une anecdote est tirée au hasard à chaque réponse. Écrire pour des apprenants : présent, imparfait, passé composé, futur simple ou proche seulement, mots courants, pas de marques. Au chargement, `WordBank.fromData` vérifie les doublons, les groupes inconnus et la cohérence régulier / exception, et le test `wordBank.test.js` vérifie que chaque groupe garde au moins deux mots réguliers et au plus une exception.

@@ -154,7 +154,7 @@ class WordBank {
       const group = w.grp ? byId.get(w.grp) : null;
       return new Word({
         text: w.w, gender: Gender.fromCode(w.g), group,
-        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdotes: w.fun == null ? [] : [].concat(w.fun),
+        isException: Boolean(w.exc), aspiratedH: w.asp, translation: w.en, anecdotes: [].concat(w.fun ?? []).filter(a => typeof a !== 'string' || a.trim()),
       });
     });
     return new WordBank(groupList, wordList);

@@ -13,7 +13,7 @@ function setup({ storage = memoryStorage(), seed = 3 } = {}) {
   const scheduler = fakeScheduler();
   const profiles = new LocalStorageProfileRepository({ storage });
   const useCases = createUseCases({
-    bank: realBank(), profiles, preferences: new LocalStoragePreferences({ storage }), clock, random: seededRandom(seed),
+    bank: realBank(), profiles, preferences: new LocalStoragePreferences({ storage }), clock, random: seededRandom(seed), anecdoteRandom: seededRandom(seed + 1),
   });
   const machine = createAppMachine(useCases, { scheduler });
   machine.start();
