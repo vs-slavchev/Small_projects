@@ -1,6 +1,3 @@
-// Jours fériés français et journées mondiales, pour les succès cachés.
-// Les fêtes mobiles (Pâques, Ascension, Pentecôte) se calculent à partir de Pâques, année par année.
-
 (function (Conjugo) {
 'use strict';
 
@@ -25,16 +22,9 @@ function easterSunday(year) {
   return new Date(year, month - 1, day);
 }
 
-/** Date fixe : `month` de 1 à 12. */
 const fixed = (month, day) => year => new Date(year, month - 1, day);
-/** Date mobile : `offset` jours après le dimanche de Pâques. */
 const afterEaster = offset => year => addDays(easterSunday(year), offset);
 
-/**
- * Jours de fête. `dateIn(year)` donne la date de la fête cette année-là ;
- * `label` complète « Jouer une partie… » et « Partie jouée… » ;
- * `emoji` et `badge` habillent le succès caché correspondant.
- */
 const HOLIDAYS = Object.freeze([
   { id: 'newYear', emoji: '🎉', badge: 'Bonne année', label: 'le jour de l’An (1ᵉʳ janvier)', dateIn: fixed(1, 1) },
   { id: 'valentine', emoji: '💌', badge: 'Mots doux', label: 'le jour de la Saint-Valentin (14 février)', dateIn: fixed(2, 14) },
@@ -71,7 +61,6 @@ function calendarOf(year) {
   return calendarByYear.get(year);
 }
 
-/** Identifiants des fêtes qui tombent le jour local de `date`. */
 function holidaysOn(date) {
   const d = new Date(date);
   return calendarOf(d.getFullYear()).get(dayKey(d)) ?? [];

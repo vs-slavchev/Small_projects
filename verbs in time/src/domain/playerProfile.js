@@ -5,15 +5,8 @@ const { DomainError, GameRecord, AnswerStat, AnswerStatsBook, ActivityCalendar, 
 
 const LevelVia = Object.freeze({ TEST: 'test', PLAY: 'play' });
 
-/**
- * Tout ce que le jeu sait du joueur (agrégat) : parties terminées, statistiques par forme
- * (verbe, temps, case de personne), niveau en cours, niveaux terminés et compteurs utilisés par les succès.
- * Une partie abandonnée ne laisse aucune trace : seul `recordGame` modifie les statistiques.
- * `level` est null tant que le joueur n'a pas choisi son point de départ.
- */
 class PlayerProfile {
   #games;
-  /** Vue figée de #games, reconstruite seulement quand une partie est ajoutée. */
   #gamesView;
   #calendar;
   #practice;
@@ -21,10 +14,6 @@ class PlayerProfile {
   #level;
   #levelHistory;
 
-  /**
-   * @param {{ games?: GameRecord[], practice?: AnswerStatsBook, recoveries?: number, level?: number | null,
-   *           levelHistory?: { level: number, completedAt: Date, via: string }[] }} props
-   */
   constructor({ games = [], practice = new AnswerStatsBook(), recoveries = 0, level = null, levelHistory = [] } = {}) {
     this.#games = [...games].sort((a, b) => a.endedAt - b.endedAt);
     this.#gamesView = Object.freeze([...this.#games]);
@@ -39,23 +28,15 @@ class PlayerProfile {
     return new PlayerProfile();
   }
 
-  /** Parties terminées, de la plus ancienne à la plus récente. */
   get games() { return this.#gamesView; }
   get gameCount() { return this.#games.length; }
   get practice() { return this.#practice; }
-  /** Verbes réussis à un temps alors qu'ils avaient été ratés à ce temps la fois précédente. */
   get recoveries() { return this.#recoveries; }
 
   get calendar() { return this.#calendar; }
-  /** Niveau en cours (à partir de 1), ou null avant le premier choix du joueur. */
   get level() { return this.#level; }
-  /** Niveaux terminés, du premier au dernier : { level, completedAt, via: 'test' | 'play' }. */
   get levelHistory() { return Object.freeze([...this.#levelHistory]); }
 
-  /**
-   * Point de départ : les niveaux précédents sont validés (par le test de placement), sans statistiques.
-   * @param {number} level @param {Date} now
-   */
   startAt(level, now) {
     if (!Number.isInteger(level) || level < 1) throw new DomainError(`Niveau de départ invalide : ${level}.`);
     const done = new Set(this.#levelHistory.map(h => h.level));
@@ -65,27 +46,15 @@ class PlayerProfile {
     this.#level = level;
   }
 
-  /** Le niveau `level` est-il déjà terminé (par le test ou en jouant) ? @param {number} level */
   hasCompleted(level) {
     return this.#levelHistory.some(h => h.level === level);
   }
 
-  /**
-   * Accorde le profil à un parcours de `lastLevel` niveaux (raccourci depuis l'enregistrement) :
-   * les niveaux qui n'existent plus sortent de l'historique, et le niveau en cours ne dépasse pas le dernier.
-   * Les parties jouées dans ces niveaux restent archivées, mais l'accueil ne les mesure plus.
-   * @param {number} lastLevel
-   */
   fitTo(lastLevel) {
     this.#levelHistory = this.#levelHistory.filter(h => h.level <= lastLevel);
     if (this.#level !== null) this.#level = Math.min(this.#level, lastLevel);
   }
 
-  /**
-   * Le niveau en cours est terminé : il rejoint l'historique et le suivant commence,
-   * sauf après le dernier, où le joueur reste pour réviser.
-   * @param {Date} now @param {number} lastLevel
-   */
   completeLevel(now, lastLevel) {
     if (this.#level === null) throw new DomainError('Aucun niveau en cours.');
     if (this.hasCompleted(this.#level)) return;
@@ -93,7 +62,6 @@ class PlayerProfile {
     this.#level = Math.min(this.#level + 1, lastLevel);
   }
 
-  /** Archive une partie terminée et met à jour les statistiques qui en découlent. @param {GameRecord} record */
   recordGame(record) {
     for (const a of record.answers) {
       const key = GameRecord.practiceKeyOf(a);
@@ -115,10 +83,6 @@ class PlayerProfile {
     };
   }
 
-  /**
-   * Reconstruit un profil. Un enregistrement invalide (partie, statistique, niveau terminé)
-   * est ignoré et signalé à `onInvalid` : il ne fait pas perdre le reste de l'historique.
-   */
   static fromSnapshot(snapshot, { onInvalid = () => {} } = {}) {
     const valid = (items, build) => items.flatMap(item => {
       try {

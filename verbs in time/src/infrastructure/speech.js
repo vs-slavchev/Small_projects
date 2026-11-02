@@ -8,13 +8,6 @@ const SPEECH_TIMEOUT_MS = 6000;
 /** Chrome avale parfois un énoncé lancé dans la foulée d'un `cancel()` : on lui laisse un instant. */
 const AFTER_CANCEL_MS = 60;
 
-/**
- * Lecture à voix haute par la synthèse vocale du navigateur, en français.
- * Sans synthèse vocale, `available` est faux et `speak` ne fait rien.
- * `speak` renvoie une promesse tenue quand la lecture est finie (ou abandonnée).
- * @param {{ synth?: SpeechSynthesis, Utterance?: typeof SpeechSynthesisUtterance,
- *           setTimeout?: typeof globalThis.setTimeout, clearTimeout?: typeof globalThis.clearTimeout }} [deps]
- */
 function createSpeaker({
   synth = globalThis.speechSynthesis,
   Utterance = globalThis.SpeechSynthesisUtterance,
@@ -31,7 +24,6 @@ function createSpeaker({
 
   return Object.freeze({
     available,
-    /** @param {string} text @returns {Promise<void>} */
     speak(text) {
       if (!available) return Promise.resolve();
       // Notre propre suivi plutôt que `speaking`/`pending` seuls : ceux-ci sont déjà faux juste après un

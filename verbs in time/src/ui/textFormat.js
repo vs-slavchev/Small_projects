@@ -1,5 +1,3 @@
-// Mise en forme générique : durées, pluriels, écart lettre à lettre et succès.
-
 (function (Conjugo) {
 'use strict';
 
@@ -11,13 +9,10 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, c => HTML_ESCAPES[
 
 const plural = (n, singular, pluralForm = `${singular}s`) => (Math.abs(n) > 1 ? pluralForm : singular);
 
-/** Part entière en pourcentage, pour la largeur d'une barre : 2 sur 6 → 33. */
 const percentOf = (part, total) => Math.round((part / total) * 100);
 
-/** 9 000 ms → « 9 s », 12 340 ms → « 12,3 s » */
 const formatSeconds = ms => `${SECONDS_FORMAT.format(ms / 1000)} s`;
 
-/** Durée en toutes lettres : « 45 secondes », « 1 min 29 s », « 2 minutes ». */
 function durationText(ms) {
   const s = Math.max(1, Math.round(ms / 1000));
   if (s < 60) return `${s} ${plural(s, 'seconde')}`;
@@ -25,10 +20,6 @@ function durationText(ms) {
   return s % 60 ? `${m} min ${s % 60} s` : `${m} ${plural(m, 'minute')}`;
 }
 
-/**
- * Écart lettre à lettre entre deux textes (plus longue sous-suite commune).
- * @returns {{ type: 'same' | 'extra' | 'missing', text: string }[]} `extra` : en trop dans `given`, `missing` : absent de `given`
- */
 function diffChars(given, expected) {
   const a = [...given];
   const b = [...expected];
@@ -50,20 +41,10 @@ function diffChars(given, expected) {
   return parts;
 }
 
-/** Nombre de lettres communes, dans l'ordre : sert à choisir la forme attendue la plus proche d'une réponse. */
 const similarity = (given, expected) => diffChars(given, expected).filter(p => p.type === 'same').reduce((n, p) => n + p.text.length, 0);
 
-/** Taille de police pour qu'un texte tienne sur une ligne de l'écran. */
-/** Durée arrondie à la minute, jamais moins d'une : « 18 min ». */
 const minutesText = ms => `${Math.max(1, Math.round(ms / 60_000))} min`;
 
-/**
- * Lettres à accentuer : quand une réponse n'est fausse que par ses accents, les positions où elle diffère de la forme juste.
- * La réponse peut omettre le sujet : elle est alignée sur la fin de la forme. Casse et apostrophes ne comptent pas.
- * @param {string} given réponse du joueur @param {string} target forme juste affichée
- * @returns {{ target: number[], given: number[], givenText: string }} indices (en caractères) à souligner, vides si l'alignement échoue,
- *   et la réponse telle qu'alignée (espaces en trop retirés)
- */
 function accentMarks(given, target) {
   const fold = text => text.toLowerCase().replace(/[’']/g, "'");
   const bare = text => fold(text).normalize('NFD').replace(/\p{M}/gu, '');
@@ -83,7 +64,6 @@ function accentMarks(given, target) {
 
 const fitFontSize = (text, max, budget) => Math.min(max, Math.floor(budget / text.length));
 
-/** @param {import('../domain/achievements.js').AchievementProgress} p */
 function achievementStatus(p) {
   const withUnit = n => (p.unit ? `${n} ${p.unit}` : `${n}`);
   const tierLabel = p.isSingleStep
@@ -105,7 +85,6 @@ function achievementStatus(p) {
   };
 }
 
-/** Libellé d'un palier franchi, pour le bilan de fin de partie. */
 const unlockedLabel = p => (p.isSingleStep ? p.name : `${p.name} · ${p.tierName}`);
 
 Object.assign(Conjugo, { escapeHtml, plural, percentOf, formatSeconds, durationText, minutesText, diffChars, similarity, accentMarks, fitFontSize, achievementStatus, unlockedLabel });

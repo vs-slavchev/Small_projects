@@ -3,24 +3,9 @@
 
 const { AppEvent } = Conjugo;
 
-/** Durée minimale de l'état « en lecture » d'un bouton écouter, pour que l'appui se voie. */
 const MIN_SPEAKING_MS = 400;
-/** Éléments qui traitent eux-mêmes Entrée et Espace quand ils ont le focus. */
 const OWN_KEYS = 'input, textarea, select, button, a[href], [role="button"], [contenteditable]';
 
-/**
- * Traduit les gestes du joueur en événements de l'automate.
- * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
- * Un formulaire (réponse, test de placement, recopie après une erreur) porte lui aussi `data-event` :
- * à l'envoi, la valeur de son champ part avec l'événement (`text`). Les boutons `data-speak` font lire une forme à voix haute (`speak`) :
- * le bouton reste inactif (classe `speaking`, `aria-disabled`) jusqu'à la fin de la lecture.
- * L'automate ignore de lui-même les événements
- * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
- *
- * @param {HTMLElement} root
- * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
- * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => Promise<void> | void }} [options]
- */
 function bindController(root, machine, { confirm = message => globalThis.confirm(message), speak = () => {} } = {}) {
   const payloadOf = el => {
     const { to, index, id } = el.dataset;
@@ -77,7 +62,6 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     machine.send(type, payloadOf(el));
   });
 
-  // Survol à la souris : la description d'un badge s'affiche sans clic.
   if (globalThis.matchMedia?.('(hover: hover)').matches) {
     root.addEventListener('mouseover', event => {
       const badge = event.target.closest(`[data-event="${AppEvent.SELECT_BADGE}"]`);
@@ -85,8 +69,6 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     });
   }
 
-  // Clavier : Entrée ou Espace pour continuer (hors champ de saisie, hors bouton et hors touche maintenue), Échap pour fermer un badge.
-  // L'automate refuse de lui-même de quitter une explication qui vient de s'afficher.
   root.ownerDocument.addEventListener('keydown', event => {
     // Un élément interactif qui a le focus garde ses touches : Entrée sur « écouter » doit lire, pas continuer.
     if (event.target.closest?.(OWN_KEYS)) return;

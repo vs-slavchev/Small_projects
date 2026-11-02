@@ -1,18 +1,13 @@
-// Sons synthétisés avec Web Audio : timbre doux de xylophone, aucun fichier à charger.
-
 (function (Conjugo) {
 'use strict';
 
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760, 2093];
 
-/** Fin de chaque note : fondu linéaire jusqu'au vrai zéro, puis arrêt de l'oscillateur un peu plus tard. */
 const RELEASE_S = 0.04;
 const STOP_PADDING_S = 0.1;
 
-/** En dessous de ce niveau, la sortie est identique à l'entrée. */
 const SOFT_CLIP_KNEE = 0.7;
 
-/** Courbe d'écrêtage : identité jusqu'au genou, puis approche douce de ±1. */
 function softClipCurve(size = 1025) {
   const curve = new Float32Array(size);
   const room = 1 - SOFT_CLIP_KNEE;
@@ -36,7 +31,6 @@ class WebAudioSound {
 
   tap() { this.#tone(784, 0, 0.12, 0.05); }
 
-  /** La note monte avec le combo. */
   correct(combo) {
     const i = Math.min(Math.max(combo - 1, 0), PENTATONIC.length - 3);
     this.#tone(PENTATONIC[i], 0, 0.5, 0.15);
@@ -48,7 +42,6 @@ class WebAudioSound {
     this.#tone(233.08, 0.13, 0.7, 0.12);
   }
 
-  /** Arpège d'autant plus long que la partie est réussie. */
   gameOver(accuracy) {
     const notes = accuracy >= 80 ? [0, 2, 4, 5, 7] : accuracy >= 50 ? [0, 2, 4] : [0, 2];
     notes.forEach((n, k) => this.#tone(PENTATONIC[n], k * 0.11, 0.8, 0.13));

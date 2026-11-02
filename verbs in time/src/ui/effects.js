@@ -3,13 +3,6 @@
 
 const BADGE_SOUND_DELAY_S = 0.9;
 
-/**
- * Abonné de l'automate qui joue les sons et vibrations correspondant aux transitions.
- * Le survol d'un badge (PREVIEW_BADGE) reste silencieux : il ne fait pas partie des appuis.
- * @param {{ sound: import('../infrastructure/webAudioSound.js').WebAudioSound, vibrate?: (ms: number) => void,
- *           AppState: Record<string, string>, AppEvent: Record<string, string>, extraTapEvents?: string[] }} deps
- *   AppState et AppEvent : états et événements de l'automate du jeu ; extraTapEvents : autres appuis propres au jeu
- */
 function createEffects({ sound, vibrate = () => {}, AppState, AppEvent, extraTapEvents = [] }) {
   const tapEvents = new Set([
     AppEvent.START, AppEvent.NAVIGATE, AppEvent.CONTINUE,

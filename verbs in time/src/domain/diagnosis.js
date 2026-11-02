@@ -3,24 +3,16 @@
 
 const { Tense, Person, normalizeAnswer } = Conjugo;
 
-/** Nature d'une erreur, de la plus précise à la plus vague. */
 const ErrorKind = Object.freeze({
-  ACCENTS: 'accents',                   // juste, aux accents près
-  OTHER_TENSE: 'otherTense',            // { tense } : la forme d'un autre temps, à la même personne
-  OTHER_PERSON: 'otherPerson',          // { person } : la forme d'une autre personne, au même temps
-  AUXILIARY: 'auxiliary',               // { auxiliary } : passé composé avec le mauvais auxiliaire
-  AGREEMENT: 'agreement',               // participe mal accordé avec être
-  MISSING_REFLEXIVE: 'missingReflexive', // pronom réfléchi oublié
-  ENDING: 'ending',                     // { stem, ending } : bon radical, mauvaise terminaison
+  ACCENTS: 'accents',
+  OTHER_TENSE: 'otherTense',
+  OTHER_PERSON: 'otherPerson',
+  AUXILIARY: 'auxiliary',
+  AGREEMENT: 'agreement',
+  MISSING_REFLEXIVE: 'missingReflexive',
+  ENDING: 'ending',
 });
 
-/**
- * Explique une réponse fausse en la comparant aux autres formes du même verbe.
- * Retourne null pour une réponse juste ou une erreur qu'on ne sait pas nommer.
- *
- * @param {import('./conjugation.js').Question} question @param {string} given
- * @returns {{ kind: string, tense?: object, person?: object, auxiliary?: string, stem?: string, ending?: string } | null}
- */
 function diagnose(question, given) {
   const { verb, tense, person, expected } = question;
   const result = expected.check(given);

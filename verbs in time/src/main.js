@@ -1,5 +1,3 @@
-// Point d'assemblage : relie le domaine, les cas d'utilisation, l'automate et les adaptateurs.
-
 (function (Conjugo) {
 'use strict';
 
@@ -30,7 +28,6 @@ machine.subscribe(createEffects({
   extraTapEvents: [AppEvent.RETYPE, AppEvent.CHOOSE_BEGINNER, AppEvent.START_PLACEMENT, AppEvent.PLACEMENT_ANSWER, AppEvent.PLACEMENT_SKIP],
 }));
 const speaker = createSpeaker();
-// Sans synthèse vocale, les boutons « écouter » sont masqués.
 document.documentElement.classList.toggle('no-speech', !speaker.available);
 bindController(root, machine, { speak: speaker.speak });
 

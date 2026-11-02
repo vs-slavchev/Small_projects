@@ -3,20 +3,13 @@
 
 const { DomainError } = Conjugo;
 
-/** Historique des réponses à un élément (un verbe, à un temps, à une personne). Objet valeur immuable. */
 class AnswerStat {
-  /** Statistique vide de la classe appelante (AnswerStat ou une sous-classe). */
   static get EMPTY() {
     return new this();
   }
 
-  /** Taux de réussite à partir duquel un élément est considéré comme acquis. */
   static MASTERY_ACCURACY = 0.6;
 
-  /**
-   * @param {number} seen @param {number} correct
-   * @param {boolean | null} lastCorrect null si inconnue (jamais vu, ou ancien format)
-   */
   constructor(seen = 0, correct = 0, lastCorrect = null) {
     if (!(Number.isInteger(seen) && Number.isInteger(correct) && seen >= 0 && correct >= 0 && correct <= seen)) {
       throw new DomainError(`Statistique incohérente : ${correct} / ${seen}.`);
@@ -29,47 +22,35 @@ class AnswerStat {
     Object.freeze(this);
   }
 
-  /** Taux de réussite entre 0 et 1, ou null si jamais vu. */
   get accuracy() {
     return this.seen ? this.correct / this.seen : null;
   }
 
-  /**
-   * Élément acquis : dernière réponse juste et taux de réussite d'au moins MASTERY_ACCURACY.
-   * Une erreur ancienne, suivie d'assez de bonnes réponses, ne l'empêche plus d'être acquis ;
-   * une erreur toute récente, si.
-   */
   get isMastered() {
     return this.lastCorrect === true && this.accuracy >= AnswerStat.MASTERY_ACCURACY;
   }
 
-  /** Au moins une réponse fausse dans l'historique. */
   get hasMistake() {
     return this.correct < this.seen;
   }
 
-  /** @param {boolean} correct @returns {this} une statistique de la même classe */
   record(correct) {
     return new this.constructor(this.seen + 1, this.correct + (correct ? 1 : 0), correct);
   }
 }
 
-/** Statistiques indexées par clé. Une sous-classe choisit la classe de ses statistiques avec `static Stat`. */
 class AnswerStatsBook {
   static Stat = AnswerStat;
   #stats;
 
-  /** @param {Iterable<[string, AnswerStat]>} entries */
   constructor(entries = []) {
     this.#stats = new Map(entries);
   }
 
-  /** @param {string} key @returns {AnswerStat} */
   get(key) {
     return this.#stats.get(key) ?? this.constructor.Stat.EMPTY;
   }
 
-  /** @param {string} key @param {boolean} correct */
   record(key, correct) {
     this.#stats.set(key, this.get(key).record(correct));
   }
@@ -78,18 +59,12 @@ class AnswerStatsBook {
     return this.#stats.entries();
   }
 
-  /** Copie du carnet avec des réponses en plus ; le carnet lui-même ne change pas. @param {Iterable<[string, boolean]>} answers */
   with(answers) {
     const copy = new this.constructor(this.#stats);
     for (const [key, correct] of answers) copy.record(key, correct);
     return copy;
   }
 
-  /**
-   * Parmi `candidates`, les clés ratées au moins une fois et pas encore acquises, du plus faible taux de réussite au plus élevé ;
-   * à taux égal, la dernière réponse fausse d'abord, puis la plus pratiquée.
-   * @param {string[]} candidates @param {number} limit @returns {string[]}
-   */
   weakest(candidates, limit) {
     const recentMiss = s => (s.lastCorrect === false ? 0 : 1);
     return candidates
