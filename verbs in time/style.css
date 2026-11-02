@@ -259,6 +259,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .q-verb { font-family: var(--serif); font-size: var(--fs-word); line-height: 1.2; }
 .q-sentence { margin: 0; font-family: var(--serif); font-size: var(--fs-title); line-height: 1.25; text-wrap: balance; }
 .q-subj { color: var(--blue-d); }
+.q-subj.addressee { opacity: 0.7; font-style: italic; }
 .q-blanks { display: inline-flex; gap: 8px; vertical-align: baseline; white-space: nowrap; }
 .q-blank { display: inline-block; width: 3.2em; height: .9em; border-bottom: 3px solid var(--ink); }
 .q-blank:only-child { width: 4em; }

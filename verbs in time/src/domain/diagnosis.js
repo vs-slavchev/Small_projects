@@ -32,9 +32,9 @@ function diagnose(question, given) {
   if (verb.pronominal && matches(verb.conjugate(tense, person, { pronominal: false, anyAgreement: true }))) {
     return { kind: ErrorKind.MISSING_REFLEXIVE };
   }
-  const otherTense = Tense.ALL.find(t => t !== tense && matches(verb.conjugate(t, person)));
+  const otherTense = Tense.ALL.find(t => t !== tense && verb.canConjugate(t, person) && matches(verb.conjugate(t, person)));
   if (otherTense) return { kind: ErrorKind.OTHER_TENSE, tense: otherTense };
-  const otherPerson = Person.ALL.find(p => p.index !== person.index && matches(verb.conjugate(tense, p)));
+  const otherPerson = Person.ALL.find(p => p.index !== person.index && verb.canConjugate(tense, p) && matches(verb.conjugate(tense, p)));
   if (otherPerson) return { kind: ErrorKind.OTHER_PERSON, person: otherPerson };
 
   const stem = expected.segments.filter(s => s.kind === 'stem').map(s => s.text).join('');

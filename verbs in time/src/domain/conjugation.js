@@ -45,12 +45,20 @@ class Person {
 }
 
 class Tense {
-  constructor({ id, label, withPreposition, markers }) {
+  constructor({ id, label, withPreposition, markers, slots = [0, 1, 2, 3, 4, 5], hasSubject = true }) {
     this.id = id;
     this.label = label;
     this.withPreposition = withPreposition;
     this.markers = Object.freeze([...markers]);
+    /** Cases de personne où le temps existe (l'impératif n'a que tu, nous et vous). */
+    this.slots = Object.freeze([...slots]);
+    /** L'impératif s'emploie sans sujet : « parle », pas « tu parle ». */
+    this.hasSubject = hasSubject;
     Object.freeze(this);
+  }
+
+  allows(person) {
+    return this.slots.includes(person.index);
   }
 
   static PRESENT = new Tense({ id: 'present', label: 'présent', withPreposition: 'au présent',
@@ -63,7 +71,9 @@ class Tense {
     markers: ['Tout à l’heure,', 'Ce soir,', 'Dans cinq minutes,'] });
   static FUTUR_SIMPLE = new Tense({ id: 'futurSimple', label: 'futur simple', withPreposition: 'au futur simple',
     markers: ['L’année prochaine,', 'Un jour,', 'Dans dix ans,'] });
-  static ALL = Object.freeze([Tense.PRESENT, Tense.IMPERFECT, Tense.PASSE_COMPOSE, Tense.FUTUR_PROCHE, Tense.FUTUR_SIMPLE]);
+  static IMPERATIVE = new Tense({ id: 'imperative', label: 'impératif', withPreposition: 'à l’impératif',
+    markers: ['Allez,', 'Vite,', 'Maintenant,'], slots: [1, 3, 4], hasSubject: false });
+  static ALL = Object.freeze([Tense.PRESENT, Tense.IMPERFECT, Tense.PASSE_COMPOSE, Tense.FUTUR_PROCHE, Tense.IMPERATIVE, Tense.FUTUR_SIMPLE]);
 }
 
 const REFLEXIVE = Object.freeze(['me', 'te', 'se', 'nous', 'vous', 'se']);
@@ -91,8 +101,10 @@ class VerbType {
 }
 
 class Verb {
+  #imperative;
+
   constructor({ infinitive, type, translation = '', present, participle, auxiliary = 'avoir', futureStem, imperfectStem,
-    pronominal = false, irregularPresent = false, alsoLike = [], note = '' }) {
+    imperative, pronominal = false, irregularPresent = false, alsoLike = [], note = '' }) {
     if (!infinitive) throw new DomainError('Un verbe doit avoir un infinitif.');
     if (!(type instanceof VerbType)) throw new DomainError(`« ${infinitive} » : type invalide.`);
     if (!(auxiliary in AUXILIARY_PRESENT)) throw new DomainError(`« ${infinitive} » : auxiliaire inconnu « ${auxiliary} ».`);
@@ -103,6 +115,9 @@ class Verb {
     if (this.present.length !== 6 || this.present.some(f => !f)) throw new DomainError(`« ${infinitive} » : le présent doit avoir 6 formes.`);
     const defaultParticiple = infinitive.endsWith('er') ? `${stem}é` : type.id === 'second' ? `${stem}i` : null;
     if (!participle && !defaultParticiple) throw new DomainError(`« ${infinitive} » : le participe passé doit être donné.`);
+    if (imperative != null && (imperative.length !== 3 || imperative.some(f => !f))) {
+      throw new DomainError(`« ${infinitive} » : l’impératif doit avoir 3 formes (tu, nous, vous).`);
+    }
     if (!imperfectStem && !this.present[3].endsWith('ons')) throw new DomainError(`« ${infinitive} » : radical de l’imparfait introuvable.`);
 
     this.infinitive = infinitive;
@@ -114,6 +129,9 @@ class Verb {
     this.futureStems = Object.freeze(futureStems);
     this.imperfectStem = imperfectStem ?? this.present[3].slice(0, -3);
     this.pronominal = pronominal;
+    // undefined : déduit du présent ; null : pas d'impératif. Les verbes pronominaux (lève-toi) ne sont pas gérés.
+    this.#imperative = imperative === undefined ? undefined : imperative && Object.freeze([...imperative]);
+    this.hasImperative = imperative !== null && !pronominal;
     this.splitsPresent = type.id !== 'auxiliary' && !irregularPresent;
     this.alsoLike = Object.freeze([...alsoLike]);
     this.note = note;
@@ -124,9 +142,15 @@ class Verb {
     return this.pronominal ? textOf(withPronoun('pronoun', 'se', [segment('infinitive', this.infinitive)])) : this.infinitive;
   }
 
+  /** Le verbe a-t-il une forme à ce temps pour cette personne ? */
+  canConjugate(tense, person) {
+    return tense.allows(person) && (tense !== Tense.IMPERATIVE || this.hasImperative);
+  }
+
   conjugate(tense, person, { auxiliary = this.auxiliary, pronominal = this.pronominal, anyAgreement = false } = {}) {
     if (!(tense instanceof Tense)) throw new DomainError('Temps invalide.');
     if (!(person instanceof Person)) throw new DomainError('Personne invalide.');
+    if (!this.canConjugate(tense, person)) throw new DomainError(`« ${this.infinitive} » : pas de forme ${tense.withPreposition} avec « ${person.subject} ».`);
     const i = person.index;
     const reflexive = segments => (pronominal ? withPronoun('pronoun', REFLEXIVE[i], segments) : segments);
     const stemAndEnding = (stem, ending) => [segment('stem', stem), segment('ending', ending)];
@@ -143,6 +167,9 @@ class Verb {
       case Tense.FUTUR_SIMPLE:
         [variants, spellings] = splitFirst(this.futureStems.map(s => reflexive(stemAndEnding(s, FUTURE_ENDINGS[i]))));
         break;
+      case Tense.IMPERATIVE:
+        variants = [this.#imperativeSegments(i)];
+        break;
       case Tense.FUTUR_PROCHE:
         variants = [[segment('aux', ALLER_PRESENT[i]), SPACE, ...reflexive([segment('infinitive', this.infinitive)])]];
         break;
@@ -156,7 +183,16 @@ class Verb {
       default:
         throw new DomainError(`Temps non géré : ${tense.label}.`);
     }
-    return new Conjugation({ subject: person.subject, variants, spellings, shown });
+    return new Conjugation({ subject: tense.hasSubject ? person.subject : null, variants, spellings, shown });
+  }
+
+  /** Impératif : tu, nous, vous du présent ; le s de « tu » tombe après un e (parles → parle, ouvres → ouvre). */
+  #imperativeSegments(i) {
+    if (this.#imperative) return [segment('stem', this.#imperative[IMPERATIVE_SLOTS.indexOf(i)])];
+    const segments = this.#presentSegments(i);
+    if (i !== 1 || !this.present[1].endsWith('es')) return segments;
+    const last = segments.at(-1);
+    return [...segments.slice(0, -1), segment(last.kind, last.text.slice(0, -1))];
   }
 
   #presentSegments(i) {
@@ -170,6 +206,8 @@ class Verb {
     return ending ? [segment('stem', form.slice(0, -ending.length)), segment('ending', ending)] : [segment('stem', form)];
   }
 }
+
+const IMPERATIVE_SLOTS = Tense.IMPERATIVE.slots;
 
 const splitFirst = list => [list.slice(0, 1), list.slice(1)];
 
@@ -205,13 +243,13 @@ class Conjugation {
   #accepted;
 
   constructor({ subject, variants, spellings = [], shown = variants[0] }) {
-    const withSubject = segments => withPronoun('subject', subject, segments);
+    const withSubject = segments => (subject ? withPronoun('subject', subject, segments) : segments);
     const bare = [...variants, ...spellings].map(textOf);
     this.forms = Object.freeze([...variants, ...spellings].map(v => textOf(withSubject(v))));
     this.segments = Object.freeze(withSubject(shown));
     this.display = textOf(this.segments);
     this.others = Object.freeze(this.forms.slice(variants.length));
-    this.accepted = Object.freeze([...this.forms, ...bare]);
+    this.accepted = Object.freeze([...new Set([...this.forms, ...bare])]);
     this.#accepted = this.accepted.map(normalizeAnswer);
     Object.freeze(this);
   }

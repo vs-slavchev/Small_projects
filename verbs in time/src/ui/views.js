@@ -156,12 +156,16 @@ function answerWordCount(expected) {
   return Math.max(1, words.filter(kinds => kinds.some(k => k !== 'subject')).length);
 }
 
+/** À l'impératif, la personne n'est pas un sujet : on la montre entre parenthèses, « (tu) ». */
+const addressee = (tense, person) => (tense.hasSubject ? person.subject : `(${person.subject})`);
+
 function questionBlock({ verb, tense, person, marker, expected }, extraClass = '') {
-  const subject = esc(marker ? person.subject : capitalize(person.subject));
+  const shown = addressee(tense, person);
+  const subject = esc(marker || !tense.hasSubject ? shown : capitalize(shown));
   const blanks = '<span class="q-blank"></span>'.repeat(answerWordCount(expected));
   return `<div class="q-block${extraClass}">
     <div class="q-head"><span class="chip tense pill">${esc(tense.label)}</span><span class="q-verb">${esc(verb.label)}</span></div>
-    <p class="q-sentence">${marker ? `${esc(marker)} ` : ''}<span class="q-subj">${subject}</span> <span class="q-blanks">${blanks}</span>.</p>
+    <p class="q-sentence">${marker ? `${esc(marker)} ` : ''}<span class="q-subj${tense.hasSubject ? '' : ' addressee'}">${subject}</span> <span class="q-blanks">${blanks}</span>${tense.hasSubject ? '.' : '&nbsp;!'}</p>
   </div>`;
 }
 
@@ -193,7 +197,7 @@ const placement = {
       <form class="answer-form" autocomplete="off" data-event="${AppEvent.PLACEMENT_ANSWER}">
         <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(q.person.subject)} »</label>
         <div class="input-row">
-          ${answerInput('placement-answer', { placeholder: `${q.person.subject} …` })}
+          ${answerInput('placement-answer', { placeholder: `${addressee(q.tense, q.person)} …` })}
           <button class="submit press" type="submit">Valider</button>
         </div>
         <button class="link-btn" type="button" data-event="${AppEvent.PLACEMENT_SKIP}">Je ne sais pas</button>
@@ -470,7 +474,7 @@ const question = {
       <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off" data-event="${AppEvent.ANSWER}">
         <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
         <div class="input-row">
-          ${answerInput('answer', { placeholder: `${person.subject} …`, value: revealing ? answer.given : '', disabled: revealing })}
+          ${answerInput('answer', { placeholder: `${addressee(tense, person)} …`, value: revealing ? answer.given : '', disabled: revealing })}
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
       </form>

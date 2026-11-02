@@ -27,7 +27,7 @@ test('formes découpées : radical, terminaison, auxiliaire, pronom, accord', ()
 test('la forme découpée et la forme affichée sont la même', () => {
   for (const verb of bank.verbs) {
     for (const tense of Tense.ALL) {
-      for (const person of Person.ALL) {
+      for (const person of Person.ALL.filter(p => verb.canConjugate(tense, p))) {
         const c = verb.conjugate(tense, person);
         assert.equal(c.segments.map(s => s.text).join(''), c.display);
       }
@@ -48,6 +48,9 @@ test('diagnostic : chaque type d’erreur est reconnu', () => {
   assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.JE), 'je lève'), ErrorKind.MISSING_REFLEXIVE);
   assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.NOUS), 'levons'), ErrorKind.MISSING_REFLEXIVE);
   assert.deepEqual(diagnose(ask('parler', Tense.IMPERFECT, Person.IL), 'il parlerait'), { kind: ErrorKind.ENDING, stem: 'parl', ending: 'ait' });
+  const imperativeS = diagnose(ask('parler', Tense.IMPERATIVE, Person.TU), 'parles');
+  assert.deepEqual([imperativeS.kind, imperativeS.tense], [ErrorKind.OTHER_TENSE, Tense.PRESENT], 'impératif : le s de tu en trop');
+  assert.equal(diagnose(ask('finir', Tense.IMPERATIVE, Person.NOUS), 'finissez').kind, ErrorKind.OTHER_PERSON);
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je mange'), null, 'erreur sans nom');
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je parle'), null, 'réponse juste');
 });

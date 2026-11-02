@@ -18,7 +18,9 @@ function diagnosisText(diagnosis, { tense, person, verb }) {
     case ErrorKind.OTHER_TENSE:
       return `Tu as écrit la forme <b>${diagnosis.tense.withPreposition}</b> ; la question demandait ${tense.withPreposition}.`;
     case ErrorKind.OTHER_PERSON:
-      return `C’est la forme de «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, le sujet est «&nbsp;${escapeHtml(person.subject)}&nbsp;».`;
+      return tense.hasSubject
+        ? `C’est la forme de «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, le sujet est «&nbsp;${escapeHtml(person.subject)}&nbsp;».`
+        : `C’est la forme pour «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, on s’adresse à «&nbsp;${escapeHtml(person.subject)}&nbsp;».`;
     case ErrorKind.AUXILIARY:
       return `${escapeHtml(verb.label)} se conjugue avec <b>${diagnosis.auxiliary}</b> au passé composé${diagnosis.auxiliary === 'être' ? ' (verbes de mouvement et verbes pronominaux)' : ''}.`;
     case ErrorKind.AGREEMENT:

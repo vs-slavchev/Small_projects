@@ -53,9 +53,12 @@ test('les paniers : les erreurs sont retirées des formes ordinaires, et limité
   assert.ok(b.previousReview.every(c => !b.previousMistakes.includes(c)));
   assert.ok(Object.values(b).every(Object.isFrozen), 'les paniers partagés par les tirages ne se modifient pas');
 
-  const many = ladder.level(22);
+  // Un niveau a 18 formes au plus : le panier de 20 erreurs les garde toutes.
+  const many = ladder.level(19);
   const crowded = statsWith(many.combos.map(c => [c.key, 2, 1]));
-  assert.equal(new QuestionPicker({ ladder, level: 22, stats: crowded }).buckets().currentMistakes.length, CURRENT_MISTAKE_POOL);
+  assert.equal(many.combos.length, 18);
+  assert.equal(new QuestionPicker({ ladder, level: 19, stats: crowded }).buckets().currentMistakes.length,
+    Math.min(CURRENT_MISTAKE_POOL, many.combos.length));
 });
 
 test('chaque panier est choisi selon le tirage', () => {

@@ -22,10 +22,18 @@ const LEVEL_DATA = Object.freeze([
   level('passeCompose', ['venir'], 'Venir, avec être'),
   level('passeCompose', ['commencer', 'acheter', 'préférer'], 'Changements d’orthographe'),
   level('futurProche', ['parler', 'finir', 'prendre'], 'Aller + infinitif'),
-  level('imperfect', ['parler', 'manger', 'finir', 'commencer'], 'Forme régulière'),
-  level('imperfect', ['être'], 'Être'),
+  level('futurProche', ['être', 'avoir', 'manger'], 'Les incontournables'),
+  level('imperative', ['parler', 'manger', 'commencer', 'acheter'], 'Verbes en -er : tu sans s'),
+  level('imperative', ['finir', 'prendre', 'faire', 'venir'], 'Finir et irréguliers'),
+  level('imperative', ['aller', 'être', 'avoir'], 'Va, sois, aie'),
+  level('imperfect', ['parler', 'finir'], 'Forme régulière'),
+  level('imperfect', ['manger', 'commencer'], 'Verbes en -ger et -cer'),
+  level('imperfect', ['faire', 'prendre', 'venir'], '3e groupe'),
+  level('imperfect', ['être', 'avoir'], 'Les incontournables'),
   level('futurSimple', ['parler', 'finir'], 'Forme régulière'),
-  level('futurSimple', ['être', 'avoir', 'aller', 'faire', 'pouvoir', 'venir'], 'Radicaux irréguliers'),
+  level('futurSimple', ['acheter', 'préférer'], 'Changements d’orthographe'),
+  level('futurSimple', ['être', 'avoir', 'aller'], 'Auxiliaires et aller'),
+  level('futurSimple', ['faire', 'pouvoir', 'venir'], 'Radicaux irréguliers'),
 ].map(Object.freeze));
 
 Object.assign(Conjugo, { LEVEL_DATA });
