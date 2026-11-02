@@ -5,8 +5,13 @@
 
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760, 2093];
 
+/** Fin de chaque note : fondu linéaire jusqu'au vrai zéro, puis arrêt de l'oscillateur un peu plus tard. */
+const RELEASE_S = 0.04;
+const STOP_PADDING_S = 0.1;
+
 class WebAudioSound {
   #context = null;
+  #output = null;
   enabled;
 
   constructor({ enabled = true } = {}) {
@@ -43,6 +48,15 @@ class WebAudioSound {
       const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
       if (!AudioContext) return null;
       this.#context = new AudioContext();
+      // Toutes les notes passent par un limiteur : des notes qui se chevauchent ne saturent jamais la sortie.
+      const limiter = this.#context.createDynamicsCompressor();
+      limiter.threshold.value = -6;
+      limiter.knee.value = 6;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.25;
+      limiter.connect(this.#context.destination);
+      this.#output = limiter;
     }
     if (this.#context.state === 'suspended') this.#context.resume();
     return this.#context;
@@ -51,23 +65,28 @@ class WebAudioSound {
   #tone(frequency, when, duration, volume) {
     const ctx = this.#audio();
     if (!ctx) return;
-    const t = ctx.currentTime + when;
+    const t = ctx.currentTime + 0.01 + when; // petite avance : jamais une enveloppe commencée dans le passé
     this.#partial(ctx, frequency, t, duration, volume);
     this.#partial(ctx, frequency * 3.93, t, duration * 0.22, volume * 0.3); // harmonique « bois » d'une lame
   }
 
   #partial(ctx, frequency, t, duration, volume) {
+    // Décroissance exponentielle, puis court fondu linéaire jusqu'à 0 : une rampe exponentielle
+    // ne peut pas atteindre 0, et couper un son résiduel s'entend comme un petit craquement.
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(volume, t + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-    gain.connect(ctx.destination);
+    const g = gain.gain;
+    g.setValueAtTime(0, t);
+    g.linearRampToValueAtTime(volume, t + 0.006);
+    g.exponentialRampToValueAtTime(0.001, t + duration);
+    g.linearRampToValueAtTime(0, t + duration + RELEASE_S);
+    gain.connect(this.#output);
     const osc = ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = frequency;
     osc.connect(gain);
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
     osc.start(t);
-    osc.stop(t + duration + 0.05);
+    osc.stop(t + duration + RELEASE_S + STOP_PADDING_S);
   }
 }
 

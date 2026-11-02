@@ -7,15 +7,18 @@ const { AppEvent } = Conjugo;
  * Traduit les gestes du joueur en événements de l'automate.
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
  * Un formulaire (réponse, test de placement, recopie après une erreur) porte lui aussi `data-event` :
- * à l'envoi, la valeur de son champ part avec l'événement (`text`). Les boutons `data-speak` font lire une forme à voix haute (`speak`).
+ * à l'envoi, la valeur de son champ part avec l'événement (`text`). Les boutons `data-speak` font lire une forme à voix haute (`speak`) :
+ * le bouton reste désactivé (classe `speaking`) jusqu'à la fin de la lecture.
  * L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
  * @param {HTMLElement} root
  * @param {ReturnType<typeof import('../application/stateMachine.js').createMachine>} machine
- * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => void }} [options]
+ * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => Promise<void> | void }} [options]
  */
 function bindController(root, machine, { confirm = message => globalThis.confirm(message), speak = () => {} } = {}) {
+  const MIN_SPEAKING_MS = 400;
+
   const payloadOf = el => {
     const { to, index, id } = el.dataset;
     if (to) return { to };
@@ -38,10 +41,30 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     if (form.dataset.event && input) machine.send(form.dataset.event, { text: input.value });
   });
 
+  // Le bouton est désactivé pendant la lecture : l'appui se voit même si la voix tarde à démarrer.
+  const say = button => {
+    if (button.disabled) return;
+    button.disabled = true;
+    button.classList.add('speaking');
+    const shownAt = Date.now();
+    Promise.resolve(speak(button.dataset.speak)).catch(() => {}).then(() => {
+      setTimeout(() => {
+        button.disabled = false;
+        button.classList.remove('speaking');
+      }, Math.max(0, MIN_SPEAKING_MS - (Date.now() - shownAt)));
+    });
+  };
+
+  // Appuyer sur « écouter » ne doit pas retirer le focus du champ de recopie : sinon la mise en page
+  // compacte (clavier ouvert) se défait, le bouton se déplace sous le doigt et le clic est perdu.
+  root.addEventListener('mousedown', event => {
+    if (event.target.closest('[data-speak]')) event.preventDefault();
+  });
+
   root.addEventListener('click', event => {
     const spoken = event.target.closest('[data-speak]');
     if (spoken) {
-      speak(spoken.dataset.speak);
+      say(spoken);
       return;
     }
     // Un formulaire porte aussi data-event, mais il n'agit qu'à l'envoi (voir `submit`).

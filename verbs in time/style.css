@@ -529,6 +529,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .sg-legend .sg { padding: 2px 8px; border-radius: 6px; background: var(--card); border: 1px solid var(--line); }
 .sg-legend .sg-ending, .sg-legend .sg-agreement { font-weight: 800; }
 .speak { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: var(--fs-action); padding: 0; flex: none; }
+.speak { color: inherit; transition: transform .1s, border-color .15s, background .15s; }
+.speak:active { transform: scale(.92); }
+/* Pendant la lecture : bouton désactivé, anneau bleu qui pulse — l'appui est visible même si la voix tarde. */
+.speak.speaking { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, var(--card)); cursor: default; animation: speakPulse 1s ease-in-out infinite; }
+@keyframes speakPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 45%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--blue) 0%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .speak.speaking { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 35%, transparent); } }
 .no-speech .speak { display: none; }
 
 /* ---------- Diagnostic, écart lettre à lettre, recopie ---------- */
