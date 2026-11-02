@@ -3,12 +3,15 @@
 
 const { AppEvent } = Conjugo;
 
+/** Durée minimale de l'état « en lecture » d'un bouton écouter, pour que l'appui se voie. */
+const MIN_SPEAKING_MS = 400;
+
 /**
  * Traduit les gestes du joueur en événements de l'automate.
  * Les éléments interactifs portent `data-event` (et éventuellement `data-to`, `data-index`).
  * Un formulaire (réponse, test de placement, recopie après une erreur) porte lui aussi `data-event` :
  * à l'envoi, la valeur de son champ part avec l'événement (`text`). Les boutons `data-speak` font lire une forme à voix haute (`speak`) :
- * le bouton reste désactivé (classe `speaking`) jusqu'à la fin de la lecture.
+ * le bouton reste inactif (classe `speaking`, `aria-disabled`) jusqu'à la fin de la lecture.
  * L'automate ignore de lui-même les événements
  * qui n'ont pas de sens dans l'état courant : le contrôleur n'a pas à le vérifier.
  *
@@ -17,8 +20,6 @@ const { AppEvent } = Conjugo;
  * @param {{ confirm?: (message: string) => boolean, speak?: (text: string) => Promise<void> | void }} [options]
  */
 function bindController(root, machine, { confirm = message => globalThis.confirm(message), speak = () => {} } = {}) {
-  const MIN_SPEAKING_MS = 400;
-
   const payloadOf = el => {
     const { to, index, id } = el.dataset;
     if (to) return { to };
@@ -41,24 +42,23 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     if (form.dataset.event && input) machine.send(form.dataset.event, { text: input.value });
   });
 
-  // Le bouton est désactivé pendant la lecture : l'appui se voit même si la voix tarde à démarrer.
+  // Inactif pendant la lecture (sans `disabled`, qui ferait perdre le focus clavier) :
+  // l'appui se voit même si la voix tarde à démarrer.
   const say = button => {
-    if (button.disabled) return;
-    button.disabled = true;
-    button.classList.add('speaking');
-    const shownAt = Date.now();
-    Promise.resolve(speak(button.dataset.speak)).catch(() => {}).then(() => {
-      setTimeout(() => {
-        button.disabled = false;
-        button.classList.remove('speaking');
-      }, Math.max(0, MIN_SPEAKING_MS - (Date.now() - shownAt)));
-    });
+    if (button.classList.contains('speaking')) return;
+    const setSpeaking = on => {
+      button.classList.toggle('speaking', on);
+      button.setAttribute('aria-disabled', String(on));
+    };
+    setSpeaking(true);
+    const minimum = new Promise(resolve => setTimeout(resolve, MIN_SPEAKING_MS));
+    Promise.all([Promise.resolve(speak(button.dataset.speak)).catch(() => {}), minimum]).then(() => setSpeaking(false));
   };
 
-  // Appuyer sur « écouter » ne doit pas retirer le focus du champ de recopie : sinon la mise en page
-  // compacte (clavier ouvert) se défait, le bouton se déplace sous le doigt et le clic est perdu.
+  // Un appui sur un bouton ne lui donne pas le focus (le clavier, lui, le peut toujours) : le champ de saisie
+  // le garde, et la mise en page compacte liée à son focus (clavier ouvert) ne se défait pas sous le doigt.
   root.addEventListener('mousedown', event => {
-    if (event.target.closest('[data-speak]')) event.preventDefault();
+    if (event.target.closest('button')) event.preventDefault();
   });
 
   root.addEventListener('click', event => {

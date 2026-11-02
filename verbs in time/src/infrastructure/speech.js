@@ -20,9 +20,9 @@ function createSpeaker({
   clearTimeout = globalThis.clearTimeout,
 } = {}) {
   const available = Boolean(synth && Utterance);
-  const frenchVoice = () => synth.getVoices?.().find(v => v.lang?.toLowerCase().startsWith('fr')) ?? null;
+  const frenchVoice = () => synth.getVoices().find(v => v.lang?.toLowerCase().startsWith('fr')) ?? null;
   // Les voix arrivent souvent après le chargement : les demander tôt évite une première lecture sans voix française.
-  if (available) synth.getVoices?.();
+  if (available) synth.getVoices();
   // Référence gardée : sans elle, Chrome peut ramasser l'énoncé en cours et ne jamais signaler sa fin.
   let current = null;
 
