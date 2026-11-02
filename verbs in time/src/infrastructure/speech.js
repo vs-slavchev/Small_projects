@@ -49,7 +49,7 @@ function createSpeaker({
 
         let timer = null;
         const lecture = {
-          utterance,
+          utterance, // jamais lu : garde l'énoncé vivant tant que `current` le référence (voir plus haut)
           finish() {
             clearTimeout(timer);
             if (current === lecture) current = null;

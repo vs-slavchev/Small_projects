@@ -17,10 +17,14 @@ function fakeSynth() {
   return { synth, Utterance };
 }
 
-test('lecture : voix française, promesse tenue à la fin de l’énoncé', async () => {
+function setup() {
   const { synth, Utterance } = fakeSynth();
   const scheduler = fakeScheduler();
-  const speaker = createSpeaker({ synth, Utterance, ...scheduler });
+  return { synth, scheduler, speaker: createSpeaker({ synth, Utterance, ...scheduler }) };
+}
+
+test('lecture : voix française, promesse tenue à la fin de l’énoncé', async () => {
+  const { synth, scheduler, speaker } = setup();
   const done = speaker.speak('je parle');
   const [u] = synth.spoken;
   assert.equal(u.text, 'je parle');
@@ -33,9 +37,7 @@ test('lecture : voix française, promesse tenue à la fin de l’énoncé', asyn
 });
 
 test('lecture : une nouvelle lecture interrompt la précédente puis démarre', async () => {
-  const { synth, Utterance } = fakeSynth();
-  const scheduler = fakeScheduler();
-  const speaker = createSpeaker({ synth, Utterance, ...scheduler });
+  const { synth, scheduler, speaker } = setup();
   speaker.speak('je parle');
   const second = speaker.speak('tu parles');
   assert.equal(synth.cancelled, 1);
@@ -47,9 +49,7 @@ test('lecture : une nouvelle lecture interrompt la précédente puis démarre', 
 });
 
 test('lecture : deux appuis rapprochés après une interruption attendent tous deux avant de parler', async () => {
-  const { synth, Utterance } = fakeSynth();
-  const scheduler = fakeScheduler();
-  const speaker = createSpeaker({ synth, Utterance, ...scheduler });
+  const { synth, scheduler, speaker } = setup();
   const first = speaker.speak('je parle');
   const second = speaker.speak('tu parles');
   scheduler.advance(10);
@@ -65,20 +65,14 @@ test('lecture : deux appuis rapprochés après une interruption attendent tous d
 });
 
 test('lecture : un énoncé qui ne démarre jamais est abandonné vite', async () => {
-  const { synth, Utterance } = fakeSynth();
-  const scheduler = fakeScheduler();
-  const speaker = createSpeaker({ synth, Utterance, ...scheduler });
-  let settled = false;
-  const done = speaker.speak('il parle').then(() => { settled = true; });
+  const { synth, scheduler, speaker } = setup();
+  const done = speaker.speak('il parle');
   scheduler.advance(START_TIMEOUT_MS);
   await done;
-  assert.ok(settled);
 });
 
 test('lecture : une fois la voix partie, le filet de sécurité est plus long', async () => {
-  const { synth, Utterance } = fakeSynth();
-  const scheduler = fakeScheduler();
-  const speaker = createSpeaker({ synth, Utterance, ...scheduler });
+  const { synth, scheduler, speaker } = setup();
   let settled = false;
   const done = speaker.speak('il parle').then(() => { settled = true; });
   synth.spoken[0].onstart();

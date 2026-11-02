@@ -5,6 +5,8 @@ const { AppEvent } = Conjugo;
 
 /** Durée minimale de l'état « en lecture » d'un bouton écouter, pour que l'appui se voie. */
 const MIN_SPEAKING_MS = 400;
+/** Éléments qui traitent eux-mêmes Entrée et Espace quand ils ont le focus. */
+const OWN_KEYS = 'input, textarea, select, button, a[href], [role="button"], [contenteditable]';
 
 /**
  * Traduit les gestes du joueur en événements de l'automate.
@@ -86,8 +88,8 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
   // Clavier : Entrée ou Espace pour continuer (hors champ de saisie, hors bouton et hors touche maintenue), Échap pour fermer un badge.
   // L'automate refuse de lui-même de quitter une explication qui vient de s'afficher.
   root.ownerDocument.addEventListener('keydown', event => {
-    // Un champ ou un bouton qui a le focus garde ses touches : Entrée sur « écouter » doit lire, pas continuer.
-    if (event.target instanceof HTMLInputElement || event.target.closest?.('button')) return;
+    // Un élément interactif qui a le focus garde ses touches : Entrée sur « écouter » doit lire, pas continuer.
+    if (event.target.closest?.(OWN_KEYS)) return;
     switch (event.key) {
       case 'Escape': machine.send(AppEvent.CLOSE_BADGE); break;
       case 'Enter':
