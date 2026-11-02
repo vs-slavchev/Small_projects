@@ -83,10 +83,11 @@ function bindController(root, machine, { confirm = message => globalThis.confirm
     });
   }
 
-  // Clavier : Entrée ou Espace pour continuer (hors champ de saisie et hors touche maintenue), Échap pour fermer un badge.
+  // Clavier : Entrée ou Espace pour continuer (hors champ de saisie, hors bouton et hors touche maintenue), Échap pour fermer un badge.
   // L'automate refuse de lui-même de quitter une explication qui vient de s'afficher.
   root.ownerDocument.addEventListener('keydown', event => {
-    if (event.target instanceof HTMLInputElement) return;
+    // Un champ ou un bouton qui a le focus garde ses touches : Entrée sur « écouter » doit lire, pas continuer.
+    if (event.target instanceof HTMLInputElement || event.target.closest?.('button')) return;
     switch (event.key) {
       case 'Escape': machine.send(AppEvent.CLOSE_BADGE); break;
       case 'Enter':

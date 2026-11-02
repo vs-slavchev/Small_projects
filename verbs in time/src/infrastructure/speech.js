@@ -1,7 +1,9 @@
 (function (Conjugo) {
 'use strict';
 
-/** Filet de sécurité : certains navigateurs n'émettent jamais `end` (ou `error`) pour un énoncé. */
+/** Sans `start` dans ce délai, la lecture est tenue pour perdue (Chrome avale parfois un énoncé sans rien signaler). */
+const START_TIMEOUT_MS = 2000;
+/** Filet de sécurité une fois la voix partie : certains navigateurs n'émettent jamais `end` (ou `error`). */
 const SPEECH_TIMEOUT_MS = 6000;
 /** Chrome avale parfois un énoncé lancé dans la foulée d'un `cancel()` : on lui laisse un instant. */
 const AFTER_CANCEL_MS = 60;
@@ -23,7 +25,8 @@ function createSpeaker({
   const frenchVoice = () => synth.getVoices().find(v => v.lang?.toLowerCase().startsWith('fr')) ?? null;
   // Les voix arrivent souvent après le chargement : les demander tôt évite une première lecture sans voix française.
   if (available) synth.getVoices();
-  // Référence gardée : sans elle, Chrome peut ramasser l'énoncé en cours et ne jamais signaler sa fin.
+  // Lecture en cours ou sur le point de démarrer. La référence à l'énoncé compte aussi :
+  // sans elle, Chrome peut le ramasser en cours de route et ne jamais signaler sa fin.
   let current = null;
 
   return Object.freeze({
@@ -31,6 +34,12 @@ function createSpeaker({
     /** @param {string} text @returns {Promise<void>} */
     speak(text) {
       if (!available) return Promise.resolve();
+      // Notre propre suivi plutôt que `speaking`/`pending` seuls : ceux-ci sont déjà faux juste après un
+      // `cancel()`, alors que Chrome n'accepte pas encore de nouvel énoncé.
+      const interrupting = current !== null || synth.speaking || synth.pending;
+      current?.finish();
+      if (interrupting) synth.cancel();
+
       return new Promise(resolve => {
         const utterance = new Utterance(text);
         utterance.lang = 'fr-FR';
@@ -39,31 +48,31 @@ function createSpeaker({
         if (voice) utterance.voice = voice;
 
         let timer = null;
-        const done = () => {
-          clearTimeout(timer);
-          if (current === utterance) current = null;
-          resolve();
+        const lecture = {
+          utterance,
+          finish() {
+            clearTimeout(timer);
+            if (current === lecture) current = null;
+            resolve();
+          },
         };
-        utterance.onend = done;
-        utterance.onerror = done;
-        timer = setTimeout(done, SPEECH_TIMEOUT_MS);
-        current = utterance;
+        const watch = ms => { clearTimeout(timer); timer = setTimeout(lecture.finish, ms); };
+        utterance.onstart = () => watch(SPEECH_TIMEOUT_MS);
+        utterance.onend = lecture.finish;
+        utterance.onerror = lecture.finish;
+        current = lecture;
 
         const start = () => {
-          if (current !== utterance) return done(); // remplacé entre-temps par une autre lecture
           synth.resume?.(); // Chrome reste parfois bloqué en pause après une longue inactivité
           synth.speak(utterance);
+          watch(START_TIMEOUT_MS);
         };
-        if (synth.speaking || synth.pending) {
-          synth.cancel();
-          setTimeout(start, AFTER_CANCEL_MS);
-        } else {
-          start();
-        }
+        if (interrupting) timer = setTimeout(start, AFTER_CANCEL_MS);
+        else start();
       });
     },
   });
 }
 
-Object.assign(Conjugo, { createSpeaker, SPEECH_TIMEOUT_MS });
+Object.assign(Conjugo, { createSpeaker, START_TIMEOUT_MS, SPEECH_TIMEOUT_MS });
 })(globalThis.Conjugo ??= {});

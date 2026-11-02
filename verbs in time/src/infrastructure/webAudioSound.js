@@ -9,6 +9,22 @@ const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5
 const RELEASE_S = 0.04;
 const STOP_PADDING_S = 0.1;
 
+/** En dessous de ce niveau, la sortie est identique à l'entrée. */
+const SOFT_CLIP_KNEE = 0.7;
+
+/** Courbe d'écrêtage : identité jusqu'au genou, puis approche douce de ±1. */
+function softClipCurve(size = 1025) {
+  const curve = new Float32Array(size);
+  const room = 1 - SOFT_CLIP_KNEE;
+  for (let i = 0; i < size; i++) {
+    const x = (i / (size - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    const y = a <= SOFT_CLIP_KNEE ? a : SOFT_CLIP_KNEE + room * Math.tanh((a - SOFT_CLIP_KNEE) / room);
+    curve[i] = Math.sign(x) * y;
+  }
+  return curve;
+}
+
 class WebAudioSound {
   #context = null;
   #output = null;
@@ -48,15 +64,13 @@ class WebAudioSound {
       const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
       if (!AudioContext) return null;
       this.#context = new AudioContext();
-      // Toutes les notes passent par un limiteur : des notes qui se chevauchent ne saturent jamais la sortie.
-      const limiter = this.#context.createDynamicsCompressor();
-      limiter.threshold.value = -6;
-      limiter.knee.value = 6;
-      limiter.ratio.value = 12;
-      limiter.attack.value = 0.003;
-      limiter.release.value = 0.25;
-      limiter.connect(this.#context.destination);
-      this.#output = limiter;
+      // Toutes les notes passent par un écrêteur doux : linéaire (volume inchangé) jusqu'à SOFT_CLIP_KNEE,
+      // il arrondit seulement les rares pics de notes qui se chevauchent au lieu de les laisser saturer.
+      const clipper = this.#context.createWaveShaper();
+      clipper.curve = softClipCurve();
+      clipper.oversample = '2x';
+      clipper.connect(this.#context.destination);
+      this.#output = clipper;
     }
     if (this.#context.state === 'suspended') this.#context.resume();
     return this.#context;
