@@ -1,11 +1,8 @@
-// Calcul de la série quotidienne. Tout est exprimé en jours du calendrier local.
-
 (function (Conjugo) {
 'use strict';
 
 const pad = n => String(n).padStart(2, '0');
 
-/** Clé de jour local « AAAA-MM-JJ ». */
 function dayKey(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -22,19 +19,15 @@ function fromKey(key) {
   return new Date(y, m - 1, d);
 }
 
-/** Nombre de jours du calendrier local entre deux dates (0 le même jour). */
 const daysBetween = (from, to) => Math.round((fromKey(dayKey(to)) - fromKey(dayKey(from))) / 86_400_000);
 
-/** Jours où le joueur a terminé au moins une partie. */
 class ActivityCalendar {
   #days;
 
-  /** @param {Iterable<Date>} dates */
   constructor(dates = []) {
     this.#days = new Set([...dates].map(dayKey));
   }
 
-  /** Ajoute un jour d'activité. */
   record(date) {
     this.#days.add(dayKey(date));
   }

@@ -28,7 +28,6 @@
   --amber-tint: #FFE9CF;
   --amber-tint-2: #FFF5E8;
   --green-l: #6CC08F;
-  /* Design system « verbes & temps » */
   --night-text: #D8DCE4;
   --amber-strong: #F2A33A;
   --amber-deep: #B36B0E;
@@ -46,7 +45,6 @@
   --fs-body: 15px;
   --fs-label: 13px;
   --fs-micro: 12px;
-  /* Rayons et espacements */
   --radius-sm: 8px; --radius-md: 12px; --radius-lg: 18px; --radius-xl: 24px;
   --space-nav: 56px;
   --serif: 'Young Serif', Georgia, 'Times New Roman', serif;
@@ -73,11 +71,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .screen.enter { animation: screenIn .32s cubic-bezier(.2,.8,.2,1) both; }
 .top-safe { height: var(--safe-top); flex: none; }
 
-/* Boutons « autocollants » : ombre portée pleine qui s'écrase à l'appui */
 .press { border: none; transition: transform .08s ease, box-shadow .08s ease, filter .15s; }
 .press:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--sh, #000) !important; }
 
-/* ---------- Barre d'onglets : Progrès · Jouer · Succès ---------- */
 .tabbar {
   flex: none; display: grid; grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--line); background: var(--card);
@@ -90,7 +86,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .tab.on .ico { background: var(--amber); }
 .tab.on svg { stroke-width: 2.6; }
 .tab:active .ico { transform: scale(.88); }
-/* « Jouer », au centre, dépasse de la barre. */
 .tab-center { display: flex; justify-content: center; align-items: flex-start; }
 .tab-play {
   --sh: #000; margin-top: -34px; width: 128px; height: 64px; border-radius: var(--radius-xl); background: var(--ink); color: #fff;
@@ -98,14 +93,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 }
 .tab-play:active { box-shadow: 0 1px 0 #000, 0 0 0 6px var(--paper) !important; }
 
-/* Icônes au trait : elles prennent la couleur du texte. */
 .tab svg, .icon-btn svg, .jr-check svg, .path-check svg, .streak svg, .lc-flag svg, .path-more svg, .learned-streak svg {
   width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 .tab svg .fill { fill: currentColor; stroke: none; }
 .icon-btn svg { width: 18px; height: 18px; }
 
-/* ---------- Commun ---------- */
 .logo { font-family: var(--serif); font-size: var(--fs-word); white-space: nowrap; }
 .logo span { color: var(--muted); }
 .link-btn { height: 44px; border: none; background: transparent; color: var(--ink-3); font-size: var(--fs-body); font-weight: 700; }
@@ -121,7 +114,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 }
 .cta.outline span { font-size: var(--fs-action); font-weight: 800; }
 .cta.outline small { font-size: var(--fs-label); font-weight: 600; color: var(--ink-3); }
-/* Bouton de partie : libellé à gauche, ce que la partie rapporte à droite. */
 .play-btn {
   --sh: #000; height: 76px; width: 100%; border-radius: 24px; background: var(--ink); color: #fff; box-shadow: 0 6px 0 #000;
   display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex: none; text-align: left;
@@ -130,9 +122,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .pb-text b { font-size: var(--fs-word); font-weight: 800; }
 .pb-text small { font-size: var(--fs-label); font-weight: 600; color: #C9CED8; }
 
-/* ---------- Premier lancement ---------- */
 .onb-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 24px calc(28px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 22px; }
-/* Colonne centrée qui occupe la hauteur libre (premier lancement, bilan). */
 .center-col { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
 .demo { display: flex; flex-direction: column; gap: 12px; transform: rotate(-1.5deg); padding: 0 4px; }
 .demo-card {
@@ -167,11 +157,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .onb-copy p { margin: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--ink-3); }
 .onb-actions { display: flex; flex-direction: column; gap: 12px; flex: none; }
 
-/* ---------- Test de placement ---------- */
 .segs.neutral .seg.done { background: var(--muted); }
 .answer-form .link-btn { align-self: center; }
 
-/* ---------- Écrans de fête : point de départ trouvé, niveau terminé ---------- */
 .cele { background: var(--night); color: #fff; }
 .cele-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 20px calc(28px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 20px; text-align: center; }
 .cele-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
@@ -190,7 +178,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .cele-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
 .cele .link-btn { color: var(--night-t2); }
 
-/* ---------- Accueil ---------- */
 .home-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 20px var(--space-nav); display: flex; flex-direction: column; gap: 20px; }
 .home-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .home-head-right { display: flex; align-items: center; gap: 8px; }
@@ -203,14 +190,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .headline h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: var(--fs-title); line-height: 1.15; text-wrap: balance; }
 .headline p { margin: 0; font-size: var(--fs-body); line-height: 22px; color: var(--ink-3); }
 .hl { background: var(--amber); border-radius: var(--radius-sm); padding: 0 6px; white-space: nowrap; }
-/* Déjà joué : formes acquises aujourd'hui. */
 .learned { background: var(--night); color: #fff; border-radius: var(--radius-xl); padding: 16px; display: flex; flex-direction: column; gap: 12px; animation: fadeUp .4s ease both; }
 .learned-title { font-size: var(--fs-label); font-weight: 700; color: var(--night-text); }
 .learned-forms { display: flex; flex-wrap: wrap; gap: 8px; }
 .learned-forms span { background: var(--night-2); border-radius: var(--radius-md); padding: 4px 12px; font-family: var(--serif); font-size: var(--fs-word); color: var(--amber); }
 .learned-streak { display: flex; align-items: center; gap: 8px; font-size: var(--fs-label); font-weight: 700; color: var(--night-text); }
 .learned-streak svg { width: 14px; height: 14px; stroke: var(--green-l); stroke-width: 3.2; }
-/* Chemin : niveau en cours, puis les niveaux terminés, reliés par un trait. */
 .path { position: relative; display: flex; flex-direction: column; gap: 16px; }
 .path::before { content: ''; position: absolute; left: 26px; top: 56px; bottom: 28px; width: 4px; border-radius: 2px; background: var(--ink); }
 .path:has(.path-node:only-child)::before { display: none; }
@@ -244,7 +229,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .lc-note { margin: 0; font-size: var(--fs-body); line-height: 22px; color: var(--ink-3); }
 .lc-note b { color: var(--ink); }
 .eyebrow { font-size: var(--fs-label); font-weight: 700; color: var(--ink-3); }
-/* Barre d'un niveau : acquis (vert), gain du jour (ambre), prochaine partie (pointillé). */
 .level-bar { height: 12px; border-radius: 6px; background: var(--line-2); overflow: hidden; display: flex; }
 .level-bar.dark { background: var(--night-2); }
 .lb-done { background: var(--green-d); transform-origin: left; animation: meter .7s cubic-bezier(.2,.8,.2,1) both; }
@@ -252,7 +236,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .lb-today { background: var(--amber-strong); border-left: 2px solid var(--ink); }
 .lb-next { background: var(--amber-tint); border: 2px dashed var(--amber-deep); border-left: none; border-radius: 0 6px 6px 0; box-sizing: border-box; }
 
-/* ---------- Partie ---------- */
 .play-top { padding: 20px 20px 12px; display: flex; flex-direction: column; flex: none; }
 .bar-row { display: flex; align-items: center; gap: 12px; min-height: 44px; }
 .close { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); display: grid; place-items: center; font-size: var(--fs-action); padding: 0; flex: none; }
@@ -268,7 +251,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .combo .fl { display: inline-block; animation: flick .6s ease-in-out infinite; }
 .combo.hot { background: linear-gradient(90deg, #1F2430, #5A2A1E); }
 
-/* La question : temps et verbe, puis la phrase à trou, au centre de la place libre. */
 .q-center { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
 .q-block { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; animation: cardIn .4s cubic-bezier(.2,1.2,.4,1) both; }
 .q-block.good { animation: good .4s cubic-bezier(.3,1.6,.5,1); }
@@ -298,7 +280,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .submit:disabled { filter: saturate(.3) opacity(.55); }
 .answer-form .link-btn { height: 44px; }
 
-/* Peu de hauteur (clavier ouvert, petit écran) : suivi compact, marges resserrées. */
 @container app (max-height: 420px) {
   .play-top { padding: 8px 16px 8px; }
   .bar-row { gap: 8px; min-height: 32px; }
@@ -313,7 +294,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
   .answer-input, .submit { height: 48px; }
   .answer-form .link-btn { height: 36px; }
 }
-/* Très peu de hauteur (clavier aux trois quarts de l'écran) : la phrase descend d'un cran, sans jamais passer sous 22 px. */
 @container app (max-height: 260px) {
   .q-sentence { font-size: var(--fs-word); }
   .q-block { gap: 4px; }
@@ -321,7 +301,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ---------- Retour sur réponse ---------- */
 .fb { overflow-y: auto; }
 .fb-word { flex: 1 0 auto; padding: 16px 20px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
 .fb-word .big { font-family: var(--serif); line-height: 1.1; text-wrap: balance; animation: popIn .45s cubic-bezier(.3,1.6,.5,1) both; }
@@ -358,7 +337,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .next-btn.locked { background: transparent; color: var(--ink-3); border: 2px dashed var(--faint); box-shadow: none; }
 .next-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Clavier ouvert pour recopier : seuls la forme et le champ restent ; le verdict, juste au-dessus du champ, se réduit avec la place. */
 .fb:has(#retype:focus) { overflow: hidden; }
 .fb:has(#retype:focus) .fb-word { flex: 1 1 auto; min-height: 0; }
 .fb:has(#retype:focus) .fun, .fb:has(#retype:focus) .next-btn, .fb:has(#retype:focus) .diag, .fb:has(#retype:focus) .also { display: none; }
@@ -378,7 +356,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
   .fb:has(#retype:focus) .ask::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--red); vertical-align: middle; }
 }
 
-/* ---------- Fin de partie ---------- */
 .end-body { flex: 1; min-height: 0; padding: 32px 20px calc(20px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
 .end-body .center-col { gap: 24px; }
 .re-head { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
@@ -421,7 +398,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .re-tile.dark span { color: var(--night-text); }
 .end-actions { display: flex; flex-direction: column; gap: 4px; flex: none; }
 
-/* Succès débloqués : la même carte au bilan et à l'écran de niveau terminé. */
 .unlocked { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: 16px; display: flex; flex-direction: column; gap: 12px; text-align: left; animation: unlock .6s cubic-bezier(.3,1.5,.5,1) both .4s; }
 .unlocked.dark { background: var(--night-2); border-color: var(--night-2); }
 .unlocked-title { font-size: var(--fs-label); font-weight: 700; color: var(--ink-3); }
@@ -433,12 +409,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .unlocked-text span { font-size: var(--fs-label); font-weight: 600; color: var(--ink-3); }
 .unlocked.dark .unlocked-text b { color: #fff; }
 .unlocked.dark .unlocked-text span { color: var(--night-text); }
-/* Couleurs des paliers (bilan, niveau terminé, succès). */
 .tier-1 { background: var(--bronze); box-shadow: inset 0 -4px 0 var(--bronze-deep); }
 .tier-2 { background: linear-gradient(160deg, #DCE2E8, #8E9AA7); box-shadow: inset 0 -4px 0 var(--silver-deep); }
 .tier-3 { background: linear-gradient(160deg, #FFE08A, #E8A92A); box-shadow: inset 0 -4px 0 var(--gold-deep); }
 
-/* ---------- Progrès : le parcours ---------- */
 .page { flex: 1; min-height: 0; padding: 12px 20px var(--space-nav); display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
 .page-title { font-family: var(--serif); font-size: var(--fs-title); }
 .jr-current { flex: none; background: var(--night); color: #fff; border-radius: var(--radius-xl); padding: 20px; display: flex; flex-direction: column; gap: 12px; animation: fadeUp .4s ease both; }
@@ -449,7 +423,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .jr-current .lc-pct small { color: var(--night-text); }
 .jr-current p { margin: 0; font-size: var(--fs-body); line-height: 22px; color: var(--night-text); }
 .jr-current p b { color: var(--amber); }
-/* Statistiques verrouillées jusqu'à trois parties. */
 .locked-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; animation: fadeUp .4s ease both .06s; }
 .slots { display: flex; gap: 12px; }
 .slot { width: 56px; height: 56px; border-radius: 16px; border: 2px dashed var(--faint); box-sizing: border-box; display: grid; place-items: center; }
@@ -473,7 +446,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .jr-num { font-size: var(--fs-micro); font-weight: 700; color: var(--ink-3); white-space: nowrap; }
 .jr-empty { margin: 0; font-size: var(--fs-body); color: var(--ink-3); }
 
-/* ---------- Succès ---------- */
 .ach-head { display: flex; justify-content: space-between; align-items: baseline; }
 .ach-head span { font-size: var(--fs-label); font-weight: 700; color: var(--ink-3); }
 .badges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-bottom: 8px; }
@@ -485,7 +457,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .badge:active { transform: scale(.95); }
 .badge.sel { border: 2px solid var(--ink); padding: 15px 7px 11px; }
 .badge .em { position: relative; overflow: hidden; width: 56px; height: 56px; border-radius: var(--radius-lg); display: grid; place-items: center; font-size: var(--fs-title); box-sizing: border-box; }
-/* Pas obtenu : un cadre pointillé vide, l'emoji en gris. */
 .tier-0 { border: 2px dashed var(--faint); background: transparent; }
 .badge.off .em { filter: grayscale(1); opacity: .7; }
 /* Nom sur deux lignes réservées : les traits s'alignent d'une carte à l'autre. */
@@ -496,7 +467,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .t-1 .ticks i.on { background: var(--bronze); }
 .t-2 .ticks i.on { background: var(--silver); }
 .t-3 .ticks i.on { background: var(--gold); }
-/* Reflet sur l'or, de temps en temps. */
 .shine { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.8) 50%, transparent 65%); transform: translateX(-130%); animation: shine 7s ease-in-out infinite 1s; pointer-events: none; }
 @keyframes shine { 0%, 82% { transform: translateX(-130%); } 96%, 100% { transform: translateX(130%); } }
 @media (prefers-reduced-motion: reduce) { .shine { display: none; } }
@@ -519,7 +489,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .meter { height: 8px; border-radius: 4px; background: var(--night-2); overflow: hidden; }
 .meter div { height: 100%; border-radius: 4px; background: var(--amber); animation: meter .7s cubic-bezier(.2,.8,.2,1) both .1s; transform-origin: left; }
 
-/* ---------- Formes découpées ---------- */
 .sg-subject, .sg-pronoun { color: var(--muted); }
 .sg-stem, .sg-participle, .sg-infinitive { color: inherit; }
 .sg-ending { color: var(--blue-d); }
@@ -528,10 +497,13 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .sg-legend { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; font-size: var(--fs-micro); font-weight: 700; }
 .sg-legend .sg { padding: 2px 8px; border-radius: 6px; background: var(--card); border: 1px solid var(--line); }
 .sg-legend .sg-ending, .sg-legend .sg-agreement { font-weight: 800; }
-.speak { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: var(--fs-action); padding: 0; flex: none; }
+.speak { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: var(--fs-action); padding: 0; flex: none; color: inherit; transition: transform .1s, border-color .15s, background .15s; }
+.speak:active { transform: scale(.92); }
+.speak.speaking { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, var(--card)); cursor: default; animation: speakPulse 1s ease-in-out infinite; }
+@keyframes speakPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 45%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--blue) 0%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .speak.speaking { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 35%, transparent); } }
 .no-speech .speak { display: none; }
 
-/* ---------- Diagnostic, écart lettre à lettre, recopie ---------- */
 .you-said .given { font-weight: 700; color: var(--ink); }
 .df-extra { color: var(--red); text-decoration: line-through; }
 .diag { background: var(--purple-tint); color: var(--purple-d); border-radius: 16px; padding: 12px 16px; font-size: var(--fs-body); line-height: 1.45; animation: fadeUp .4s ease both .15s; }
@@ -542,14 +514,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--blue);
 .retype #retype:focus { border-color: var(--ink); }
 .retype.again #retype { border-color: var(--red); animation: shake .42s ease; }
 .retype .submit { height: 52px; }
-/* Recopiée : le champ devient une ligne verte, à la même place. */
 .retype-done { display: flex; align-items: center; gap: 12px; height: 52px; border-radius: var(--radius-lg); background: var(--ok-tint); padding: 0 16px; color: var(--green-d); animation: popIn .3s ease both; }
 .retype-done .ok-mark { font-weight: 800; }
 .retype-done .retype-form { font-family: var(--serif); font-size: var(--fs-word); color: var(--ink); }
 .retype-done .retype-status { margin-left: auto; font-size: var(--fs-label); font-weight: 700; }
 .also-like { font-size: var(--fs-body); color: var(--ink-3); font-style: italic; }
 
-/* ---------- Animations ---------- */
 @keyframes screenIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes flick { 0%, 100% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.12) rotate(3deg); } }
 @keyframes breathe { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.06) rotate(2deg); } }

@@ -3,17 +3,6 @@
 
 const DEFAULT_THEME = '--paper';
 
-/**
- * Abonné de l'automate qui affiche la vue de l'état courant. Il ne connaît aucun état
- * en particulier : tout ce qui est propre à un écran passe par les crochets de sa vue.
- * - changement d'écran       → rendu complet avec animation d'entrée ;
- * - même écran, nouvel état  → rendu complet sans animation d'entrée (question → retour visuel) ;
- * - transition interne       → `patch` de la vue (compte à rebours, badge sélectionné, son) ;
- *                              sans `patch`, rien n'est redessiné.
- *
- * @param {HTMLElement} root
- * @param {{ views: Record<string, object>, now: () => number }} options
- */
 function createRenderer(root, { views, now }) {
   const env = Object.freeze({ now });
   const doc = root.ownerDocument;

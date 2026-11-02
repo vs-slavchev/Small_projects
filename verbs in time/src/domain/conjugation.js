@@ -3,39 +3,22 @@
 
 const { DomainError, VERB_TYPES, VERB_DATA } = Conjugo;
 
-/** Apostrophe typographique des formes affichées : « j’habite ». */
 const APOSTROPHE = '’';
 // Le h est traité comme muet : aucun verbe de la banque ne commence par un h aspiré.
 const STARTS_WITH_VOWEL = /^[aeiouàâäéèêëîïôöùûüæœh]/i;
-/** Pronoms qui s'élident devant une voyelle ou un h muet. */
 const ELIDABLE = new Set(['je', 'me', 'te', 'se']);
 
-/**
- * Morceau d'une forme conjuguée, pour la montrer découpée :
- * subject, pronoun (réfléchi), aux (auxiliaire ou aller), stem (radical), ending (terminaison),
- * participle, agreement (accord du participe), infinitive ou space.
- */
 const segment = (kind, text) => Object.freeze({ kind, text });
 const SPACE = segment('space', ' ');
 const textOf = segments => segments.map(s => s.text).join('');
 
-/** Pronom devant une forme : « j’ » + « ai » (élision devant une voyelle ou un h muet), sinon « je » + espace. */
 function withPronoun(kind, pronoun, segments) {
   return ELIDABLE.has(pronoun) && STARTS_WITH_VOWEL.test(textOf(segments))
     ? [segment(kind, `${pronoun.slice(0, -1)}${APOSTROPHE}`), ...segments]
     : [segment(kind, pronoun), SPACE, ...segments];
 }
 
-/**
- * Personne grammaticale. Objet valeur : les neuf instances sont fixes, on les compare par identité.
- * `index` est le rang de la forme verbale (0 à 5), qui sert aussi de case de suivi :
- * il, elle et on partagent la leur, ils et elles aussi (voir `Person.SLOTS`).
- * `agreements` liste les terminaisons acceptées pour un participe accordé avec « être » :
- * le genre de je, tu, nous et vous n'est pas connu, toutes les possibilités sont justes ;
- * « on » peut désigner une ou plusieurs personnes, de l'un ou l'autre genre.
- */
 class Person {
-  /** @param {string} subject @param {number} index @param {string[]} agreements @param {string} agreementLabel */
   constructor(subject, index, agreements, agreementLabel) {
     this.subject = subject;
     this.index = index;
@@ -54,21 +37,14 @@ class Person {
   static ILS = new Person('ils', 5, ['s'], 's');
   static ELLES = new Person('elles', 5, ['es'], 'es');
   static ALL = Object.freeze([Person.JE, Person.TU, Person.IL, Person.ELLE, Person.ON, Person.NOUS, Person.VOUS, Person.ILS, Person.ELLES]);
-  /** Les six cases suivies par le jeu, et les sujets qui y sont posés : il / elle / on, ils / elles. */
   static SLOTS = Object.freeze([0, 1, 2, 3, 4, 5].map(i => Object.freeze(Person.ALL.filter(p => p.index === i))));
 
-  /** @param {string} subject @returns {Person | undefined} */
   static of(subject) {
     return Person.ALL.find(p => p.subject === subject);
   }
 }
 
-/** Temps de conjugaison. Objet valeur : les cinq instances sont fixes. */
 class Tense {
-  /**
-   * @param {{ id: string, label: string, withPreposition: string, markers: string[] }} props
-   *   `markers` : expressions de temps qui situent la phrase (« Hier, »), pour donner un sens au temps demandé.
-   */
   constructor({ id, label, withPreposition, markers }) {
     this.id = id;
     this.label = label;
@@ -102,13 +78,10 @@ const REGULAR_PRESENT_ENDINGS = Object.freeze({
   first: ['e', 'es', 'e', 'ons', 'ez', 'ent'],
   second: ['is', 'is', 'it', 'issons', 'issez', 'issent'],
 });
-/** Terminaisons reconnues pour découper un présent donné tel quel (3e groupe) ; sinon la forme reste entière. */
 const OTHER_PRESENT_ENDINGS = Object.freeze([['s', 'x'], ['s', 'x'], ['t'], ['ons'], ['ez'], ['ent']]);
 const ALL_AGREEMENTS = Object.freeze(['', 'e', 's', 'es']);
 
-/** Type de conjugaison (1er groupe, 2e groupe…). */
 class VerbType {
-  /** @param {{ id: string, label: string, rule: string }} props */
   constructor({ id, label, rule }) {
     this.id = id;
     this.label = label;
@@ -117,16 +90,7 @@ class VerbType {
   }
 }
 
-/**
- * Verbe et ses radicaux. Les formes des 1er et 2e groupes réguliers se déduisent de l'infinitif ;
- * celles des autres verbes sont données. Tout le reste (imparfait, futur, temps composés) se calcule.
- */
 class Verb {
-  /**
-   * @param {{ infinitive: string, type: VerbType, translation?: string, present?: string[], participle?: string,
-   *           auxiliary?: 'avoir'|'être', futureStem?: string|string[], imperfectStem?: string,
-   *           pronominal?: boolean, irregularPresent?: boolean, alsoLike?: string[], note?: string }} props
-   */
   constructor({ infinitive, type, translation = '', present, participle, auxiliary = 'avoir', futureStem, imperfectStem,
     pronominal = false, irregularPresent = false, alsoLike = [], note = '' }) {
     if (!infinitive) throw new DomainError('Un verbe doit avoir un infinitif.');
@@ -145,31 +109,21 @@ class Verb {
     this.type = type;
     this.translation = translation;
     this.participle = participle ?? defaultParticiple;
-    // Un verbe pronominal se conjugue toujours avec « être » aux temps composés.
     this.auxiliary = pronominal ? 'être' : auxiliary;
     const futureStems = [futureStem ?? (infinitive.endsWith('re') ? infinitive.slice(0, -1) : infinitive)].flat();
     this.futureStems = Object.freeze(futureStems);
     this.imperfectStem = imperfectStem ?? this.present[3].slice(0, -3);
     this.pronominal = pronominal;
-    /** Présent sans radical régulier à montrer (être, avoir, aller) : la forme n'est pas découpée. */
     this.splitsPresent = type.id !== 'auxiliary' && !irregularPresent;
-    /** Verbes fréquents qui se conjuguent sur le même modèle. */
     this.alsoLike = Object.freeze([...alsoLike]);
     this.note = note;
     Object.freeze(this);
   }
 
-  /** Infinitif affiché : « se lever ». */
   get label() {
     return this.pronominal ? textOf(withPronoun('pronoun', 'se', [segment('infinitive', this.infinitive)])) : this.infinitive;
   }
 
-  /**
-   * @param {Tense} tense @param {Person} person
-   * @param {{ auxiliary?: 'avoir'|'être', pronominal?: boolean, anyAgreement?: boolean }} [variation]
-   *   conjugaison volontairement modifiée, pour reconnaître une erreur (mauvais auxiliaire, pronom oublié, accord)
-   * @returns {Conjugation}
-   */
   conjugate(tense, person, { auxiliary = this.auxiliary, pronominal = this.pronominal, anyAgreement = false } = {}) {
     if (!(tense instanceof Tense)) throw new DomainError('Temps invalide.');
     if (!(person instanceof Person)) throw new DomainError('Personne invalide.');
@@ -205,7 +159,6 @@ class Verb {
     return new Conjugation({ subject: person.subject, variants, spellings, shown });
   }
 
-  /** Présent découpé en radical + terminaison quand la terminaison est reconnue ; sinon la forme entière. */
   #presentSegments(i) {
     const form = this.present[i];
     if (!this.splitsPresent) return [segment('stem', form)];
@@ -218,7 +171,6 @@ class Verb {
   }
 }
 
-/** [premier élément dans une liste, reste] */
 const splitFirst = list => [list.slice(0, 1), list.slice(1)];
 
 /** Imparfait : le ç et le ge du radical ne sont utiles que devant a (commençais, mais commencions). */
@@ -229,16 +181,13 @@ function imperfectParts(stem, ending) {
   return [stem, ending];
 }
 
-/** Participe suivi de son accord, s'il y en a un. */
 function participle(text, ending) {
   const agreement = agree(text, ending).slice(text.length);
   return agreement ? [segment('participle', text), segment('agreement', agreement)] : [segment('participle', text)];
 }
 
-/** Accord du participe : « pris » + s reste « pris ». */
 const agree = (participle, ending) => (ending === 's' && participle.endsWith('s') ? participle : participle + ending);
 
-/** Forme saisie ramenée à une écriture comparable : casse, espaces et apostrophes. */
 function normalizeAnswer(text) {
   return String(text)
     .normalize('NFC')
@@ -252,38 +201,21 @@ function normalizeAnswer(text) {
 
 const stripAccents = text => text.normalize('NFD').replace(/\p{M}/gu, '');
 
-/**
- * Forme conjuguée attendue. `forms` liste toutes les écritures justes avec leur sujet
- * (accords possibles, orthographe rectifiée) ; `display` est celle qu'on montre au joueur,
- * et `segments` la même, découpée (sujet, radical, terminaison…).
- * Le joueur peut aussi répondre sans le pronom sujet (« finirai » vaut « je finirai », « nous levons » vaut
- * « nous nous levons »).
- */
 class Conjugation {
   #accepted;
 
-  /**
-   * @param {{ subject: string, variants: object[][], spellings?: object[][], shown?: object[] }} props
-   *   formes sans sujet, découpées : accords possibles, autres orthographes, forme à afficher (par défaut la première)
-   */
   constructor({ subject, variants, spellings = [], shown = variants[0] }) {
     const withSubject = segments => withPronoun('subject', subject, segments);
     const bare = [...variants, ...spellings].map(textOf);
     this.forms = Object.freeze([...variants, ...spellings].map(v => textOf(withSubject(v))));
     this.segments = Object.freeze(withSubject(shown));
     this.display = textOf(this.segments);
-    /** Autres écritures acceptées, à signaler après la réponse. */
     this.others = Object.freeze(this.forms.slice(variants.length));
-    /** Écritures acceptées telles qu'on les montre, avec ou sans sujet. */
     this.accepted = Object.freeze([...this.forms, ...bare]);
     this.#accepted = this.accepted.map(normalizeAnswer);
     Object.freeze(this);
   }
 
-  /**
-   * @param {string} input
-   * @returns {{ correct: boolean, accentsOnly: boolean }} `accentsOnly` : faux uniquement à cause des accents.
-   */
   check(input) {
     const given = normalizeAnswer(input);
     if (this.#accepted.includes(given)) return { correct: true, accentsOnly: false };
@@ -292,12 +224,9 @@ class Conjugation {
   }
 }
 
-/** Clé de suivi d'une forme : un verbe (infinitif), à un temps (identifiant), dans une case de personne (0 à 5). */
 const comboKey = (verb, tense, slot) => `${verb}|${tense}|${slot}`;
 
-/** Question d'un tour : un verbe, un temps, une personne, et une expression de temps qui situe la phrase. */
 class Question {
-  /** @param {{ verb: Verb, tense: Tense, person: Person, marker?: string | null }} props */
   constructor({ verb, tense, person, marker = null }) {
     if (!(verb instanceof Verb) || !(tense instanceof Tense) || !(person instanceof Person)) throw new DomainError('Question incomplète.');
     this.verb = verb;
@@ -308,19 +237,16 @@ class Question {
     Object.freeze(this);
   }
 
-  /** Clé de la forme posée (voir `comboKey`) : il, elle et on partagent la leur. */
   get key() {
     return comboKey(this.verb.infinitive, this.tense.id, this.person.index);
   }
 }
 
-/** Banque des verbes. Valide les données au chargement. */
 class VerbBank {
   #verbs;
   #byInfinitive;
   #types;
 
-  /** @param {VerbType[]} types @param {Verb[]} verbs */
   constructor(types, verbs) {
     this.#types = Object.freeze([...types]);
     this.#verbs = Object.freeze([...verbs]);
@@ -348,12 +274,10 @@ class VerbBank {
   get verbs() { return this.#verbs; }
   get types() { return this.#types; }
 
-  /** @param {string} infinitive @returns {Verb | undefined} */
   verb(infinitive) {
     return this.#byInfinitive.get(infinitive);
   }
 
-  /** @param {string} id @returns {VerbType | undefined} */
   type(id) {
     return this.#types.find(t => t.id === id);
   }

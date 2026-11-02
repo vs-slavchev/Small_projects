@@ -69,11 +69,6 @@ function validate(definition) {
   }
 }
 
-/**
- * @template C
- * @param {{ initial: string, context: C, on?: object, states: Record<string, object> }} definition
- * @param {{ scheduler?: typeof defaultScheduler }} [options]
- */
 function createMachine(definition, { scheduler = defaultScheduler } = {}) {
   validate(definition);
   const context = definition.context;
@@ -148,10 +143,6 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
     notify(Object.freeze({ state, previous, event, context, changed: external }));
   }
 
-  /**
-   * Envoie un événement. Retourne l'état courant après traitement.
-   * @param {string} type @param {object} [payload]
-   */
   function send(type, payload = {}) {
     if (state === null) throw new Error('Automate : démarre-le avant de lui envoyer des événements.');
     queue.push(Object.freeze({ ...payload, type }));
@@ -170,13 +161,10 @@ function createMachine(definition, { scheduler = defaultScheduler } = {}) {
 
   return {
     get state() { return state; },
-    /** Données étendues : à lire seulement, les actions sont seules à les modifier. */
     get context() { return context; },
     matches: (...names) => names.includes(state),
-    /** Indique si l'événement déclencherait une transition dans l'état courant. */
     can: (type, payload = {}) => state !== null && select({ ...payload, type }) !== null,
     send,
-    /** @param {(snapshot: { state: string, previous: string|null, event: object, context: C, changed: boolean }) => void} listener */
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);

@@ -1,11 +1,3 @@
-// Données brutes : les niveaux, dans l'ordre où le joueur les traverse.
-// Un niveau travaille un temps sur quelques verbes, aux six personnes (voir Person.SLOTS).
-//
-// Champs d'un niveau :
-// - tense : identifiant du temps (voir Tense) ;
-// - verbs : infinitifs des verbes travaillés, présents dans VERB_DATA ;
-// - label : nom court du niveau, montré dans le parcours.
-
 (function (Conjugo) {
 'use strict';
 

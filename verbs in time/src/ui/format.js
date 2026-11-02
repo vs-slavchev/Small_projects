@@ -1,11 +1,8 @@
-// Textes du jeu (verdicts, diagnostics) ; la mise en forme générique est dans textFormat.js.
-
 (function (Conjugo) {
 'use strict';
 
 const { Verdict, ErrorKind, escapeHtml } = Conjugo;
 
-/** Mot d'encouragement du bilan, après « +3 formes en 2 minutes. » */
 const VERDICT_TEXT = Object.freeze({
   [Verdict.PERFECT]: 'Parfait&nbsp;!',
   [Verdict.WEEK_BEST]: 'Record de la semaine&nbsp;!',
@@ -14,10 +11,6 @@ const VERDICT_TEXT = Object.freeze({
   [Verdict.KEEP_GOING]: 'Ça vient.',
 });
 
-/**
- * Phrase qui explique une erreur (voir `diagnose`).
- * @param {{ kind: string }} diagnosis @param {import('../domain/conjugation.js').Question} question
- */
 function diagnosisText(diagnosis, { tense, person, verb }) {
   switch (diagnosis.kind) {
     case ErrorKind.ACCENTS:

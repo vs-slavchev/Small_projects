@@ -1,7 +1,6 @@
 (function (Conjugo) {
 'use strict';
 
-/** Stockage en mémoire, utilisé quand localStorage est indisponible (navigation privée stricte, etc.). */
 class MemoryStorage {
   #items = new Map();
   getItem(key) { return this.#items.has(key) ? this.#items.get(key) : null; }
@@ -42,10 +41,6 @@ function writeJson(storage, key, value) {
 /** Même type que la valeur par défaut ; un tableau n'est pas un objet ordinaire. */
 const sameShape = (value, fallback) => typeof value === typeof fallback && Array.isArray(value) === Array.isArray(fallback);
 
-/**
- * Préférences d'affichage et de son, séparées du profil de jeu. Une valeur stockée n'est reprise
- * que si elle passe son contrôle (par défaut : même type que sa valeur par défaut) ; sinon la valeur par défaut s'applique.
- */
 class PreferenceStore {
   static DEFAULTS = Object.freeze({ soundEnabled: true });
   #storage;
@@ -54,12 +49,6 @@ class PreferenceStore {
   #defaults;
   #valid;
 
-  /**
-   * @param {{ storage?: Storage, key: string, fallback?: () => object | null,
-   *           defaults?: object, validators?: Record<string, (value: unknown) => boolean> }} options
-   *   `fallback` fournit des préférences quand rien n'est stocké sous `key` (ancien format, par exemple) ;
-   *   `validators` remplace le contrôle de type pour les réglages qui en ont besoin.
-   */
   constructor({ storage = browserStorage(), key, fallback = () => null, defaults = PreferenceStore.DEFAULTS, validators = {} }) {
     this.#storage = storage;
     this.#key = key;

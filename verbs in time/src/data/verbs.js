@@ -1,19 +1,7 @@
-// Données brutes : les verbes travaillés dans les niveaux (voir levels.js).
-//
-// Champs d'un verbe :
-// - infinitive  : infinitif, sans « se » pour un verbe pronominal ;
-// - type        : identifiant du type (voir VERB_TYPES) ;
-// - present     : les 6 formes du présent (je, tu, il/elle, nous, vous, ils/elles).
-//                 Facultatif pour les 1er et 2e groupes réguliers, qui se déduisent de l'infinitif ;
-// - participle  : participe passé (facultatif pour les 1er et 2e groupes réguliers) ;
-// - auxiliary   : 'avoir' (par défaut) ou 'être' ; un verbe pronominal prend toujours « être » ;
-// - futureStem  : radical du futur, avant -ai, -as… Par défaut l'infinitif (sans le e final des verbes en -re).
-//                 Une liste accepte plusieurs orthographes, la première est affichée ;
-// - imperfectStem : radical de l'imparfait, si ce n'est pas celui de « nous » au présent (être : ét-) ;
-// - pronominal  : true pour un verbe pronominal (aucun dans la banque actuelle) ;
-// - irregularPresent : true si le présent ne se découpe pas en radical + terminaison (aller ; être et avoir le sont d'office) ;
-// - alsoLike    : verbes fréquents qui se conjuguent sur le même modèle (montrés après la réponse) ;
-// - note        : particularité expliquée après la réponse (HTML voulu).
+// futureStem : par défaut l'infinitif (sans le e final des verbes en -re) ; une liste accepte plusieurs
+// orthographes, la première est affichée.
+// imperfectStem : seulement si ce n'est pas le radical de « nous » au présent (être : ét-).
+// irregularPresent : le présent ne se découpe pas en radical + terminaison (être et avoir le sont d'office).
 
 (function (Conjugo) {
 'use strict';
