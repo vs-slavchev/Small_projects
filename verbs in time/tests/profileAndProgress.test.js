@@ -60,6 +60,25 @@ test('niveau : point de départ, niveaux validés par le test, niveau terminé e
   assert.throws(() => PlayerProfile.empty().completeLevel(day(18), 22), /Aucun niveau/);
 });
 
+test('parcours allongé : un niveau en cours déjà terminé laisse place au suivant à faire', () => {
+  const finished = PlayerProfile.empty();
+  finished.startAt(22, day(18));
+  finished.completeLevel(day(19), 22);
+  finished.fitTo(30);
+  assert.equal(finished.level, 23, 'ancien dernier niveau terminé : on reprend au premier nouveau');
+
+  const all = PlayerProfile.empty();
+  all.startAt(30, day(18));
+  all.completeLevel(day(19), 30);
+  all.fitTo(30);
+  assert.equal(all.level, 30, 'tout est terminé : on reste au dernier niveau');
+
+  const ongoing = PlayerProfile.empty();
+  ongoing.startAt(5, day(18));
+  ongoing.fitTo(30);
+  assert.equal(ongoing.level, 5);
+});
+
 test('profil sans niveau ni statistiques : les parties archivées ne rejouent rien', () => {
   const profile = PlayerProfile.fromSnapshot({ games: [game({ correct: 5 }).toSnapshot()] });
   assert.equal(profile.practice.get('parler|present|0').seen, 0);
