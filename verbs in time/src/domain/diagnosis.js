@@ -10,6 +10,7 @@ const ErrorKind = Object.freeze({
   AUXILIARY: 'auxiliary',
   AGREEMENT: 'agreement',
   MISSING_REFLEXIVE: 'missingReflexive',
+  SUBJECT: 'subject',
   ENDING: 'ending',
 });
 
@@ -21,6 +22,10 @@ function diagnose(question, given) {
   // Le sujet tapé peut lui-même être faux (« il parlais ») : on compare aussi la forme sans lui.
   const withoutSubject = given.trim().replace(/^(je|j['’]\s*|tu|il|elle|nous|vous|ils|elles)\s+/i, '').replace(/^j['’]\s*/i, '');
   const matches = conjugation => conjugation.check(given).correct || conjugation.check(withoutSubject).correct;
+  const tries = (t, p) => verb.canConjugate(t, p) && matches(verb.conjugate(t, p));
+
+  // À l'impératif, la bonne forme précédée d'un sujet (« tu parle ») : seul le sujet est en trop.
+  if (!tense.hasSubject && expected.check(withoutSubject).correct) return { kind: ErrorKind.SUBJECT };
 
   if (tense === Tense.PASSE_COMPOSE) {
     if (verb.auxiliary === 'être' && matches(verb.conjugate(tense, person, { anyAgreement: true }))) return { kind: ErrorKind.AGREEMENT };
@@ -32,9 +37,10 @@ function diagnose(question, given) {
   if (verb.pronominal && matches(verb.conjugate(tense, person, { pronominal: false, anyAgreement: true }))) {
     return { kind: ErrorKind.MISSING_REFLEXIVE };
   }
-  const otherTense = Tense.ALL.find(t => t !== tense && verb.canConjugate(t, person) && matches(verb.conjugate(t, person)));
+  // L'impératif n'est jamais proposé comme autre temps : « tu parle » au présent est un s oublié, pas un impératif.
+  const otherTense = Tense.ALL.find(t => t !== tense && t !== Tense.IMPERATIVE && tries(t, person));
   if (otherTense) return { kind: ErrorKind.OTHER_TENSE, tense: otherTense };
-  const otherPerson = Person.ALL.find(p => p.index !== person.index && verb.canConjugate(tense, p) && matches(verb.conjugate(tense, p)));
+  const otherPerson = Person.ALL.find(p => p.index !== person.index && tries(tense, p));
   if (otherPerson) return { kind: ErrorKind.OTHER_PERSON, person: otherPerson };
 
   const stem = expected.segments.filter(s => s.kind === 'stem').map(s => s.text).join('');

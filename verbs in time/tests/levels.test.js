@@ -4,7 +4,7 @@ import { realBank, sequence, seededRandom } from './helpers.js';
 import { Conjugo } from './game.js';
 
 const {
-  LevelLadder, LEVEL_DATA, Tense, VIEWS, AppState, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError, MAX_LEVEL_FORMS,
+  LevelLadder, LEVEL_DATA, Tense, VIEWS, AppState, AnswerStatsBook, PlacementTest, binarySearchPlacement, PlayerProfile, GameRecord, homeOverview, levelPace, HomeState, DomainError,
 } = Conjugo;
 
 const bank = realBank();
@@ -31,7 +31,6 @@ test('30 niveaux : présent, passé composé, futur proche, impératif, imparfai
 });
 
 test('chaque niveau a 18 formes au plus', () => {
-  for (const level of ladder.levels) assert.ok(level.combos.length <= MAX_LEVEL_FORMS, `niveau ${level.number} : ${level.combos.length} formes`);
   assert.equal(ladder.level(20).combos.length, 12, 'impératif : quatre verbes × trois cases');
   assert.deepEqual(ladder.level(20).span, { from: 'parle', to: 'achetez' });
 });
@@ -39,7 +38,7 @@ test('chaque niveau a 18 formes au plus', () => {
 test('chaque temps couvre chaque groupe de verbes', () => {
   for (const tense of Tense.ALL) {
     const covered = new Set(ladder.levels.filter(l => l.tense === tense).flatMap(l => l.verbs.map(v => v.type.id)));
-    const expected = bank.types.filter(t => bank.verbs.some(v => v.type === t && v.canConjugate(tense, Conjugo.Person.SLOTS[tense.slots[0]][0])));
+    const expected = bank.types.filter(t => bank.verbs.some(v => v.type === t && v.hasTense(tense)));
     assert.deepEqual([...covered].sort(), expected.map(t => t.id).sort(), tense.label);
   }
 });

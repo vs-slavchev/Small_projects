@@ -45,7 +45,7 @@ class Person {
 }
 
 class Tense {
-  constructor({ id, label, withPreposition, markers, slots = [0, 1, 2, 3, 4, 5], hasSubject = true }) {
+  constructor({ id, label, withPreposition, markers, slots = Person.SLOTS.map((_, i) => i), hasSubject = true }) {
     this.id = id;
     this.label = label;
     this.withPreposition = withPreposition;
@@ -55,10 +55,6 @@ class Tense {
     /** L'impératif s'emploie sans sujet : « parle », pas « tu parle ». */
     this.hasSubject = hasSubject;
     Object.freeze(this);
-  }
-
-  allows(person) {
-    return this.slots.includes(person.index);
   }
 
   static PRESENT = new Tense({ id: 'present', label: 'présent', withPreposition: 'au présent',
@@ -72,7 +68,7 @@ class Tense {
   static FUTUR_SIMPLE = new Tense({ id: 'futurSimple', label: 'futur simple', withPreposition: 'au futur simple',
     markers: ['L’année prochaine,', 'Un jour,', 'Dans dix ans,'] });
   static IMPERATIVE = new Tense({ id: 'imperative', label: 'impératif', withPreposition: 'à l’impératif',
-    markers: ['Allez,', 'Vite,', 'Maintenant,'], slots: [1, 3, 4], hasSubject: false });
+    markers: ['Vite,', 'Maintenant,', 'Bon,'], slots: [1, 3, 4], hasSubject: false });
   static ALL = Object.freeze([Tense.PRESENT, Tense.IMPERFECT, Tense.PASSE_COMPOSE, Tense.FUTUR_PROCHE, Tense.IMPERATIVE, Tense.FUTUR_SIMPLE]);
 }
 
@@ -129,8 +125,8 @@ class Verb {
     this.futureStems = Object.freeze(futureStems);
     this.imperfectStem = imperfectStem ?? this.present[3].slice(0, -3);
     this.pronominal = pronominal;
-    // undefined : déduit du présent ; null : pas d'impératif. Les verbes pronominaux (lève-toi) ne sont pas gérés.
-    this.#imperative = imperative === undefined ? undefined : imperative && Object.freeze([...imperative]);
+    // Sans formes données, l'impératif se déduit du présent ; null : pas d'impératif. Les pronominaux (lève-toi) ne sont pas gérés.
+    this.#imperative = imperative ? Object.freeze([...imperative]) : null;
     this.hasImperative = imperative !== null && !pronominal;
     this.splitsPresent = type.id !== 'auxiliary' && !irregularPresent;
     this.alsoLike = Object.freeze([...alsoLike]);
@@ -142,9 +138,14 @@ class Verb {
     return this.pronominal ? textOf(withPronoun('pronoun', 'se', [segment('infinitive', this.infinitive)])) : this.infinitive;
   }
 
+  /** Le verbe existe-t-il à ce temps ? Seul l'impératif manque à certains (pouvoir, devoir). */
+  hasTense(tense) {
+    return tense !== Tense.IMPERATIVE || this.hasImperative;
+  }
+
   /** Le verbe a-t-il une forme à ce temps pour cette personne ? */
   canConjugate(tense, person) {
-    return tense.allows(person) && (tense !== Tense.IMPERATIVE || this.hasImperative);
+    return tense.slots.includes(person.index) && this.hasTense(tense);
   }
 
   conjugate(tense, person, { auxiliary = this.auxiliary, pronominal = this.pronominal, anyAgreement = false } = {}) {
@@ -188,7 +189,7 @@ class Verb {
 
   /** Impératif : tu, nous, vous du présent ; le s de « tu » tombe après un e (parles → parle, ouvres → ouvre). */
   #imperativeSegments(i) {
-    if (this.#imperative) return [segment('stem', this.#imperative[IMPERATIVE_SLOTS.indexOf(i)])];
+    if (this.#imperative) return [segment('stem', this.#imperative[Tense.IMPERATIVE.slots.indexOf(i)])];
     const segments = this.#presentSegments(i);
     if (i !== 1 || !this.present[1].endsWith('es')) return segments;
     const last = segments.at(-1);
@@ -206,8 +207,6 @@ class Verb {
     return ending ? [segment('stem', form.slice(0, -ending.length)), segment('ending', ending)] : [segment('stem', form)];
   }
 }
-
-const IMPERATIVE_SLOTS = Tense.IMPERATIVE.slots;
 
 const splitFirst = list => [list.slice(0, 1), list.slice(1)];
 
@@ -249,7 +248,7 @@ class Conjugation {
     this.segments = Object.freeze(withSubject(shown));
     this.display = textOf(this.segments);
     this.others = Object.freeze(this.forms.slice(variants.length));
-    this.accepted = Object.freeze([...new Set([...this.forms, ...bare])]);
+    this.accepted = Object.freeze(subject ? [...this.forms, ...bare] : this.forms);
     this.#accepted = this.accepted.map(normalizeAnswer);
     Object.freeze(this);
   }

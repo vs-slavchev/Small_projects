@@ -11,16 +11,19 @@ const VERDICT_TEXT = Object.freeze({
   [Verdict.KEEP_GOING]: 'Ça vient.',
 });
 
-function diagnosisText(diagnosis, { tense, person, verb }) {
+function diagnosisText(diagnosis, { tense, person, verb, expected }) {
   switch (diagnosis.kind) {
     case ErrorKind.ACCENTS:
       return 'Toutes les lettres sont là : seuls les accents sont faux.';
     case ErrorKind.OTHER_TENSE:
       return `Tu as écrit la forme <b>${diagnosis.tense.withPreposition}</b> ; la question demandait ${tense.withPreposition}.`;
     case ErrorKind.OTHER_PERSON:
-      return tense.hasSubject
-        ? `C’est la forme de «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, le sujet est «&nbsp;${escapeHtml(person.subject)}&nbsp;».`
-        : `C’est la forme pour «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, on s’adresse à «&nbsp;${escapeHtml(person.subject)}&nbsp;».`;
+    {
+      const [of, here] = tense.hasSubject ? ['de', 'le sujet est'] : ['pour', 'on s’adresse à'];
+      return `C’est la forme ${of} «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, ${here} «&nbsp;${escapeHtml(person.subject)}&nbsp;».`;
+    }
+    case ErrorKind.SUBJECT:
+      return `On ne met pas de sujet ${tense.withPreposition} : <b>${escapeHtml(expected.display)}</b>.`;
     case ErrorKind.AUXILIARY:
       return `${escapeHtml(verb.label)} se conjugue avec <b>${diagnosis.auxiliary}</b> au passé composé${diagnosis.auxiliary === 'être' ? ' (verbes de mouvement et verbes pronominaux)' : ''}.`;
     case ErrorKind.AGREEMENT:

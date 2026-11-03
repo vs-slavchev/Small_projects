@@ -51,6 +51,9 @@ test('diagnostic : chaque type d’erreur est reconnu', () => {
   const imperativeS = diagnose(ask('parler', Tense.IMPERATIVE, Person.TU), 'parles');
   assert.deepEqual([imperativeS.kind, imperativeS.tense], [ErrorKind.OTHER_TENSE, Tense.PRESENT], 'impératif : le s de tu en trop');
   assert.equal(diagnose(ask('finir', Tense.IMPERATIVE, Person.NOUS), 'finissez').kind, ErrorKind.OTHER_PERSON);
+  assert.equal(kindOf(ask('parler', Tense.IMPERATIVE, Person.TU), 'tu parle'), ErrorKind.SUBJECT, 'impératif : sujet en trop');
+  assert.notEqual(diagnose(ask('parler', Tense.PRESENT, Person.TU), 'tu parle')?.tense, Tense.IMPERATIVE,
+    'présent : « tu parle » est un s oublié, pas un impératif');
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je mange'), null, 'erreur sans nom');
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je parle'), null, 'réponse juste');
 });

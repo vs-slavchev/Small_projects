@@ -6,7 +6,7 @@ const { DomainError, Person, Tense, comboKey, LEVEL_DATA } = Conjugo;
 const combo = (verb, tense, slot) => Object.freeze({ verb, tense, slot, key: comboKey(verb.infinitive, tense.id, slot) });
 
 /** Au-delà, un niveau devient trop long à maîtriser : trois verbes à six personnes. */
-const MAX_LEVEL_FORMS = 18;
+const MAX_LEVEL_FORMS = 3 * Person.SLOTS.length;
 
 const FRENCH_LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
 const frenchList = items => FRENCH_LIST.format(items);
@@ -16,6 +16,8 @@ class Level {
     if (!Number.isInteger(number) || number < 1) throw new DomainError(`Numéro de niveau invalide : ${number}.`);
     if (!(tense instanceof Tense)) throw new DomainError(`Niveau ${number} : temps invalide.`);
     if (!verbs.length) throw new DomainError(`Niveau ${number} : aucun verbe.`);
+    const missing = verbs.find(v => !v.hasTense(tense));
+    if (missing) throw new DomainError(`Niveau ${number} : « ${missing.infinitive} » n’a pas de forme ${tense.withPreposition}.`);
     this.number = number;
     this.tense = tense;
     this.verbs = Object.freeze([...verbs]);
@@ -65,9 +67,6 @@ class LevelLadder {
       const verbs = d.verbs.map(infinitive => {
         const verb = bank.verb(infinitive);
         if (!verb) throw new DomainError(`Niveau ${i + 1} : verbe inconnu « ${infinitive} ».`);
-        if (!tense.slots.some(slot => verb.canConjugate(tense, Person.SLOTS[slot][0]))) {
-          throw new DomainError(`Niveau ${i + 1} : « ${infinitive} » n’a pas de forme ${tense.withPreposition}.`);
-        }
         return verb;
       });
       return new Level({ number: i + 1, tense, verbs, label: d.label });
@@ -93,5 +92,5 @@ class LevelLadder {
   }
 }
 
-Object.assign(Conjugo, { MAX_LEVEL_FORMS, frenchList, Level, LevelLadder });
+Object.assign(Conjugo, { frenchList, Level, LevelLadder });
 })(globalThis.Conjugo ??= {});
