@@ -141,3 +141,38 @@ test('une question calcule sa forme attendue', () => {
   assert.equal(q.expected.display, 'nous finirons');
   assert.throws(() => new Question({ verb: bank.verb('finir'), tense: FUTUR_SIMPLE }), DomainError);
 });
+
+test('impératif : tu, nous, vous du présent, sans sujet ; le s de tu tombe après un e', () => {
+  const imp = (infinitive, person) => form(infinitive, Tense.IMPERATIVE, person);
+  assert.deepEqual([TU, NOUS, VOUS].map(p => imp('parler', p)), ['parle', 'parlons', 'parlez']);
+  assert.equal(imp('habiter', TU), 'habite', 'pas d’élision : il n’y a pas de sujet');
+  assert.equal(imp('manger', NOUS), 'mangeons');
+  assert.equal(imp('commencer', NOUS), 'commençons');
+  assert.equal(imp('acheter', TU), 'achète');
+  assert.deepEqual([TU, VOUS].map(p => imp('finir', p)), ['finis', 'finissez']);
+  assert.equal(imp('prendre', TU), 'prends');
+  assert.equal(imp('faire', VOUS), 'faites');
+  assert.equal(imp('venir', TU), 'viens');
+  assert.equal(imp('aller', TU), 'va');
+  assert.deepEqual([TU, NOUS, VOUS].map(p => imp('être', p)), ['sois', 'soyons', 'soyez']);
+  assert.deepEqual([TU, NOUS, VOUS].map(p => imp('avoir', p)), ['aie', 'ayons', 'ayez']);
+  assert.equal(imp('vouloir', VOUS), 'veuillez');
+  assert.deepEqual(bank.verb('parler').conjugate(Tense.IMPERATIVE, TU).segments.map(s => `${s.kind}:${s.text}`), ['stem:parl', 'ending:e']);
+
+  const c = bank.verb('parler').conjugate(Tense.IMPERATIVE, TU);
+  assert.ok(c.check('Parle !').correct);
+  assert.equal(c.check('tu parle').correct, false, 'l’impératif n’a pas de sujet');
+  assert.equal(c.check('parles').correct, false);
+});
+
+test('impératif : seulement tu, nous, vous, et pas pour pouvoir, devoir ni les pronominaux', () => {
+  assert.deepEqual(Tense.IMPERATIVE.slots, [1, 3, 4]);
+  for (const person of [JE, IL, ELLE, ILS, ELLES]) {
+    assert.throws(() => bank.verb('parler').conjugate(Tense.IMPERATIVE, person), DomainError, person.subject);
+  }
+  for (const infinitive of ['pouvoir', 'devoir', 'lever']) {
+    assert.equal(bank.verb(infinitive).hasImperative, false, infinitive);
+    assert.throws(() => bank.verb(infinitive).conjugate(Tense.IMPERATIVE, TU), DomainError);
+  }
+  assert.throws(() => VerbBank.fromData([{ ...VERB_DATA[0], imperative: ['parle', 'parlons'] }], VERB_TYPES.slice(0, 1)), /3 formes/);
+});

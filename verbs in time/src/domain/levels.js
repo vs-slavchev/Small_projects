@@ -5,6 +5,9 @@ const { DomainError, Person, Tense, comboKey, LEVEL_DATA } = Conjugo;
 
 const combo = (verb, tense, slot) => Object.freeze({ verb, tense, slot, key: comboKey(verb.infinitive, tense.id, slot) });
 
+/** Au-delà, un niveau devient trop long à maîtriser : trois verbes à six personnes. */
+const MAX_LEVEL_FORMS = 3 * Person.SLOTS.length;
+
 const FRENCH_LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
 const frenchList = items => FRENCH_LIST.format(items);
 
@@ -13,11 +16,14 @@ class Level {
     if (!Number.isInteger(number) || number < 1) throw new DomainError(`Numéro de niveau invalide : ${number}.`);
     if (!(tense instanceof Tense)) throw new DomainError(`Niveau ${number} : temps invalide.`);
     if (!verbs.length) throw new DomainError(`Niveau ${number} : aucun verbe.`);
+    const missing = verbs.find(v => !v.hasTense(tense));
+    if (missing) throw new DomainError(`Niveau ${number} : « ${missing.infinitive} » n’a pas de forme ${tense.withPreposition}.`);
     this.number = number;
     this.tense = tense;
     this.verbs = Object.freeze([...verbs]);
     this.label = label;
-    this.combos = Object.freeze(this.verbs.flatMap(verb => Person.SLOTS.map((_, slot) => combo(verb, tense, slot))));
+    this.combos = Object.freeze(this.verbs.flatMap(verb => tense.slots.map(slot => combo(verb, tense, slot))));
+    if (this.combos.length > MAX_LEVEL_FORMS) throw new DomainError(`Niveau ${number} : ${this.combos.length} formes, ${MAX_LEVEL_FORMS} au plus.`);
     Object.freeze(this);
   }
 
@@ -30,8 +36,8 @@ class Level {
   }
 
   get span() {
-    const [first] = Person.SLOTS[0];
-    const last = Person.SLOTS.at(-1).at(-1);
+    const [first] = Person.SLOTS[this.tense.slots[0]];
+    const last = Person.SLOTS[this.tense.slots.at(-1)].at(-1);
     return Object.freeze({
       from: this.verbs[0].conjugate(this.tense, first).display,
       to: this.verbs.at(-1).conjugate(this.tense, last).display,

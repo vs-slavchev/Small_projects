@@ -11,17 +11,17 @@ const bank = realBank();
 const ladder = LevelLadder.fromData(bank);
 const day = (d, h = 14) => new Date(2026, 9, d, h);
 
-test('22 niveaux : présent, passé composé, futur proche, imparfait, futur simple', () => {
-  assert.equal(ladder.count, 22);
+test('30 niveaux : présent, passé composé, futur proche, impératif, imparfait, futur simple', () => {
+  assert.equal(ladder.count, 30);
   const tenses = ladder.levels.map(l => l.tense.id);
-  assert.deepEqual([...new Set(tenses)], ['present', 'passeCompose', 'futurProche', 'imperfect', 'futurSimple']);
+  assert.deepEqual([...new Set(tenses)], ['present', 'passeCompose', 'futurProche', 'imperative', 'imperfect', 'futurSimple']);
   assert.equal(ladder.level(6).title, 'finir');
   assert.equal(ladder.level(12).title, 'aller', 'aller seul au passé composé : il prend être');
   assert.equal(ladder.level(13).title, 'faire, prendre');
   assert.equal(ladder.level(1).combos.length, 12, 'deux verbes × six cases');
   assert.equal(ladder.keys.length, new Set(ladder.levels.flatMap(l => l.combos.map(c => c.key))).size, 'clés sans doublon');
   assert.deepEqual(ladder.before(3).map(l => l.number), [1, 2]);
-  assert.throws(() => ladder.level(23), DomainError);
+  assert.throws(() => ladder.level(31), DomainError);
   assert.deepEqual(ladder.level(6).span, { from: 'je finis', to: 'elles finissent' });
   assert.deepEqual(ladder.level(13).span, { from: 'j’ai fait', to: 'elles ont pris' });
   assert.equal(ladder.level(4).verbList, 'aller, faire et prendre');
@@ -30,11 +30,27 @@ test('22 niveaux : présent, passé composé, futur proche, imparfait, futur sim
   assert.deepEqual(levelPace([], ladder.level(6), 6), { gamesLeft: 0, nextGameForms: 0 }, 'niveau acquis : rien à gagner');
 });
 
+test('chaque niveau a 18 formes au plus', () => {
+  assert.equal(ladder.level(20).combos.length, 12, 'impératif : quatre verbes × trois cases');
+  assert.deepEqual(ladder.level(20).span, { from: 'parle', to: 'achetez' });
+});
+
+test('chaque temps couvre chaque groupe de verbes', () => {
+  for (const tense of Tense.ALL) {
+    const covered = new Set(ladder.levels.filter(l => l.tense === tense).flatMap(l => l.verbs.map(v => v.type.id)));
+    const expected = bank.types.filter(t => bank.verbs.some(v => v.type === t && v.hasTense(tense)));
+    assert.deepEqual([...covered].sort(), expected.map(t => t.id).sort(), tense.label);
+  }
+});
+
 test('données de niveau invalides refusées au chargement', () => {
+  const tooMany = ['parler', 'habiter', 'manger', 'finir'];
+  assert.throws(() => LevelLadder.fromData(bank, [{ tense: 'present', verbs: tooMany, label: 'x' }]), /24 formes, 18 au plus/);
+  assert.throws(() => LevelLadder.fromData(bank, [{ tense: 'imperative', verbs: ['pouvoir'], label: 'x' }]), /pas de forme à l’impératif/);
   assert.throws(() => LevelLadder.fromData(bank, [{ tense: 'present', verbs: ['lever'], label: 'x' }]), /verbe inconnu/);
   assert.throws(() => LevelLadder.fromData(bank, [{ tense: 'subjonctif', verbs: ['parler'], label: 'x' }]), /temps inconnu/);
   assert.throws(() => LevelLadder.fromData(bank, []), /Aucun niveau/);
-  assert.equal(LEVEL_DATA.length, 22);
+  assert.equal(LEVEL_DATA.length, 30);
 });
 
 test('progression d’un niveau : formes acquises sur formes du niveau', () => {
@@ -68,16 +84,16 @@ function runPlacement(known, random = seededRandom(3)) {
 }
 
 test('placement : la recherche trouve le premier niveau non connu, en 5 questions au plus', () => {
-  for (const known of [0, 1, 5, 8, 13, 21, 22]) {
+  for (const known of [0, 1, 5, 8, 13, 21, 29, 30]) {
     const { result, questions, maxLength } = runPlacement(known);
-    assert.equal(result, Math.min(known + 1, 22), `connu jusqu’au niveau ${known}`);
+    assert.equal(result, Math.min(known + 1, 30), `connu jusqu’au niveau ${known}`);
     assert.ok(questions <= maxLength && maxLength === 5, `${questions} questions`);
   }
 });
 
 test('placement : une erreur ou « je ne sais pas » fait chercher plus bas, sans rien enregistrer', () => {
   const placement = new PlacementTest({ ladder, random: sequence(0) });
-  assert.equal(placement.currentQuestion.tense, ladder.level(11).tense, 'premier niveau testé : le milieu du parcours');
+  assert.equal(placement.currentQuestion.tense, ladder.level(15).tense, 'premier niveau testé : le milieu du parcours');
   placement.answer('xyz');
   assert.equal(placement.position, 2);
   assert.throws(() => placement.result, /pas terminé/);
@@ -87,12 +103,17 @@ test('placement : une forme juste suffit pour chercher plus haut ; la barre suit
   const placement = new PlacementTest({ ladder, random: sequence(0) });
   assert.equal(placement.plannedLength, 5);
   placement.answer(placement.currentQuestion.expected.forms[0]);
-  assert.equal(placement.currentQuestion.tense, ladder.level(17).tense, 'niveau 11 connu : on teste le niveau 17');
+  assert.equal(placement.currentQuestion.tense, ladder.level(23).tense, 'niveau 15 connu : on teste le niveau 23');
   assert.equal(placement.position, 2);
-  for (const _ of [1, 2, 3]) placement.skip();
-  assert.ok(placement.isComplete, 'branche courte : 4 questions');
-  assert.equal(placement.plannedLength, 4, 'la barre se termine pleine');
-  assert.equal(placement.result, 12);
+  for (const _ of [1, 2, 3, 4]) placement.skip();
+  assert.ok(placement.isComplete);
+  assert.equal(placement.result, 16);
+
+  const unknown = new PlacementTest({ ladder, random: sequence(0) });
+  for (const _ of [1, 2, 3, 4]) unknown.skip();
+  assert.ok(unknown.isComplete, 'branche courte : 4 questions');
+  assert.equal(unknown.plannedLength, 4, 'la barre se termine pleine');
+  assert.equal(unknown.result, 1);
 });
 test('placement : l’historique garde chaque question, son niveau et la réponse', () => {
   const placement = new PlacementTest({ ladder, random: sequence(0) });
@@ -100,10 +121,10 @@ test('placement : l’historique garde chaque question, son niveau et la répons
   placement.answer(first.expected.forms[0]);
   placement.skip();
   const { history } = placement;
-  assert.deepEqual(history.map(e => [e.level, e.correct]), [[11, true], [17, false]]);
+  assert.deepEqual(history.map(e => [e.level, e.correct]), [[15, true], [23, false]]);
   assert.equal(history[0].question, first);
   assert.ok(Object.isFrozen(history) && Object.isFrozen(history[0]));
-  assert.equal(placement.currentQuestion.tense, ladder.level(14).tense, 'une erreur au niveau 17 : on teste le niveau 14');
+  assert.equal(placement.currentQuestion.tense, ladder.level(19).tense, 'une erreur au niveau 23 : on teste le niveau 19');
 });
 
 test('placement : une autre règle se branche sans toucher au test', () => {
@@ -118,7 +139,7 @@ test('placement : une autre règle se branche sans toucher au test', () => {
     remaining: ({ ladder: l, history }) => (history.some(e => !e.correct) ? 0 : l.count - history.length),
   };
   const placement = new PlacementTest({ ladder, strategy: stepUp, random: sequence(0) });
-  assert.equal(placement.plannedLength, 22);
+  assert.equal(placement.plannedLength, 30);
   placement.answer(placement.currentQuestion.expected.forms[0]);
   placement.answer(placement.currentQuestion.expected.forms[0]);
   assert.equal(placement.currentQuestion.verb, ladder.level(3).verbs[0]);

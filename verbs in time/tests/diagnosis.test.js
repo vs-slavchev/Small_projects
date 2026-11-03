@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { realBank, engineBank } from './helpers.js';
 import { Conjugo } from './game.js';
 
-const { Question, Tense, Person, ErrorKind, diagnose } = Conjugo;
+const { Question, Tense, Person, ErrorKind, diagnose, diagnosisText } = Conjugo;
 
 const bank = engineBank();
 const ask = (verb, tense, person) => new Question({ verb: bank.verb(verb), tense, person });
@@ -27,7 +27,7 @@ test('formes découpées : radical, terminaison, auxiliaire, pronom, accord', ()
 test('la forme découpée et la forme affichée sont la même', () => {
   for (const verb of bank.verbs) {
     for (const tense of Tense.ALL) {
-      for (const person of Person.ALL) {
+      for (const person of Person.ALL.filter(p => verb.canConjugate(tense, p))) {
         const c = verb.conjugate(tense, person);
         assert.equal(c.segments.map(s => s.text).join(''), c.display);
       }
@@ -48,6 +48,18 @@ test('diagnostic : chaque type d’erreur est reconnu', () => {
   assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.JE), 'je lève'), ErrorKind.MISSING_REFLEXIVE);
   assert.equal(kindOf(ask('lever', Tense.PRESENT, Person.NOUS), 'levons'), ErrorKind.MISSING_REFLEXIVE);
   assert.deepEqual(diagnose(ask('parler', Tense.IMPERFECT, Person.IL), 'il parlerait'), { kind: ErrorKind.ENDING, stem: 'parl', ending: 'ait' });
+  const imperativeS = diagnose(ask('parler', Tense.IMPERATIVE, Person.TU), 'parles');
+  assert.deepEqual([imperativeS.kind, imperativeS.tense], [ErrorKind.OTHER_TENSE, Tense.PRESENT], 'impératif : le s de tu en trop');
+  assert.equal(diagnose(ask('finir', Tense.IMPERATIVE, Person.NOUS), 'finissez').kind, ErrorKind.OTHER_PERSON);
+  assert.deepEqual(diagnose(ask('parler', Tense.IMPERATIVE, Person.TU), 'tu parle'), { kind: ErrorKind.SUBJECT, accents: false, wrongPerson: null }, 'impératif : sujet en trop');
+  assert.equal(diagnose(ask('parler', Tense.IMPERATIVE, Person.TU), 'vous parle').wrongPerson, Person.VOUS, 'sujet en trop et faux');
+  assert.equal(diagnose(ask('parler', Tense.IMPERATIVE, Person.NOUS), 'on parlons').wrongPerson, Person.ON, '« on » reconnu comme sujet');
+  assert.equal(diagnose(ask('acheter', Tense.IMPERATIVE, Person.TU), 'tu achete').accents, true, 'sujet en trop et accent oublié');
+  assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.ON), 'on parle'), null, 'présent : « on parle » reste juste');
+  const onNous = diagnose(ask('parler', Tense.PRESENT, Person.IL), 'on parlons');
+  assert.deepEqual([onNous.kind, onNous.person.index], [ErrorKind.OTHER_PERSON, 3], 'présent : « on parlons » est la forme de nous');
+  assert.notEqual(diagnose(ask('parler', Tense.PRESENT, Person.TU), 'tu parle')?.tense, Tense.IMPERATIVE,
+    'présent : « tu parle » est un s oublié, pas un impératif');
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je mange'), null, 'erreur sans nom');
   assert.equal(kindOf(ask('parler', Tense.PRESENT, Person.JE), 'je parle'), null, 'réponse juste');
 });
@@ -57,4 +69,11 @@ test('le diagnostic est gardé avec la réponse', () => {
   const q = ask('finir', Tense.IMPERFECT, Person.NOUS);
   const s = GameSession.start({ length: 1, drawQuestion: () => q, now: 0 });
   assert.equal(s.answer('nous finissons', 1).diagnosis.kind, ErrorKind.OTHER_TENSE);
+});
+
+test('message « sujet en trop » : sujet faux et accents signalés en plus', () => {
+  const q = ask('acheter', Tense.IMPERATIVE, Person.TU);
+  assert.equal(diagnosisText(diagnose(q, 'tu achete'), q), 'On ne met pas de sujet à l’impératif : <b>achète</b>. Attention aussi aux accents.');
+  assert.equal(diagnosisText(diagnose(q, 'vous achète'), q),
+    'On ne met pas de sujet à l’impératif : <b>achète</b>. Et ici, on s’adresse à «&nbsp;tu&nbsp;», pas à «&nbsp;vous&nbsp;».');
 });

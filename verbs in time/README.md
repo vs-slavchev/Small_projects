@@ -19,15 +19,16 @@ Le joueur choisit son point de départ :
 
 ### Niveaux
 
-Chaque niveau travaille un temps sur quelques verbes, aux **six cases de personne** : je, tu, il / elle / on, nous, vous, ils / elles. Il, elle et on comptent comme une seule case, ils et elles aussi ; la question montre l'un des sujets de la case, au hasard.
+Chaque niveau travaille un temps sur quelques verbes, aux **six cases de personne** : je, tu, il / elle / on, nous, vous, ils / elles. Il, elle et on comptent comme une seule case, ils et elles aussi ; la question montre l'un des sujets de la case, au hasard. L'**impératif** n'a que trois cases (tu, nous, vous). Un niveau compte **18 formes au plus** (trois verbes à six cases) : `LevelLadder.fromData` refuse un niveau plus gros. Chaque temps passe par tous les groupes de verbes.
 
 | Niveaux | Temps | Verbes |
 |---|---|---|
 | 1 – 8 | présent | parler, habiter · manger · être, avoir · aller, faire, prendre · pouvoir, vouloir, devoir · finir · venir · commencer, acheter, préférer |
 | 9 – 17 | passé composé | les mêmes groupes, avec aller seul (il prend *être*) puis faire, prendre |
-| 18 | futur proche | parler, finir, prendre |
-| 19 – 20 | imparfait | forme régulière (parler, manger, finir, commencer) · être |
-| 21 – 22 | futur simple | forme régulière (parler, finir) · radicaux irréguliers (être, avoir, aller, faire, pouvoir, venir) |
+| 18 – 19 | futur proche | parler, finir, prendre · être, avoir, manger |
+| 20 – 22 | impératif | parler, manger, commencer, acheter (tu sans s) · finir, prendre, faire, venir · aller, être, avoir |
+| 23 – 26 | imparfait | parler, finir · manger, commencer · faire, prendre, venir · être, avoir |
+| 27 – 30 | futur simple | parler, finir · acheter, préférer · être, avoir, aller · faire, pouvoir, venir |
 
 Une **forme** (verbe + temps + case de personne) est **acquise** quand sa dernière réponse est juste et qu'au moins 60 % de ses réponses le sont. Un niveau est terminé quand toutes ses formes sont acquises : un écran de fête le célèbre, sans décrire le niveau suivant, et la partie d'après s'y joue. Les niveaux à venir ne sont jamais listés.
 
@@ -40,7 +41,7 @@ Une **forme** (verbe + temps + case de personne) est **acquise** quand sa derni�
   - **10 %** : une forme des niveaux précédents, hors de ces formes à revoir.
 
   Un panier vide renvoie au niveau en cours, puis aux niveaux précédents. Une même forme ne revient pas dans une partie.
-- La question est une phrase à trou, située par une expression de temps (« Hier, nous ___ ___. », « L’année prochaine, je ___. ») : le temps se comprend par son usage, pas seulement par son nom. Un trait par mot attendu. Tout est en français : aucune traduction.
+- La question est une phrase à trou, située par une expression de temps (« Hier, nous ___ ___. », « L’année prochaine, je ___. ») : le temps se comprend par son usage, pas seulement par son nom. Un trait par mot attendu. Tout est en français : aucune traduction. À l'impératif, il n'y a pas de sujet : la personne à qui l'on parle est indiquée entre parenthèses (« Vite, (nous) ___ ! »), et seule la forme nue est acceptée (« parle », pas « tu parle »).
 - Le joueur tape la forme conjuguée. Le pronom sujet est facultatif (« finirons » vaut « nous finirons »). La casse, les espaces et le type d'apostrophe ne comptent pas. Les accents comptent : une réponse fausse seulement à cause des accents est signalée par « Presque ».
 - Passé composé avec *être* : le participe s'accorde avec le sujet. Comme le genre de je, tu, nous, vous et on n'est pas connu, toutes les formes possibles sont acceptées (« je suis allé » et « je suis allée »). Pour il, elle, ils et elles, l'accord doit être exact.
 - Après chaque réponse, l'écran d'explication montre :
@@ -79,7 +80,9 @@ La barre d'onglets compte trois entrées : **Progrès**, **Jouer** (au centre : 
 | 1er groupe à particularité | commencer, manger, acheter, préférer | -cer (ç), -ger (ge), e → è, é → è |
 | 2e groupe | finir | -iss- au pluriel et à l’imparfait |
 | 3e groupe | venir, prendre, pouvoir, vouloir, devoir, faire, aller | radicaux qui changent au présent ; futurs irréguliers ; auxiliaire *être* (venir, aller) |
-| Auxiliaires | être, avoir | imparfait irrégulier (j’étais) ; futurs ser- / aur- |
+| Auxiliaires | être, avoir | imparfait irrégulier (j’étais) ; futurs ser- / aur- ; impératifs sois / aie |
+
+Pouvoir et devoir n'ont pas d'impératif en usage : ils n'apparaissent pas dans les niveaux d'impératif.
 
 ## Architecture
 
@@ -89,7 +92,7 @@ Les dépendances vont toujours vers le centre : l'interface connaît l'applicati
 src/
 ├── data/
 │   ├── verbs.js                 Types de verbes et 16 verbes (présent, participe, radicaux irréguliers, modèles, note)
-│   └── levels.js                Les 22 niveaux : temps, verbes, nom
+│   └── levels.js                Les 30 niveaux : temps, verbes, nom
 ├── domain/
 │   ├── errors.js                DomainError
 │   ├── conjugation.js           Person (six cases), Tense (expressions de temps), Verb.conjugate (formes découpées),
@@ -126,14 +129,15 @@ src/
 └── main.js                      point d'assemblage
 ```
 
-Seuls le présent, le participe passé et les radicaux irréguliers sont stockés. Les autres formes sont calculées :
+Seuls le présent, le participe passé, les radicaux irréguliers et les impératifs irréguliers sont stockés. Les autres formes sont calculées :
 
 - **imparfait** : radical de « nous » au présent, auquel on ajoute -ais… (commençons → commençais, mais commencions) ;
 - **futur simple** : radical du futur, auquel on ajoute -ai… ;
 - **futur proche** : *aller* au présent, suivi de l'infinitif ;
+- **impératif** : tu, nous et vous du présent, sans sujet ; le s de « tu » tombe après un e (tu parles → parle, tu achètes → achète). Aller (va), être (sois), avoir (aie) et vouloir (veuille) ont leur impératif donné ;
 - **passé composé** : auxiliaire au présent, suivi du participe passé, accordé avec *être* ;
 - l'élision j’ / m’ / t’ / s’ est appliquée partout.
 
 ## Ajouter un verbe
 
-Ajouter une entrée dans `src/data/verbs.js`, puis l'inscrire dans un niveau de `src/data/levels.js` pour qu'il soit posé. Le présent et le participe se déduisent pour le 1er et le 2e groupe réguliers, et doivent être donnés pour les autres verbes. Il faut aussi préciser `futureStem` ou `imperfectStem` quand ils sont irréguliers. Au chargement, `VerbBank.fromData` refuse les doublons, les types inconnus, un présent incomplet ou un type sans verbe, et `LevelLadder.fromData` un temps ou un verbe inconnu.
+Ajouter une entrée dans `src/data/verbs.js`, puis l'inscrire dans un niveau de `src/data/levels.js` pour qu'il soit posé. Le présent et le participe se déduisent pour le 1er et le 2e groupe réguliers, et doivent être donnés pour les autres verbes. Il faut aussi préciser `futureStem`, `imperfectStem` ou `imperative` (tu, nous, vous) quand ils sont irréguliers ; `imperative: null` signale un verbe sans impératif. Au chargement, `VerbBank.fromData` refuse les doublons, les types inconnus, un présent incomplet ou un type sans verbe, et `LevelLadder.fromData` un temps ou un verbe inconnu.

@@ -52,7 +52,10 @@ class PlayerProfile {
 
   fitTo(lastLevel) {
     this.#levelHistory = this.#levelHistory.filter(h => h.level <= lastLevel);
-    if (this.#level !== null) this.#level = Math.min(this.#level, lastLevel);
+    if (this.#level === null) return;
+    this.#level = Math.min(this.#level, lastLevel);
+    // Un parcours qui s'allonge peut laisser le niveau en cours déjà terminé : on passe au suivant à faire.
+    while (this.#level < lastLevel && this.hasCompleted(this.#level)) this.#level++;
   }
 
   completeLevel(now, lastLevel) {

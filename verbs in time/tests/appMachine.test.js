@@ -83,9 +83,9 @@ test('test de placement : chaque réponse passe à la question suivante, puis le
     env.machine.send(AppEvent.PLACEMENT_ANSWER, { text: env.machine.context.placement.currentQuestion.expected.forms[0] });
   }
   assert.equal(env.machine.state, AppState.PLACEMENT_RESULT);
-  assert.equal(env.machine.context.startLevel.number, 22, 'tout juste : dernier niveau');
-  assert.equal(env.profiles.load().level, 22);
-  assert.equal(env.profiles.load().levelHistory.length, 21);
+  assert.equal(env.machine.context.startLevel.number, 30, 'tout juste : dernier niveau');
+  assert.equal(env.profiles.load().level, 30);
+  assert.equal(env.profiles.load().levelHistory.length, 29);
   assert.equal(env.profiles.load().practice.get('parler|present|0').seen, 0, 'le test ne compte pas dans les statistiques');
   env.machine.send(AppEvent.START);
   assert.equal(env.machine.state, AppState.QUESTION);

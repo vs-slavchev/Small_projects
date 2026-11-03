@@ -1,6 +1,7 @@
 // futureStem : par défaut l'infinitif (sans le e final des verbes en -re) ; une liste accepte plusieurs
 // orthographes, la première est affichée.
 // imperfectStem : seulement si ce n'est pas le radical de « nous » au présent (être : ét-).
+// imperative : tu, nous, vous, seulement s'ils ne se déduisent pas du présent (null : pas d'impératif).
 // irregularPresent : le présent ne se découpe pas en radical + terminaison (être et avoir le sont d'office).
 
 (function (Conjugo) {
@@ -40,26 +41,29 @@ const VERB_DATA = Object.freeze([
     present: ['prends', 'prends', 'prend', 'prenons', 'prenez', 'prennent'], participle: 'pris',
     note: 'Le d disparaît au pluriel du présent (nous prenons, ils prennent). Participe passé : <b>pris</b>.' },
   { infinitive: 'pouvoir', alsoLike: ['vouloir (je veux, nous voulons)'], type: 'third', translation: 'to be able to',
-    present: ['peux', 'peux', 'peut', 'pouvons', 'pouvez', 'peuvent'], participle: 'pu', futureStem: 'pourr',
+    present: ['peux', 'peux', 'peut', 'pouvons', 'pouvez', 'peuvent'], participle: 'pu', futureStem: 'pourr', imperative: null,
     note: 'Verbes en <b>-oir</b> : je peu<b>x</b>, tu peu<b>x</b> (comme vouloir). Futur irrégulier : <b>pourr-</b>.' },
   { infinitive: 'vouloir', alsoLike: ['pouvoir (je peux, nous pouvons)'], type: 'third', translation: 'to want',
     present: ['veux', 'veux', 'veut', 'voulons', 'voulez', 'veulent'], participle: 'voulu', futureStem: 'voudr',
+    imperative: ['veuille', 'veuillons', 'veuillez'],
     note: 'Radical <b>veu-</b> / <b>voul-</b> / <b>veul-</b> au présent : je veu<b>x</b>, nous voulons, ils veulent. Futur irrégulier : <b>voudr-</b>.' },
   { infinitive: 'devoir', alsoLike: ['recevoir (je reçois, j’ai reçu)', 'apercevoir'], type: 'third', translation: 'to have to, must',
-    present: ['dois', 'dois', 'doit', 'devons', 'devez', 'doivent'], participle: 'dû', futureStem: 'devr',
+    present: ['dois', 'dois', 'doit', 'devons', 'devez', 'doivent'], participle: 'dû', futureStem: 'devr', imperative: null,
     note: 'Radical <b>doi-</b> / <b>dev-</b> / <b>doiv-</b> au présent. Participe passé <b>dû</b>, avec un accent circonflexe. Futur irrégulier : <b>devr-</b>.' },
   { infinitive: 'faire', alsoLike: ['refaire', 'défaire', 'satisfaire'], type: 'third', translation: 'to do, to make',
     present: ['fais', 'fais', 'fait', 'faisons', 'faites', 'font'], participle: 'fait', futureStem: 'fer',
     note: 'Formes irrégulières : vous <b>faites</b>, ils <b>font</b>, futur <b>fer-</b>.' },
   { infinitive: 'aller', irregularPresent: true, type: 'third', translation: 'to go', auxiliary: 'être',
-    present: ['vais', 'vas', 'va', 'allons', 'allez', 'vont'], participle: 'allé', futureStem: 'ir',
-    note: 'Seul verbe en -er du 3e groupe : je vais, j’<b>irai</b>, je suis allé(e). Son présent sert aussi à former le futur proche.' },
+    present: ['vais', 'vas', 'va', 'allons', 'allez', 'vont'], participle: 'allé', futureStem: 'ir', imperative: ['va', 'allons', 'allez'],
+    note: 'Seul verbe en -er du 3e groupe : je vais, j’<b>irai</b>, je suis allé(e), <b>va</b> ! (sans s). Son présent sert aussi à former le futur proche.' },
   { infinitive: 'être', type: 'auxiliary', translation: 'to be',
     present: ['suis', 'es', 'est', 'sommes', 'êtes', 'sont'], participle: 'été', futureStem: 'ser', imperfectStem: 'ét',
-    note: 'Seul verbe dont l’imparfait ne vient pas de « nous » au présent : j’<b>étais</b>. Futur : <b>ser-</b>. Passé composé : j’ai été.' },
+    imperative: ['sois', 'soyons', 'soyez'],
+    note: 'Seul verbe dont l’imparfait ne vient pas de « nous » au présent : j’<b>étais</b>. Futur : <b>ser-</b>. Passé composé : j’ai été. Impératif : <b>sois</b>, soyons, soyez.' },
   { infinitive: 'avoir', type: 'auxiliary', translation: 'to have',
     present: ['ai', 'as', 'a', 'avons', 'avez', 'ont'], participle: 'eu', futureStem: 'aur',
-    note: 'Auxiliaire de la plupart des verbes au passé composé. Futur : <b>aur-</b>. Passé composé : j’ai eu.' },
+    imperative: ['aie', 'ayons', 'ayez'],
+    note: 'Auxiliaire de la plupart des verbes au passé composé. Futur : <b>aur-</b>. Passé composé : j’ai eu. Impératif : <b>aie</b>, ayons, ayez.' },
 ]);
 
 Object.assign(Conjugo, { VERB_TYPES, VERB_DATA });

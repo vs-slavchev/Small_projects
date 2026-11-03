@@ -51,10 +51,13 @@ const underlineAt = (text, indices) => {
   return [...text].map((ch, i) => (marks.has(i) ? `<u class="acc">${esc(ch)}</u>` : esc(ch))).join('');
 };
 
+/** À l'impératif, la personne n'est pas un sujet : on la montre entre parenthèses, « (tu) ». */
+const addressee = (tense, person) => (tense.hasSubject ? person.subject : `(${person.subject})`);
+
 const speakButton = text => `<button class="speak" data-speak="${esc(text)}" aria-label="Écouter « ${esc(text)} »">🔊</button>`;
 
 const questionLabel = question =>
-  `${esc(question.person.subject)} · ${esc(question.verb.label)} · ${esc(question.tense.label)}`;
+  `${esc(addressee(question.tense, question.person))} · ${esc(question.verb.label)} · ${esc(question.tense.label)}`;
 
 const soundLabel = on => (on ? 'Couper le son' : 'Activer le son');
 
@@ -157,11 +160,13 @@ function answerWordCount(expected) {
 }
 
 function questionBlock({ verb, tense, person, marker, expected }, extraClass = '') {
-  const subject = esc(marker ? person.subject : capitalize(person.subject));
+  const shown = addressee(tense, person);
+  const subject = esc(marker ? shown : capitalize(shown));
+  const [subjectClass, end] = tense.hasSubject ? ['q-subj', '.'] : ['q-subj addressee', '&nbsp;!'];
   const blanks = '<span class="q-blank"></span>'.repeat(answerWordCount(expected));
   return `<div class="q-block${extraClass}">
     <div class="q-head"><span class="chip tense pill">${esc(tense.label)}</span><span class="q-verb">${esc(verb.label)}</span></div>
-    <p class="q-sentence">${marker ? `${esc(marker)} ` : ''}<span class="q-subj">${subject}</span> <span class="q-blanks">${blanks}</span>.</p>
+    <p class="q-sentence">${marker ? `${esc(marker)} ` : ''}<span class="${subjectClass}">${subject}</span> <span class="q-blanks">${blanks}</span>${end}</p>
   </div>`;
 }
 
@@ -191,9 +196,9 @@ const placement = {
       </div>
       <div class="q-center">${questionBlock(q)}</div>
       <form class="answer-form" autocomplete="off" data-event="${AppEvent.PLACEMENT_ANSWER}">
-        <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(q.person.subject)} »</label>
+        <label class="sr-only" for="placement-answer">Conjugaison de « ${esc(q.verb.label)} » ${esc(q.tense.withPreposition)}, avec « ${esc(addressee(q.tense, q.person))} »</label>
         <div class="input-row">
-          ${answerInput('placement-answer', { placeholder: `${q.person.subject} …` })}
+          ${answerInput('placement-answer', { placeholder: `${addressee(q.tense, q.person)} …` })}
           <button class="submit press" type="submit">Valider</button>
         </div>
         <button class="link-btn" type="button" data-event="${AppEvent.PLACEMENT_SKIP}">Je ne sais pas</button>
@@ -468,9 +473,9 @@ const question = {
       <div class="play-top">${topBar(session, -1)}</div>
       <div class="q-center">${questionBlock(session.currentQuestion, result)}</div>
       <form class="answer-form${revealing ? ` locked${result}` : ''}" autocomplete="off" data-event="${AppEvent.ANSWER}">
-        <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(person.subject)} »</label>
+        <label class="sr-only" for="answer">Conjugaison de « ${esc(verb.label)} » ${esc(tense.withPreposition)}, avec « ${esc(addressee(tense, person))} »</label>
         <div class="input-row">
-          ${answerInput('answer', { placeholder: `${person.subject} …`, value: revealing ? answer.given : '', disabled: revealing })}
+          ${answerInput('answer', { placeholder: `${addressee(tense, person)} …`, value: revealing ? answer.given : '', disabled: revealing })}
           <button class="submit press" type="submit"${revealing ? ' disabled' : ''}>Valider</button>
         </div>
       </form>

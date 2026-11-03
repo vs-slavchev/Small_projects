@@ -10,8 +10,11 @@ const ErrorKind = Object.freeze({
   AUXILIARY: 'auxiliary',
   AGREEMENT: 'agreement',
   MISSING_REFLEXIVE: 'missingReflexive',
+  SUBJECT: 'subject',
   ENDING: 'ending',
 });
+
+const SUBJECT_PREFIX = /^(?:(je|tu|il|elle|on|nous|vous|ils|elles)\s+|j['’]\s*)/i;
 
 function diagnose(question, given) {
   const { verb, tense, person, expected } = question;
@@ -19,8 +22,20 @@ function diagnose(question, given) {
   if (result.correct) return null;
   if (result.accentsOnly) return { kind: ErrorKind.ACCENTS };
   // Le sujet tapé peut lui-même être faux (« il parlais ») : on compare aussi la forme sans lui.
-  const withoutSubject = given.trim().replace(/^(je|j['’]\s*|tu|il|elle|nous|vous|ils|elles)\s+/i, '').replace(/^j['’]\s*/i, '');
+  const typed = given.trim().match(SUBJECT_PREFIX);
+  const withoutSubject = typed ? given.trim().slice(typed[0].length) : given.trim();
   const matches = conjugation => conjugation.check(given).correct || conjugation.check(withoutSubject).correct;
+  const tries = (t, p) => verb.canConjugate(t, p) && matches(verb.conjugate(t, p));
+
+  // À l'impératif, la bonne forme précédée d'un sujet (« tu parle ») : le sujet est en trop,
+  // et parfois faux (« vous parle » pour tu) ou suivi d'une faute d'accent (« tu achete »).
+  if (!tense.hasSubject && typed) {
+    const bare = expected.check(withoutSubject);
+    if (bare.correct || bare.accentsOnly) {
+      const typedPerson = Person.of((typed[1] ?? 'je').toLowerCase());
+      return { kind: ErrorKind.SUBJECT, accents: bare.accentsOnly, wrongPerson: typedPerson.index === person.index ? null : typedPerson };
+    }
+  }
 
   if (tense === Tense.PASSE_COMPOSE) {
     if (verb.auxiliary === 'être' && matches(verb.conjugate(tense, person, { anyAgreement: true }))) return { kind: ErrorKind.AGREEMENT };
@@ -32,9 +47,10 @@ function diagnose(question, given) {
   if (verb.pronominal && matches(verb.conjugate(tense, person, { pronominal: false, anyAgreement: true }))) {
     return { kind: ErrorKind.MISSING_REFLEXIVE };
   }
-  const otherTense = Tense.ALL.find(t => t !== tense && matches(verb.conjugate(t, person)));
+  // L'impératif n'est jamais proposé comme autre temps : « tu parle » au présent est un s oublié, pas un impératif.
+  const otherTense = Tense.ALL.find(t => t !== tense && t !== Tense.IMPERATIVE && tries(t, person));
   if (otherTense) return { kind: ErrorKind.OTHER_TENSE, tense: otherTense };
-  const otherPerson = Person.ALL.find(p => p.index !== person.index && matches(verb.conjugate(tense, p)));
+  const otherPerson = Person.ALL.find(p => p.index !== person.index && tries(tense, p));
   if (otherPerson) return { kind: ErrorKind.OTHER_PERSON, person: otherPerson };
 
   const stem = expected.segments.filter(s => s.kind === 'stem').map(s => s.text).join('');
