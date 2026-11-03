@@ -14,18 +14,28 @@ const ErrorKind = Object.freeze({
   ENDING: 'ending',
 });
 
+const SUBJECT_PREFIX = /^(?:(je|tu|il|elle|on|nous|vous|ils|elles)\s+|j['’]\s*)/i;
+
 function diagnose(question, given) {
   const { verb, tense, person, expected } = question;
   const result = expected.check(given);
   if (result.correct) return null;
   if (result.accentsOnly) return { kind: ErrorKind.ACCENTS };
   // Le sujet tapé peut lui-même être faux (« il parlais ») : on compare aussi la forme sans lui.
-  const withoutSubject = given.trim().replace(/^(je|j['’]\s*|tu|il|elle|nous|vous|ils|elles)\s+/i, '').replace(/^j['’]\s*/i, '');
+  const typed = given.trim().match(SUBJECT_PREFIX);
+  const withoutSubject = typed ? given.trim().slice(typed[0].length) : given.trim();
   const matches = conjugation => conjugation.check(given).correct || conjugation.check(withoutSubject).correct;
   const tries = (t, p) => verb.canConjugate(t, p) && matches(verb.conjugate(t, p));
 
-  // À l'impératif, la bonne forme précédée d'un sujet (« tu parle ») : seul le sujet est en trop.
-  if (!tense.hasSubject && expected.check(withoutSubject).correct) return { kind: ErrorKind.SUBJECT };
+  // À l'impératif, la bonne forme précédée d'un sujet (« tu parle ») : le sujet est en trop,
+  // et parfois faux (« vous parle » pour tu) ou suivi d'une faute d'accent (« tu achete »).
+  if (!tense.hasSubject && typed) {
+    const bare = expected.check(withoutSubject);
+    if (bare.correct || bare.accentsOnly) {
+      const typedPerson = Person.of((typed[1] ?? 'je').toLowerCase());
+      return { kind: ErrorKind.SUBJECT, accents: bare.accentsOnly, wrongPerson: typedPerson.index === person.index ? null : typedPerson };
+    }
+  }
 
   if (tense === Tense.PASSE_COMPOSE) {
     if (verb.auxiliary === 'être' && matches(verb.conjugate(tense, person, { anyAgreement: true }))) return { kind: ErrorKind.AGREEMENT };

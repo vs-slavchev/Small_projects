@@ -23,7 +23,11 @@ function diagnosisText(diagnosis, { tense, person, verb, expected }) {
       return `C’est la forme ${of} «&nbsp;<b>${escapeHtml(diagnosis.person.subject)}</b>&nbsp;» ; ici, ${here} «&nbsp;${escapeHtml(person.subject)}&nbsp;».`;
     }
     case ErrorKind.SUBJECT:
-      return `On ne met pas de sujet ${tense.withPreposition} : <b>${escapeHtml(expected.display)}</b>.`;
+      return [
+        `On ne met pas de sujet ${tense.withPreposition} : <b>${escapeHtml(expected.display)}</b>.`,
+        diagnosis.wrongPerson && `Et ici, on s’adresse à «&nbsp;${escapeHtml(person.subject)}&nbsp;», pas à «&nbsp;${escapeHtml(diagnosis.wrongPerson.subject)}&nbsp;».`,
+        diagnosis.accents && 'Attention aussi aux accents.',
+      ].filter(Boolean).join(' ');
     case ErrorKind.AUXILIARY:
       return `${escapeHtml(verb.label)} se conjugue avec <b>${diagnosis.auxiliary}</b> au passé composé${diagnosis.auxiliary === 'être' ? ' (verbes de mouvement et verbes pronominaux)' : ''}.`;
     case ErrorKind.AGREEMENT:
